@@ -1,0 +1,23 @@
+{
+  "product": [
+    {
+      "id": "prod-1",
+      "title": "Sample Shirt",
+      "description": "A plain white shirt.",
+      "images": ["https://placehold.co/600x800?text=Shirt"],
+      "options": [{ "title": "Size" }],
+      "variants": [
+        {
+          "title": "S",
+          "prices": [{ "currency_code": "usd", "amount": 2000 }],
+          "options": [{ "value": "S" }]
+        },
+        {
+          "title": "M",
+          "prices": [{ "currency_code": "usd", "amount": 2000 }],
+          "options": [{ "value": "M" }]
+        }
+      ]
+    }
+  ]
+}
