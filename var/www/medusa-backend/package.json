@@ -1,0 +1,15 @@
+{
+  "name": "medusa-backend",
+  "private": true,
+  "scripts": {
+    "start": "medusa start",
+    "seed": "medusa seed -f ./data/seed.json"
+  },
+  "dependencies": {
+    "@medusajs/medusa": "^1.7.3",
+    "medusa-fulfillment-manual": "^1.7.3",
+    "medusa-payment-manual": "^1.7.3",
+    "pg": "^8.11.0",
+    "redis": "^4.6.7"
+  }
+}
