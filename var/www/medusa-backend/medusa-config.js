@@ -13,6 +13,16 @@ module.exports = {
   plugins: [
     './plugins/bkash',
     './plugins/cod',
-    'medusa-fulfillment-manual'
+    'medusa-fulfillment-manual',
+    './admin-extensions',
+    {
+      resolve: '@medusajs/admin',
+      /** @type {import('@medusajs/admin').PluginOptions} */
+      options: {
+        path: 'admin',
+        serve: true,
+        autoRebuild: true
+      }
+    }
   ]
 }
