@@ -6,6 +6,7 @@
     "seed": "medusa seed -f ./data/seed.json"
   },
   "dependencies": {
+    "@medusajs/admin": "^7.1.18",
     "@medusajs/cache-inmemory": "^1.8.1",
     "@medusajs/event-bus-local": "^1.8.0",
     "@medusajs/medusa": "^1.7.8",

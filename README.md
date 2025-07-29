@@ -26,5 +26,13 @@ The services will be available at:
 - Frontend: `http://<your-domain>`
 - Medusa API: `http://<your-domain>/api/`
 - Sanity Studio: `http://<your-domain>/studio/`
+- Medusa Admin: `http://<your-domain>/admin/`
 
 A sample seed file is included for Medusa in `medusa-backend/data/seed.json`.
+
+## Admin UI
+
+The Medusa backend serves an admin dashboard at `/admin/`. Use this interface to
+manage products, handle orders and track inventory. Custom collections such as
+lookbook images or site settings can be added through Sanity Studio and surfaced
+inside the admin using custom widgets.
