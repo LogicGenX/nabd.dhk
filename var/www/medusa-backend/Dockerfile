@@ -1,7 +1,7 @@
 FROM node:20-alpine
 WORKDIR /app
 COPY package.json ./
-RUN npm install && apk add --no-cache postgresql-client
+RUN npm install -g @medusajs/medusa-cli && npm install && apk add --no-cache postgresql-client
 COPY . .
 RUN chmod +x docker-entrypoint.sh
 ENTRYPOINT ["./docker-entrypoint.sh"]
