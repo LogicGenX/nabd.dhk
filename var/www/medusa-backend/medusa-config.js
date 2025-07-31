@@ -1,6 +1,10 @@
 const dotenv = require('dotenv')
 dotenv.config()
 
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL is not set. Start a Postgres instance and set DATABASE_URL before running Medusa.')
+}
+
 module.exports = {
   projectConfig: {
     redis_url: process.env.REDIS_URL,

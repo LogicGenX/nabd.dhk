@@ -4,7 +4,8 @@
   "scripts": {
     "start": "medusa start",
     "seed": "medusa seed -f ./data/seed.json",
-    "migrate": "medusa migrations run"
+    "migrate": "medusa migrations run",
+    "test": "echo \"No tests specified\""
   },
   "dependencies": {
     "@medusajs/admin": "^7.1.18",

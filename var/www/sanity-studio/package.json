@@ -4,7 +4,8 @@
   "scripts": {
     "dev": "sanity dev",
     "build": "sanity build",
-    "start": "sanity start"
+    "start": "sanity start",
+    "test": "echo \"No tests specified\""
   },
   "dependencies": {
     "sanity": "^3.18.0",
