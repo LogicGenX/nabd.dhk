@@ -7,7 +7,10 @@
     "start": "sanity start"
   },
   "dependencies": {
-    "sanity": "^3.18.0",
-    "@sanity/cli": "^3.18.0"
+    "@sanity/cli": "^3.18.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "sanity": "^3.18.0"
   }
 }
+
