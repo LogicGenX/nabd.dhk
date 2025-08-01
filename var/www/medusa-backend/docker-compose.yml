@@ -6,7 +6,7 @@ services:
     volumes:
       - .:/app
     ports:
-      - '7001:7001'
+      - '7001:9000'
     environment:
       - DATABASE_URL=postgres://postgres:postgres@db:5432/medusa
       - REDIS_URL=redis://redis:6379
