@@ -4,7 +4,7 @@ module.exports = {
     app.addMenuItem({
       id: 'lookbook',
       label: 'Lookbook',
-      href: 'https://<your-domain>/studio',
+      href: '/studio',
     })
   },
 }
