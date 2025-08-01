@@ -2,9 +2,9 @@
   "name": "medusa-backend",
   "private": true,
   "scripts": {
-    "start": "medusa start",
-    "seed": "medusa seed -f ./data/seed.json",
-    "migrate": "medusa migrations run"
+    "start": "npx medusa start",
+    "seed": "npx medusa seed -f ./data/seed.json",
+    "migrate": "npx medusa migrations run"
   },
   "dependencies": {
     "@medusajs/admin": "^7.1.18",
