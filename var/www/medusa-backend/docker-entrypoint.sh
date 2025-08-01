@@ -1,5 +1,7 @@
 #!/bin/sh
-set -e
+
+# Fail fast if any command exits with a non-zero status. The -e flag is
+# supplied by the Dockerfile's ENTRYPOINT invocation.
 
 # Wait for Postgres to be ready
 until pg_isready -h db -p 5432 >/dev/null 2>&1; do
