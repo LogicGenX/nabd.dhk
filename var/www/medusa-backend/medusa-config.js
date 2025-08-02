@@ -19,7 +19,11 @@ module.exports = {
       resolve: '@medusajs/admin',
       /** @type {import('@medusajs/admin').PluginOptions} */
       options: {
-        path: '/admin',
+        // Serve the admin dashboard under "/app" to avoid clashing with
+        // Medusa's own "/admin" API routes. Hitting "/admin" now correctly
+        // resolves to the backend API while the UI is available at
+        // "http://<host>:<port>/app".
+        path: '/app',
         serve: true,
         autoRebuild: true,
         // Ensure the admin UI points to the same backend that
