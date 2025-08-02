@@ -21,7 +21,13 @@ module.exports = {
       options: {
         path: '/admin',
         serve: true,
-        autoRebuild: true
+        autoRebuild: true,
+        // Ensure the admin UI points to the same backend that
+        // exposes the Medusa API. Without this the UI defaults to
+        // http://localhost:9000 which breaks authentication when the
+        // backend is served on a different port (e.g. 7001 in the
+        // docker-compose setup).
+        backend: process.env.MEDUSA_ADMIN_BACKEND_URL || 'http://localhost:7001'
       }
     }
   ]
