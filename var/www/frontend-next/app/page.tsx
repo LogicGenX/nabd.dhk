@@ -1,9 +1,22 @@
 import LookbookCarousel from '../components/LookbookCarousel'
 import FeaturedProducts from '../components/FeaturedProducts'
+import { sanity } from '../lib/sanity'
 
-export default function HomePage() {
+export default async function HomePage() {
+  const siteSettings =
+    (await sanity.fetch(
+      `*[_type == "siteSettings"][0]{heroTagline}`
+    )) || {}
+
+  const heroTagline = siteSettings.heroTagline || ''
+
   return (
     <main>
+      {heroTagline && (
+        <section className="py-12 text-center bg-gray-100">
+          <h1 className="text-3xl font-bold tracking-wider">{heroTagline}</h1>
+        </section>
+      )}
       <LookbookCarousel />
       <section className="container mx-auto px-4">
         <h2 className="text-2xl font-bold mt-8 mb-4 tracking-wider">Featured products</h2>
