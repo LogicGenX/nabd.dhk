@@ -12,6 +12,12 @@ var/www/
 └── server-config/      # Nginx, PM2 and deploy script
 ```
 
+> **Note**
+>
+> The Sanity schema at `sanity-studio/schemas/product.js` is experimental and
+> currently omitted from `schemas/index.ts`. It will remain excluded until the
+> mapping to the Medusa backend is finalized.
+
 ## Setup Guide
 
 1. Fill in environment variables in `medusa-backend/.env.template` and copy
