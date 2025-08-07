@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import 'swiper/css'
 import { sanity } from '../lib/sanity'
+import LookbookSkeleton from './LookbookSkeleton'
 
 interface LookbookItem {
   title: string
@@ -13,19 +14,21 @@ interface LookbookItem {
 
 export default function LookbookCarousel() {
   const [items, setItems] = useState<LookbookItem[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     sanity
       .fetch(
         `*[_type == "lookbookItem"]|order(order asc){title,season,"url":photo.asset->url}`
       )
-      .then(setItems)
+      .then((res) => {
+        setItems(res)
+        setLoading(false)
+      })
   }, [])
 
-  if (items.length === 0) {
-    return (
-      <div className="w-full h-[400px] md:h-[600px] bg-gray-200 flex items-center justify-center">Loading...</div>
-    )
+  if (loading) {
+    return <LookbookSkeleton />
   }
 
   return (
