@@ -1,15 +1,15 @@
 export default function CheckoutPage() {
   return (
-    <main className="p-8 space-y-4">
-      <h1 className="text-3xl font-bold mb-4 tracking-wider">Checkout</h1>
-      <form className="space-y-4 max-w-md">
-        <input type="text" placeholder="Name" className="w-full border p-2" />
-        <input type="text" placeholder="Address" className="w-full border p-2" />
-        <select className="w-full border p-2">
+    <main className="p-xl space-y-md">
+      <h1 className="text-3xl font-bold mb-md tracking-wider">Checkout</h1>
+      <form className="space-y-md max-w-md">
+        <input type="text" placeholder="Name" className="w-full border p-xs" />
+        <input type="text" placeholder="Address" className="w-full border p-xs" />
+        <select className="w-full border p-xs">
           <option value="bkash">bKash</option>
           <option value="cod">Cash on Delivery</option>
         </select>
-        <button type="submit" className="w-full bg-black text-white py-2">Place order</button>
+        <button type="submit" className="w-full bg-brand-primary text-white py-xs">Place order</button>
       </form>
     </main>
   )

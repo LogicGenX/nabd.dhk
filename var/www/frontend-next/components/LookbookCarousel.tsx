@@ -33,11 +33,11 @@ export default function LookbookCarousel() {
         <SwiperSlide key={item.title}>
           <div className="relative w-full h-full">
             <img src={item.url} alt={item.title} className="object-cover w-full h-full" />
-            <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white">
-              <h2 className="text-4xl font-bold mb-4 tracking-wider">
+            <div className="absolute inset-0 bg-brand-primary/40 flex flex-col items-center justify-center text-white">
+              <h2 className="text-4xl font-bold mb-md tracking-wider">
                 {item.season} Lookbook
               </h2>
-              <a href="/shop" className="px-4 py-2 bg-white text-black font-semibold">Shop now</a>
+              <a href="/shop" className="px-md py-xs bg-white text-brand-primary font-semibold">Shop now</a>
             </div>
           </div>
         </SwiperSlide>

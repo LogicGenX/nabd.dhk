@@ -12,9 +12,9 @@ export default async function ContactPage() {
   }
 
   return (
-    <main className="p-8 space-y-4">
-      <h1 className="text-3xl font-bold mb-4 tracking-wider">Contact</h1>
-      <div className="space-y-2">
+    <main className="p-xl space-y-md">
+      <h1 className="text-3xl font-bold mb-md tracking-wider">Contact</h1>
+      <div className="space-y-xs">
         <p>
           {contactEmail ? (
             <a href={`mailto:${contactEmail}`} className="underline">
@@ -39,10 +39,10 @@ export default async function ContactPage() {
           )}
         </p>
       </div>
-      <form className="space-y-4 max-w-md">
-        <input type="email" placeholder="Email" className="w-full border p-2" />
-        <textarea placeholder="Message" className="w-full border p-2" rows={4} />
-        <button className="bg-black text-white px-4 py-2" type="submit">Send</button>
+      <form className="space-y-md max-w-md">
+        <input type="email" placeholder="Email" className="w-full border p-xs" />
+        <textarea placeholder="Message" className="w-full border p-xs" rows={4} />
+        <button className="bg-brand-primary text-white px-md py-xs" type="submit">Send</button>
       </form>
     </main>
   )

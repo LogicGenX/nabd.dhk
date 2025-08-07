@@ -25,13 +25,13 @@ export default function ProductGrid() {
   }, [])
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 py-8">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-lg py-xl">
       {products.map((p) => (
         <a key={p.id} href={`/product/${p.id}`} className="group block">
           <div className="overflow-hidden">
             <img src={p.thumbnail} className="object-cover w-full h-56 group-hover:scale-105 transition-transform" />
           </div>
-          <div className="mt-2 text-sm">
+          <div className="mt-xs text-sm">
             <h3>{p.title}</h3>
             <p className="font-semibold">${p.price.toFixed(2)}</p>
           </div>

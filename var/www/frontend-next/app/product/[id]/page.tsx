@@ -29,23 +29,23 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   }, [id])
 
   if (!product) {
-    return <main className="p-8">Loading...</main>
+    return <main className="p-xl">Loading...</main>
   }
 
   return (
-    <main className="p-8">
-      <div className="flex flex-col md:flex-row gap-8">
-        <div className="flex-1 space-y-4">
+    <main className="p-xl">
+      <div className="flex flex-col md:flex-row gap-xl">
+        <div className="flex-1 space-y-md">
           {product.images.map((img, i) => (
             <img key={i} src={img.url} alt={product.title} className="w-full object-cover" />
           ))}
         </div>
-        <div className="flex-1 space-y-4">
+        <div className="flex-1 space-y-md">
           <h1 className="text-3xl font-bold tracking-wider">{product.title}</h1>
           <p>{product.description}</p>
           <p className="text-xl font-semibold">${product.price.toFixed(2)}</p>
           <button
-            className="px-4 py-2 bg-black text-white"
+            className="px-md py-xs bg-brand-primary text-white"
             onClick={() => add({ title: product.title, price: product.price })}
           >
             Add to cart

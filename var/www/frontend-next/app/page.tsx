@@ -13,13 +13,13 @@ export default async function HomePage() {
   return (
     <main>
       {heroTagline && (
-        <section className="py-12 text-center bg-gray-100">
+        <section className="py-2xl text-center bg-gray-100">
           <h1 className="text-3xl font-bold tracking-wider">{heroTagline}</h1>
         </section>
       )}
       <LookbookCarousel />
-      <section className="container mx-auto px-4">
-        <h2 className="text-2xl font-bold mt-8 mb-4 tracking-wider">Featured products</h2>
+      <section className="container mx-auto px-md">
+        <h2 className="text-2xl font-bold mt-xl mb-md tracking-wider">Featured products</h2>
         <FeaturedProducts />
       </section>
     </main>

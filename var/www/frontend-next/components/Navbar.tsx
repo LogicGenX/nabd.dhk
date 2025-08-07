@@ -8,7 +8,7 @@ export default function Navbar() {
   const { items } = useCart()
 
   return (
-    <nav className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+    <nav className="sticky top-0 z-50 bg-white border-b border-gray-200 px-md py-sm flex items-center justify-between">
       <a href="/" className="flex items-center">
         <img src="/logo.png" alt="nabd.dhk logo" className="h-8 w-auto" />
       </a>
@@ -17,7 +17,7 @@ export default function Navbar() {
         {open ? <FaTimes /> : <FaBars />}
       </button>
 
-      <div className={`flex-col md:flex-row md:flex gap-6 ${open ? 'flex' : 'hidden'} md:items-center`}>
+      <div className={`flex-col md:flex-row md:flex gap-lg ${open ? 'flex' : 'hidden'} md:items-center`}>
         <a href="/">Home</a>
         <a href="/shop">Shop</a>
         <a href="/contact">Contact</a>
@@ -27,11 +27,11 @@ export default function Navbar() {
         <a href="/shop?category=UNISEX">UNISEX</a>
       </div>
 
-      <div className="hidden md:flex items-center gap-4">
+      <div className="hidden md:flex items-center gap-md">
         <a href="/cart" className="relative">
           <FaShoppingBag />
           {items.length > 0 && (
-            <span className="absolute -top-2 -right-2 bg-black text-white text-xs rounded-full px-1">{items.length}</span>
+            <span className="absolute -top-2 -right-2 bg-brand-primary text-white text-xs rounded-full px-1">{items.length}</span>
           )}
         </a>
         <a href="/login">
