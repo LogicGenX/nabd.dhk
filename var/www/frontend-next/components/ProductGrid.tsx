@@ -9,11 +9,26 @@ interface Product {
   price: number
 }
 
-export default function ProductGrid() {
+interface ProductGridProps {
+  categoryId?: string
+  order?: string
+  search?: string
+}
+
+export default function ProductGrid({
+  categoryId,
+  order,
+  search
+}: ProductGridProps) {
   const [products, setProducts] = useState<Product[]>([])
 
   useEffect(() => {
-    medusa.products.list().then(({ products }) => {
+    const params: any = {}
+    if (categoryId) params.category_id = categoryId
+    if (order) params.order = order
+    if (search) params.q = search
+
+    medusa.products.list(params).then(({ products }) => {
       const mapped = products.map((p: any) => ({
         id: p.id,
         title: p.title,
@@ -22,7 +37,7 @@ export default function ProductGrid() {
       }))
       setProducts(mapped)
     })
-  }, [])
+  }, [categoryId, order, search])
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 py-8">
