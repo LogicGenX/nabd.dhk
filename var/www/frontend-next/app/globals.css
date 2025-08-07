@@ -7,6 +7,6 @@
     scroll-behavior: smooth;
   }
   body {
-    @apply font-grotesk bg-white text-black;
+    @apply bg-white text-black;
   }
 }
