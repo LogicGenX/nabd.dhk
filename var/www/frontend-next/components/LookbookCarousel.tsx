@@ -23,12 +23,12 @@ export default function LookbookCarousel() {
 
   if (items.length === 0) {
     return (
-      <div className="w-full h-64 bg-gray-200 flex items-center justify-center">Loading...</div>
+      <div className="w-full h-[600px] bg-gray-200 flex items-center justify-center">Loading...</div>
     )
   }
 
   return (
-    <Swiper loop className="w-full h-[400px]">
+    <Swiper loop className="w-full h-[600px]">
       {items.map((item) => (
         <SwiperSlide key={item.title}>
           <div className="relative w-full h-full">
