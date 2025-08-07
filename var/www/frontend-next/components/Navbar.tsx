@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import Image from 'next/image'
 import { FaBars, FaTimes, FaShoppingBag, FaUser } from 'react-icons/fa'
 import { useCart } from '../lib/store'
 
@@ -10,7 +11,14 @@ export default function Navbar() {
   return (
     <nav className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
       <a href="/" className="flex items-center">
-        <img src="/logo.png" alt="nabd.dhk logo" className="h-8 w-auto" />
+        <Image
+          src="/logo.png"
+          alt="nabd.dhk logo"
+          width={1749}
+          height={2481}
+          className="h-8 w-auto"
+          priority
+        />
       </a>
 
       <button className="md:hidden" onClick={() => setOpen(!open)}>

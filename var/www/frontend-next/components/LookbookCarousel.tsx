@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import 'swiper/css'
 import { sanity } from '../lib/sanity'
@@ -29,10 +30,16 @@ export default function LookbookCarousel() {
 
   return (
     <Swiper loop className="w-full h-[400px] md:h-[600px]">
-      {items.map((item) => (
+      {items.map((item, index) => (
         <SwiperSlide key={item.title}>
           <div className="relative w-full h-full">
-            <img src={item.url} alt={item.title} className="object-cover w-full h-full aspect-[3/4]" />
+            <Image
+              src={item.url}
+              alt={item.title}
+              fill
+              className="object-cover aspect-[3/4]"
+              priority={index === 0}
+            />
             <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white">
               <h2 className="text-2xl md:text-4xl font-bold mb-4 tracking-wider">
                 {item.season} Lookbook

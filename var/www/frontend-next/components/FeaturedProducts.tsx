@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { medusa } from '../lib/medusa'
 
 interface Product {
@@ -28,8 +29,13 @@ export default function FeaturedProducts() {
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-8">
       {products.map((p) => (
         <a key={p.id} href={`/product/${p.id}`} className="group block">
-          <div className="overflow-hidden">
-            <img src={p.thumbnail} className="object-cover w-full h-48 group-hover:scale-105 transition-transform" />
+          <div className="relative h-48 overflow-hidden">
+            <Image
+              src={p.thumbnail}
+              alt={p.title}
+              fill
+              className="object-cover group-hover:scale-105 transition-transform"
+            />
           </div>
           <div className="mt-2 text-sm">
             <h3>{p.title}</h3>
