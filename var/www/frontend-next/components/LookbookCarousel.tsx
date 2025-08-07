@@ -32,7 +32,11 @@ export default function LookbookCarousel() {
       {items.map((item) => (
         <SwiperSlide key={item.title}>
           <div className="relative w-full h-full">
-            <img src={item.url} alt={item.title} className="object-cover w-full h-full" />
+            <img
+              src={item.url}
+              alt={`${item.season} lookbook image: ${item.title}`}
+              className="object-cover w-full h-full"
+            />
             <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white">
               <h2 className="text-4xl font-bold mb-4 tracking-wider">
                 {item.season} Lookbook

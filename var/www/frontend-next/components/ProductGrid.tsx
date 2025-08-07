@@ -29,7 +29,11 @@ export default function ProductGrid() {
       {products.map((p) => (
         <a key={p.id} href={`/product/${p.id}`} className="group block">
           <div className="overflow-hidden">
-            <img src={p.thumbnail} className="object-cover w-full h-56 group-hover:scale-105 transition-transform" />
+            <img
+              src={p.thumbnail}
+              alt={p.title}
+              className="object-cover w-full h-56 group-hover:scale-105 transition-transform"
+            />
           </div>
           <div className="mt-2 text-sm">
             <h3>{p.title}</h3>

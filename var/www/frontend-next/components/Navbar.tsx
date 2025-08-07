@@ -13,7 +13,12 @@ export default function Navbar() {
         <img src="/logo.png" alt="nabd.dhk logo" className="h-8 w-auto" />
       </a>
 
-      <button className="md:hidden" onClick={() => setOpen(!open)}>
+      <button
+        className="md:hidden"
+        onClick={() => setOpen(!open)}
+        aria-label={open ? 'Close menu' : 'Open menu'}
+        aria-expanded={open}
+      >
         {open ? <FaTimes /> : <FaBars />}
       </button>
 
@@ -28,13 +33,17 @@ export default function Navbar() {
       </div>
 
       <div className="hidden md:flex items-center gap-4">
-        <a href="/cart" className="relative">
+        <a
+          href="/cart"
+          className="relative"
+          aria-label={items.length ? `Cart with ${items.length} items` : 'Cart'}
+        >
           <FaShoppingBag />
           {items.length > 0 && (
             <span className="absolute -top-2 -right-2 bg-black text-white text-xs rounded-full px-1">{items.length}</span>
           )}
         </a>
-        <a href="/login">
+        <a href="/login" aria-label="Login">
           <FaUser />
         </a>
       </div>
