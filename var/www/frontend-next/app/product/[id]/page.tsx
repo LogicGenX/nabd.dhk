@@ -14,6 +14,7 @@ interface Product {
 export default function ProductPage({ params }: { params: { id: string } }) {
   const { id } = params
   const [product, setProduct] = useState<Product | null>(null)
+  const [quantity, setQuantity] = useState(1)
   const add = useCart((state) => state.add)
 
   useEffect(() => {
@@ -44,12 +45,23 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           <h1 className="text-3xl font-bold tracking-wider">{product.title}</h1>
           <p>{product.description}</p>
           <p className="text-xl font-semibold">${product.price.toFixed(2)}</p>
-          <button
-            className="px-4 py-2 bg-black text-white"
-            onClick={() => add({ title: product.title, price: product.price })}
-          >
-            Add to cart
-          </button>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={1}
+              value={quantity}
+              onChange={(e) => setQuantity(parseInt(e.target.value))}
+              className="w-16 border p-1"
+            />
+            <button
+              className="px-4 py-2 bg-black text-white"
+              onClick={() =>
+                add({ id: product.id, title: product.title, price: product.price, quantity })
+              }
+            >
+              Add to cart
+            </button>
+          </div>
         </div>
       </div>
     </main>

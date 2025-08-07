@@ -5,7 +5,7 @@ import { useCart } from '../lib/store'
 
 export default function Navbar() {
   const [open, setOpen] = useState(false)
-  const { items } = useCart()
+  const itemCount = useCart((state) => state.totalItems())
 
   return (
     <nav className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
@@ -30,8 +30,8 @@ export default function Navbar() {
       <div className="hidden md:flex items-center gap-4">
         <a href="/cart" className="relative">
           <FaShoppingBag />
-          {items.length > 0 && (
-            <span className="absolute -top-2 -right-2 bg-black text-white text-xs rounded-full px-1">{items.length}</span>
+          {itemCount > 0 && (
+            <span className="absolute -top-2 -right-2 bg-black text-white text-xs rounded-full px-1">{itemCount}</span>
           )}
         </a>
         <a href="/login">
