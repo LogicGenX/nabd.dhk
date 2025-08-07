@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { medusa } from '../../../lib/medusa'
 import { useCart } from '../../../lib/store'
 
@@ -38,7 +39,15 @@ export default function ProductPage({ params }: { params: { id: string } }) {
       <div className="flex flex-col md:flex-row gap-8">
         <div className="flex-1 space-y-4">
           {product.images.map((img, i) => (
-            <img key={i} src={img.url} alt={product.title} className="w-full object-cover" />
+            <div key={i} className="relative w-full aspect-square">
+              <Image
+                src={img.url}
+                alt={`${product.title} image ${i + 1}`}
+                fill
+                className="object-cover"
+                priority={i === 0}
+              />
+            </div>
           ))}
         </div>
         <div className="flex-1 space-y-4">
