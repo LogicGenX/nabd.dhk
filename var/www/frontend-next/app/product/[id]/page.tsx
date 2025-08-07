@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { medusa } from '../../../lib/medusa'
 import { useCart } from '../../../lib/store'
+import ProductPageSkeleton from '../../../components/ProductPageSkeleton'
 
 interface Product {
   id: string
@@ -31,7 +32,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   }, [id])
 
   if (!product) {
-    return <main className="p-8">Loading...</main>
+    return <ProductPageSkeleton />
   }
 
   return (
