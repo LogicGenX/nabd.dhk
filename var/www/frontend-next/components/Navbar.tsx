@@ -9,7 +9,9 @@ export default function Navbar() {
 
   return (
     <nav className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-      <a href="/" className="font-bold text-lg tracking-wider">nabd.dhk</a>
+      <a href="/" className="flex items-center">
+        <img src="/logo.png" alt="nabd.dhk logo" className="h-8 w-auto" />
+      </a>
 
       <button className="md:hidden" onClick={() => setOpen(!open)}>
         {open ? <FaTimes /> : <FaBars />}
