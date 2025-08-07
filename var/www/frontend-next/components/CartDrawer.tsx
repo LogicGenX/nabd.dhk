@@ -1,32 +1,54 @@
 'use client'
+import { useState } from 'react'
+import { FaTimes } from 'react-icons/fa'
 import { useCart } from '../lib/store'
 
 export default function CartDrawer() {
   const { items, totalItems, totalPrice } = useCart()
+  const [open, setOpen] = useState(true)
 
   return (
-    <aside className="fixed right-0 top-0 w-80 h-full bg-white shadow-lg p-4 space-y-4">
-      <h2 className="font-bold">Your Cart ({totalItems()} items)</h2>
-      {items.length === 0 ? (
-        <p>Shopping cart is empty!</p>
-      ) : (
-        <>
-          <ul className="space-y-2">
-            {items.map((item, i) => (
-              <li key={i} className="flex justify-between">
-                <span>
-                  {item.title} x {item.quantity}
-                </span>
-                <span>${(item.price * item.quantity).toFixed(2)}</span>
-              </li>
-            ))}
-          </ul>
-          <div className="flex justify-between font-semibold border-t pt-2">
-            <span>Subtotal</span>
-            <span>${totalPrice().toFixed(2)}</span>
-          </div>
-        </>
-      )}
-    </aside>
+    <>
+      <div
+        className={`fixed inset-0 bg-black transition-opacity duration-300 ${
+          open ? 'bg-opacity-50' : 'bg-opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setOpen(false)}
+      />
+      <aside
+        className={`fixed right-0 top-0 w-80 h-full bg-white shadow-lg p-4 space-y-4 transform transition-transform duration-300 ${
+          open ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        <button
+          className="absolute top-4 right-4 text-black"
+          onClick={() => setOpen(false)}
+          aria-label="Close cart"
+        >
+          <FaTimes />
+        </button>
+        <h2 className="font-bold">Your Cart ({totalItems()} items)</h2>
+        {items.length === 0 ? (
+          <p>Shopping cart is empty!</p>
+        ) : (
+          <>
+            <ul className="space-y-2">
+              {items.map((item, i) => (
+                <li key={i} className="flex justify-between">
+                  <span>
+                    {item.title} x {item.quantity}
+                  </span>
+                  <span>${(item.price * item.quantity).toFixed(2)}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="flex justify-between font-semibold border-t pt-2">
+              <span>Subtotal</span>
+              <span>${totalPrice().toFixed(2)}</span>
+            </div>
+          </>
+        )}
+      </aside>
+    </>
   )
 }
