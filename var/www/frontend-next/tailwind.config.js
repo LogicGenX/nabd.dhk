@@ -7,8 +7,8 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        grotesk: ['Grotesk', 'sans-serif'],
-        arabic: ['ArabicFont', 'sans-serif']
+        grotesk: ['var(--font-grotesk)', 'sans-serif'],
+        arabic: ['var(--font-arabic)', 'sans-serif']
       },
       colors: {
         black: '#000',
