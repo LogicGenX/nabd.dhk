@@ -41,13 +41,18 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         <div className="flex-1 space-y-4">
           {product.images.map((img, i) => (
             <div key={i} className="relative w-full aspect-square">
-              <Image
-                src={img.url}
-                alt={`${product.title} image ${i + 1}`}
-                fill
-                className="object-cover"
-                priority={i === 0}
-              />
+              {img.url ? (
+                <Image
+                  src={img.url}
+                  alt={`${product.title} image ${i + 1}`}
+                  fill
+                  sizes="(max-width:768px) 100vw, 50vw"
+                  className="object-cover"
+                  priority={i === 0}
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-100" />
+              )}
             </div>
           ))}
         </div>
