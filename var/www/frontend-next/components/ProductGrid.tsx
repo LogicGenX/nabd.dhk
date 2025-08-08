@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { medusa } from '../lib/medusa'
 import ProductCardSkeleton from './ProductCardSkeleton'
 
@@ -26,6 +27,7 @@ export default function ProductGrid({
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    setLoading(true)
     const params: any = {}
     if (categoryId) params.category_id = categoryId
     if (order) params.order = order
@@ -50,20 +52,25 @@ export default function ProductGrid({
       {loading
         ? Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)
         : products.map((p) => (
-            <a key={p.id} href={`/product/${p.id}`} className="group block">
+            <Link key={p.id} href={`/product/${p.id}`} className="group block">
               <div className="relative h-56 overflow-hidden">
-                <Image
-                  src={p.thumbnail}
-                  alt={p.title}
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform"
-                />
+                {p.thumbnail ? (
+                  <Image
+                    src={p.thumbnail}
+                    alt={p.title}
+                    fill
+                    sizes="(max-width:768px) 50vw, (max-width:1024px) 33vw, 25vw"
+                    className="object-cover group-hover:scale-105 transition-transform"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-100" />
+                )}
               </div>
               <div className="mt-2 text-sm">
                 <h3>{p.title}</h3>
                 <p className="font-semibold">${p.price.toFixed(2)}</p>
               </div>
-            </a>
+            </Link>
           ))}
     </div>
   )
