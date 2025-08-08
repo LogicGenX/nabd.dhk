@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 export default function Footer() {
   return (
     <footer className="border-t border-gray-200 text-center text-sm p-8 space-y-4">
@@ -5,9 +7,9 @@ export default function Footer() {
         Drawing inspiration from contemporary global trends, we create timeless pieces with impeccable craftsmanship, proudly produced right here at home
       </p>
       <nav className="flex justify-center space-x-6 text-gray-600">
-        <a href="/story">About</a>
-        <a href="/terms">Terms & Conditions</a>
-        <a href="/privacy">Privacy Policy</a>
+        <Link href="/story">About</Link>
+        <Link href="/terms">Terms & Conditions</Link>
+        <Link href="/privacy">Privacy Policy</Link>
       </nav>
       <p>aiowardrobes@gmail.com</p>
       <p>Dhaka, Bangladesh</p>
