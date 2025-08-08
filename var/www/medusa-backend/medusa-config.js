@@ -16,6 +16,13 @@ module.exports = {
     'medusa-fulfillment-manual',
     './admin-extensions',
     {
+      resolve: 'medusa-file-local',
+      options: {
+        upload_dir: 'uploads',
+        base_url: process.env.MEDUSA_BACKEND_URL || 'http://localhost:7001',
+      },
+    },
+    {
       resolve: '@medusajs/admin',
       /** @type {import('@medusajs/admin').PluginOptions} */
       options: {
