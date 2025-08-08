@@ -1,3 +1,5 @@
+'use client'
+
 import { useEffect, useState } from 'react'
 import ProductGrid from '../../components/ProductGrid'
 import { medusa } from '../../lib/medusa'
