@@ -3,3 +3,5 @@ node_modules
 dist
 .env
 .env.local
+var/www/medusa-backend/uploads/*
+!var/www/medusa-backend/uploads/.gitkeep
