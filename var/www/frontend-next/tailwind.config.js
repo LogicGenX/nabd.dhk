@@ -6,10 +6,6 @@ module.exports = {
   ],
   theme: {
     extend: {
-      fontFamily: {
-        grotesk: ['var(--font-grotesk)', 'sans-serif'],
-        arabic: ['var(--font-arabic)', 'sans-serif']
-      },
       colors: {
         black: '#000',
         white: '#fff',
