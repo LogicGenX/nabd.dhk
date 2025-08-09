@@ -1,43 +1,23 @@
-'use client'
+"use client"
 
-import { useEffect, useState } from 'react'
-import ProductGrid from '../../components/ProductGrid'
-import { medusa } from '../../lib/medusa'
-
-interface Category {
-  id: string
-  name: string
-}
+import { useState } from "react"
+import ProductGrid from "../../components/ProductGrid"
+import CollectionsDropdown from "../../components/CollectionsDropdown"
+import CategoriesDropdown from "../../components/CategoriesDropdown"
 
 export default function ShopPage() {
-  const [categories, setCategories] = useState<Category[]>([])
-  const [category, setCategory] = useState('')
-  const [order, setOrder] = useState('')
-  const [search, setSearch] = useState('')
-
-  useEffect(() => {
-    medusa.productCategories.list().then(({ product_categories }) => {
-      setCategories(product_categories)
-    })
-  }, [])
+  const [collection, setCollection] = useState("")
+  const [category, setCategory] = useState("")
+  const [order, setOrder] = useState("")
+  const [q, setQ] = useState("")
 
   return (
     <main className="p-8">
       <h1 className="text-3xl font-bold mb-4 tracking-wider">Shop</h1>
 
       <div className="flex flex-col md:flex-row gap-4 mb-6">
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="border p-2 rounded"
-        >
-          <option value="">All Categories</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+        <CollectionsDropdown value={collection} onChange={setCollection} />
+        <CategoriesDropdown value={category} onChange={setCategory} />
 
         <select
           value={order}
@@ -51,17 +31,18 @@ export default function ShopPage() {
 
         <input
           type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
           placeholder="Search products..."
           className="border p-2 rounded flex-1"
         />
       </div>
 
       <ProductGrid
+        collectionId={collection || undefined}
         categoryId={category || undefined}
         order={order || undefined}
-        search={search || undefined}
+        q={q || undefined}
       />
     </main>
   )

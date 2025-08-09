@@ -20,12 +20,18 @@ export default function FeaturedProducts() {
     medusa.products
       .list({ limit: 4 })
       .then(({ products }) => {
-        const mapped = products.map((p: any) => ({
-          id: p.id,
-          title: p.title,
-          thumbnail: p.thumbnail,
-          price: p.variants[0]?.prices[0]?.amount / 100 || 0
-        }))
+        const mapped = products.map((p: any) => {
+          const thumb =
+            (typeof p.thumbnail === 'string' && p.thumbnail) ||
+            p.images?.[0]?.url ||
+            '/placeholder.svg'
+          return {
+            id: p.id,
+            title: p.title,
+            thumbnail: thumb,
+            price: p.variants[0]?.prices[0]?.amount / 100 || 0
+          }
+        })
         setProducts(mapped)
       })
       .finally(() => setLoading(false))
@@ -38,17 +44,13 @@ export default function FeaturedProducts() {
         : products.map((p) => (
             <Link key={p.id} href={`/product/${p.id}`} className="group block">
               <div className="relative h-48 overflow-hidden">
-                {p.thumbnail ? (
-                  <Image
-                    src={p.thumbnail}
-                    alt={p.title}
-                    fill
-                    sizes="(max-width:768px) 50vw, 25vw"
-                    className="object-cover group-hover:scale-105 transition-transform"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-100" />
-                )}
+                <Image
+                  src={p.thumbnail}
+                  alt={p.title}
+                  fill
+                  sizes="(max-width:768px) 50vw, 25vw"
+                  className="object-cover group-hover:scale-105 transition-transform"
+                />
               </div>
               <div className="mt-2 text-sm">
                 <h3>{p.title}</h3>

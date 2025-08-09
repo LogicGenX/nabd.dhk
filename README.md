@@ -44,3 +44,12 @@ path is reserved for the API itself, so attempting to access the dashboard at
 handle orders and track inventory. Custom collections such as lookbook images
 or site settings can be added through Sanity Studio and surfaced inside the admin
 using custom widgets.
+
+## Collections & Categories
+
+The storefront shop now exposes filters for Medusa product collections and
+categories. Collections map directly to Medusa's built-in `collection_id`
+field. Selected `collectionId` and `categoryId` values are passed to
+`medusa.products.list({ collection_id, category_id, q, order, limit, offset })`
+so product queries can combine both filters along with search and sorting
+options.

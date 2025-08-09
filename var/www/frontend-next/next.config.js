@@ -5,6 +5,7 @@ const nextConfig = {
   },
   output: 'standalone',
   images: {
+    // allow images from local Medusa uploads and Sanity CDN
     remotePatterns: [
       {
         protocol: 'http',

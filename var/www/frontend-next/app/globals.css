@@ -10,3 +10,19 @@
     @apply bg-white text-black;
   }
 }
+
+@keyframes heroZoom {
+  0% {
+    transform: scale(1.08);
+  }
+  50% {
+    transform: scale(0.97);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.hero-zoom {
+  animation: heroZoom 1600ms ease-out both;
+}
