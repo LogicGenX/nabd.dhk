@@ -13,39 +13,58 @@ interface Product {
 }
 
 interface ProductGridProps {
+  collectionId?: string
   categoryId?: string
+  q?: string
   order?: string
-  search?: string
+  limit?: number
+  offset?: number
 }
 
 export default function ProductGrid({
+  collectionId,
   categoryId,
+  q,
   order,
-  search
+  limit,
+  offset
 }: ProductGridProps) {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let cancelled = false
     setLoading(true)
-    const params: any = {}
+    const params: any = { limit, offset }
+    if (collectionId) params.collection_id = collectionId
     if (categoryId) params.category_id = categoryId
+    if (q) params.q = q
     if (order) params.order = order
-    if (search) params.q = search
 
     medusa.products
       .list(params)
       .then(({ products }) => {
-        const mapped = products.map((p: any) => ({
-          id: p.id,
-          title: p.title,
-          thumbnail: p.thumbnail,
-          price: p.variants[0]?.prices[0]?.amount / 100 || 0
-        }))
+        if (cancelled) return
+        const mapped = products.map((p: any) => {
+          const thumb =
+            (typeof p.thumbnail === 'string' && p.thumbnail) ||
+            p.images?.[0]?.url ||
+            '/placeholder.svg'
+          return {
+            id: p.id,
+            title: p.title,
+            thumbnail: thumb,
+            price: p.variants[0]?.prices[0]?.amount / 100 || 0
+          }
+        })
         setProducts(mapped)
       })
-      .finally(() => setLoading(false))
-  }, [categoryId, order, search])
+      .finally(() => !cancelled && setLoading(false))
+
+    return () => {
+      cancelled = true
+    }
+  }, [collectionId, categoryId, q, order, limit, offset])
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 py-8">
@@ -54,17 +73,13 @@ export default function ProductGrid({
         : products.map((p) => (
             <Link key={p.id} href={`/product/${p.id}`} className="group block">
               <div className="relative h-56 overflow-hidden">
-                {p.thumbnail ? (
-                  <Image
-                    src={p.thumbnail}
-                    alt={p.title}
-                    fill
-                    sizes="(max-width:768px) 50vw, (max-width:1024px) 33vw, 25vw"
-                    className="object-cover group-hover:scale-105 transition-transform"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gray-100" />
-                )}
+                <Image
+                  src={p.thumbnail}
+                  alt={p.title}
+                  fill
+                  sizes="(max-width:768px) 50vw, (max-width:1024px) 33vw, 25vw"
+                  className="object-cover group-hover:scale-105 transition-transform"
+                />
               </div>
               <div className="mt-2 text-sm">
                 <h3>{p.title}</h3>
