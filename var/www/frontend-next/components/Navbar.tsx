@@ -11,7 +11,16 @@ export default function Navbar() {
       </button>
       <div className="justify-self-center">
         <Link href="/">
-          <Image src="/logo.svg" alt="nabd.dhk logo" width={100} height={20} className="h-8 w-auto" priority />
+          <div className="relative h-12 w-28 overflow-hidden">
+            <Image
+              src="/logo.svg"
+              alt="nabd.dhk logo"
+              fill
+              className="object-cover"
+              priority
+              sizes="7rem"
+            />
+          </div>
         </Link>
       </div>
       <div className="justify-self-end flex items-center gap-6">
