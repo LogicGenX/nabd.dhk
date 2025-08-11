@@ -8,9 +8,8 @@
   },
   "dependencies": {
     "@medusajs/admin": "^7.1.18",
-    "@medusajs/cache-inmemory": "^1.8.1",
-    "@medusajs/event-bus-local": "^1.8.0",
     "@medusajs/medusa": "^1.7.8",
+    "dotenv": "^17.2.1",
     "medusa-file-local": "^2.0.9",
     "medusa-fulfillment-manual": "^1.1.41",
     "medusa-payment-manual": "^1.0.25",
