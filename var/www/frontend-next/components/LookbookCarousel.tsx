@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import 'swiper/css'
 import { sanity } from '../lib/sanity'
@@ -53,7 +54,12 @@ export default function LookbookCarousel() {
               <h2 className="text-2xl md:text-4xl font-bold mb-4 tracking-wider">
                 {item.season} Lookbook
               </h2>
-              <p className="underline text-3xl md:text-5xl font-bold">Shop now</p>
+              <Link
+                href="/shop"
+                className="underline text-3xl md:text-5xl font-bold"
+              >
+                Shop now
+              </Link>
             </div>
           </div>
         </SwiperSlide>
