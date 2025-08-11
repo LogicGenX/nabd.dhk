@@ -1,38 +1,105 @@
 'use client'
+import Image from 'next/image'
+import Link from 'next/link'
+import { FaTrash } from 'react-icons/fa'
 import { useCart } from '../../lib/store'
 
 export default function CartPage() {
-  const { items, clear, updateQuantity, totalItems, totalPrice } = useCart()
+  const { items, updateQuantity, totalItems, totalPrice } = useCart()
 
   return (
     <main className="p-8 space-y-4">
       <h1 className="text-3xl font-bold mb-4 tracking-wider">Cart</h1>
       {items.length === 0 ? (
-        <p>Shopping cart is empty!</p>
-      ) : (
-        <div className="space-y-2">
-          {items.map((item, i) => (
-            <div key={i} className="grid grid-cols-4 gap-4 items-center border-b pb-2">
-              <span>{item.title}</span>
-              <input
-                type="number"
-                min={1}
-                value={item.quantity}
-                onChange={(e) => updateQuantity(item.id, parseInt(e.target.value))}
-                className="w-16 border p-1"
-              />
-              <span>${item.price}</span>
-              <span className="text-right">${(item.price * item.quantity).toFixed(2)}</span>
-            </div>
-          ))}
-          <div className="flex justify-between font-semibold pt-2">
-            <span>Subtotal ({totalItems()} items)</span>
-            <span>${totalPrice().toFixed(2)}</span>
-          </div>
-          <button className="mt-4 px-4 py-2 bg-black text-white" onClick={clear}>
-            Clear cart
-          </button>
+        <div className="flex flex-col items-center justify-center py-20 space-y-6">
+          <Image src="/placeholder.svg" alt="Empty cart" width={200} height={200} />
+          <Link href="/" className="px-4 py-2 border border-black">
+            View Products
+          </Link>
         </div>
+      ) : (
+        <>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-gray-200 text-sm">
+                  <th className="p-2 text-left">Item</th>
+                  <th className="p-2">Quantity</th>
+                  <th className="p-2">Unit Price</th>
+                  <th className="p-2">Total</th>
+                  <th className="p-2" />
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item, i) => (
+                  <tr key={i} className="border-b border-gray-200">
+                    <td className="p-2">
+                      <div className="flex items-center gap-4">
+                        <Image
+                          src={item.image || '/placeholder.svg'}
+                          alt={item.title}
+                          width={60}
+                          height={60}
+                          className="object-cover"
+                        />
+                        <span className="font-medium">{item.title}</span>
+                      </div>
+                    </td>
+                    <td className="p-2">
+                      <div className="flex items-center border rounded w-max">
+                        <button
+                          className="px-2"
+                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          aria-label="Decrease quantity"
+                        >
+                          -
+                        </button>
+                        <input
+                          type="number"
+                          min={1}
+                          value={item.quantity}
+                          onChange={(e) => updateQuantity(item.id, parseInt(e.target.value))}
+                          className="w-12 text-center border-l border-r"
+                        />
+                        <button
+                          className="px-2"
+                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          aria-label="Increase quantity"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </td>
+                    <td className="p-2">${item.price.toFixed(2)}</td>
+                    <td className="p-2 font-semibold">
+                      ${(item.price * item.quantity).toFixed(2)}
+                    </td>
+                    <td className="p-2 text-center">
+                      <button
+                        onClick={() => updateQuantity(item.id, 0)}
+                        aria-label="Remove item"
+                      >
+                        <FaTrash />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex justify-between items-center font-semibold pt-4">
+            <span>Subtotal ({totalItems()} items)</span>
+            <span className="text-xl">${totalPrice().toFixed(2)}</span>
+          </div>
+          <div className="flex gap-4 pt-4">
+            <Link href="/" className="px-4 py-2 border border-black">
+              Continue Shopping
+            </Link>
+            <Link href="/checkout" className="px-4 py-2 bg-black text-white">
+              Checkout
+            </Link>
+          </div>
+        </>
       )}
     </main>
   )

@@ -71,7 +71,13 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             <button
               className="px-4 py-2 bg-black text-white"
               onClick={() =>
-                add({ id: product.id, title: product.title, price: product.price, quantity })
+                add({
+                  id: product.id,
+                  title: product.title,
+                  price: product.price,
+                  quantity,
+                  image: product.images[0]?.url || '/placeholder.svg'
+                })
               }
             >
               Add to cart
