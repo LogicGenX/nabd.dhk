@@ -6,7 +6,7 @@ export default function HomePage() {
     <main>
       <LookbookCarousel />
       <section className="container mx-auto px-4">
-        <h2 className="text-2xl font-bold mt-8 mb-4 tracking-wider">Featured products</h2>
+        <h2 className="text-2xl font-bold mt-4 mb-4 tracking-wider">Featured products</h2>
         <FeaturedProducts />
       </section>
     </main>

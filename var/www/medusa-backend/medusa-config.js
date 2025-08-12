@@ -15,8 +15,6 @@ module.exports = {
     './plugins/cod',
     'medusa-fulfillment-manual',
     './admin-extensions',
-    '@medusajs/event-bus-local',
-    '@medusajs/cache-inmemory',
     {
       resolve: 'medusa-file-local',
       options: {
@@ -43,5 +41,9 @@ module.exports = {
         backend: process.env.MEDUSA_ADMIN_BACKEND_URL || 'http://localhost:7001'
       }
     }
+  ],
+  modules: [
+    '@medusajs/event-bus-local',
+    '@medusajs/cache-inmemory'
   ]
 }
