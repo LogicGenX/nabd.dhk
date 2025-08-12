@@ -24,8 +24,8 @@ export default function LookbookCarouselClient({ items }: { items: LookbookItem[
   const shouldLoop = items.length > 1
 
   return (
-    <div className="w-full h-[60vh] md:h-[80vh]">
-      <Swiper loop={shouldLoop} watchOverflow className="w-full h-full">
+    <div className="relative w-full h-[60vh] md:h-[80vh] overflow-hidden">
+      <Swiper loop={shouldLoop} watchOverflow className="absolute inset-0">
         {items.map((item, index) => (
           <SwiperSlide key={`${item.title}-${index}`} className="h-full">
             <div className="relative w-full h-full hero-zoom">
