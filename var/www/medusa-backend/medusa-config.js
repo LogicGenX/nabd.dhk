@@ -28,6 +28,7 @@ module.exports = {
         path: '/app',
         serve: true,
         backend: process.env.MEDUSA_ADMIN_BACKEND_URL || 'http://localhost:7001',
+        autoRebuild: true,
       },
     },
   ],
