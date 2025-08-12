@@ -27,3 +27,9 @@
 .hero-zoom {
   animation: heroZoom 1600ms ease-out both;
 }
+
+.swiper,
+.swiper-wrapper,
+.swiper-slide {
+  height: 100%;
+}
