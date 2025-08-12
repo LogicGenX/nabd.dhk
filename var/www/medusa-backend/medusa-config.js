@@ -16,6 +16,7 @@ module.exports = {
     'medusa-fulfillment-manual',
     './admin-extensions',
     '@medusajs/event-bus-local',
+    '@medusajs/cache-inmemory',
     {
       resolve: 'medusa-file-local',
       options: {
