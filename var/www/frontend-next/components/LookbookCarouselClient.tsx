@@ -1,18 +1,8 @@
 'use client'
 
-import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import Link from 'next/link'
-import LookbookSkeleton from './LookbookSkeleton'
-
-const Swiper = dynamic(
-  () => import('swiper/react').then((m) => m.Swiper),
-  { ssr: false, loading: () => <LookbookSkeleton /> }
-)
-const SwiperSlide = dynamic(
-  () => import('swiper/react').then((m) => m.SwiperSlide),
-  { ssr: false, loading: () => <LookbookSkeleton /> }
-)
+import { Swiper, SwiperSlide } from 'swiper/react'
 
 interface LookbookItem {
   title: string
