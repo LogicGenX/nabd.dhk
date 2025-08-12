@@ -24,26 +24,15 @@ module.exports = {
     },
     {
       resolve: '@medusajs/admin',
-      /** @type {import('@medusajs/admin').PluginOptions} */
       options: {
-        // Serve the admin dashboard under "/app" to avoid clashing with
-        // Medusa's own "/admin" API routes. Hitting "/admin" now correctly
-        // resolves to the backend API while the UI is available at
-        // "http://<host>:<port>/app".
         path: '/app',
         serve: true,
-        autoRebuild: true,
-        // Ensure the admin UI points to the same backend that
-        // exposes the Medusa API. Without this the UI defaults to
-        // http://localhost:9000 which breaks authentication when the
-        // backend is served on a different port (e.g. 7001 in the
-        // docker-compose setup).
-        backend: process.env.MEDUSA_ADMIN_BACKEND_URL || 'http://localhost:7001'
-      }
-    }
+        backend: process.env.MEDUSA_ADMIN_BACKEND_URL || 'http://localhost:7001',
+      },
+    },
   ],
-  modules: [
-    '@medusajs/event-bus-local',
-    '@medusajs/cache-inmemory'
-  ]
+  modules: {
+    eventBus: { resolve: '@medusajs/event-bus-local' },
+    cacheService: { resolve: '@medusajs/cache-inmemory' },
+  },
 }
