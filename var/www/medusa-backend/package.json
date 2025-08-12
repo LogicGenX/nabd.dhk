@@ -4,7 +4,8 @@
   "scripts": {
     "start": "npx medusa start",
     "seed": "npx medusa seed -f ./data/seed.json",
-    "migrate": "npx medusa migrations run"
+    "migrate": "npx medusa migrations run",
+    "test": "node test/test.js"
   },
   "dependencies": {
     "@medusajs/admin": "^7.1.18",
