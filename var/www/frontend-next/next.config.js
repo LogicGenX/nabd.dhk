@@ -14,6 +14,12 @@ const nextConfig = {
         pathname: '/**'
       },
       {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '9000',
+        pathname: '/uploads/**'
+      },
+      {
         protocol: 'https',
         hostname: 'cdn.sanity.io',
         pathname: '/**'
