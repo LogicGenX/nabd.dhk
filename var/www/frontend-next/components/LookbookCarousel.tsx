@@ -1,11 +1,18 @@
-'use client'
-import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Swiper, SwiperSlide } from 'swiper/react'
 import 'swiper/css'
 import { sanity } from '../lib/sanity'
 import LookbookSkeleton from './LookbookSkeleton'
+
+const Swiper = dynamic(
+  () => import('swiper/react').then((m) => m.Swiper),
+  { ssr: false, loading: () => <LookbookSkeleton /> }
+)
+const SwiperSlide = dynamic(
+  () => import('swiper/react').then((m) => m.SwiperSlide),
+  { ssr: false }
+)
 
 interface LookbookItem {
   title: string
@@ -13,29 +20,15 @@ interface LookbookItem {
   url: string
 }
 
-export default function LookbookCarousel() {
-  const [items, setItems] = useState<LookbookItem[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    sanity
-      .fetch(
-        `*[_type == "lookbookItem"]|order(order asc){title,season,"url":photo.asset->url}`
-      )
-      .then((res) => {
-        const mapped = res.map((r: any) => ({
-          title: r.title,
-          season: r.season,
-          url: r.url || '/placeholder.svg'
-        }))
-        setItems(mapped)
-        setLoading(false)
-      })
-  }, [])
-
-  if (loading) {
-    return <LookbookSkeleton />
-  }
+export default async function LookbookCarousel() {
+  const res: any[] = await sanity.fetch(
+    `*[_type == "lookbookItem"]|order(order asc){title,season,"url":photo.asset->url}`
+  )
+  const items: LookbookItem[] = res.map((r: any) => ({
+    title: r.title,
+    season: r.season,
+    url: r.url || '/placeholder.svg'
+  }))
 
   return (
     <Swiper loop className="w-full h-[60vh] md:h-[80vh]">
