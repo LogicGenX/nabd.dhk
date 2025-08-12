@@ -1,9 +1,18 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
+import dynamic from "next/dynamic"
 import ProductGrid from "../../components/ProductGrid"
-import CollectionsDropdown from "../../components/CollectionsDropdown"
-import CategoriesDropdown from "../../components/CategoriesDropdown"
+import ProductCardSkeleton from "../../components/ProductCardSkeleton"
+
+const CollectionsDropdown = dynamic(
+  () => import("../../components/CollectionsDropdown"),
+  { ssr: false }
+)
+const CategoriesDropdown = dynamic(
+  () => import("../../components/CategoriesDropdown"),
+  { ssr: false }
+)
 
 export default function ShopPage() {
   const [collection, setCollection] = useState("")
@@ -38,12 +47,22 @@ export default function ShopPage() {
         />
       </div>
 
-      <ProductGrid
-        collectionId={collection || undefined}
-        categoryId={category || undefined}
-        order={order || undefined}
-        q={q || undefined}
-      />
+      <Suspense
+        fallback={
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 py-8">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <ProductCardSkeleton key={i} />
+            ))}
+          </div>
+        }
+      >
+        <ProductGrid
+          collectionId={collection || undefined}
+          categoryId={category || undefined}
+          order={order || undefined}
+          q={q || undefined}
+        />
+      </Suspense>
     </main>
   )
 }
