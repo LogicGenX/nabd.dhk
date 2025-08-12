@@ -38,7 +38,7 @@ export default function LookbookCarousel() {
   }
 
   return (
-    <Swiper loop className="w-full h-[400px] md:h-[600px]">
+    <Swiper loop className="w-full h-[60vh] md:h-[80vh]">
       {items.map((item, index) => (
         <SwiperSlide key={item.title}>
           <div className="relative w-full h-full hero-zoom">
@@ -47,7 +47,7 @@ export default function LookbookCarousel() {
               alt={item.title}
               fill
               sizes="100vw"
-              className="object-cover aspect-[3/4]"
+              className="object-cover"
               priority={index === 0}
             />
             <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white">
