@@ -15,6 +15,7 @@ module.exports = {
     './plugins/cod',
     'medusa-fulfillment-manual',
     './admin-extensions',
+    '@medusajs/event-bus-local',
     {
       resolve: 'medusa-file-local',
       options: {

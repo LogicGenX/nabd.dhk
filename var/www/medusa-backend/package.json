@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@medusajs/admin": "^7.1.18",
+    "@medusajs/event-bus-local": "^1.8.0",
     "@medusajs/medusa": "^1.7.8",
     "dotenv": "^17.2.1",
     "medusa-file-local": "^2.0.9",
