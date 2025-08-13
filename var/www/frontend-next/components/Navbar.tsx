@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { usePathname } from 'next/navigation'
 import { FaBars, FaShoppingCart, FaSearch } from 'react-icons/fa'
 import { useCart } from '../lib/store'
+import SearchOverlay from './SearchOverlay'
 
 const MobileMenu = dynamic(() => import('./MobileMenu'), { ssr: false })
 
@@ -21,12 +22,24 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [bump, setBump] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 0)
     window.addEventListener('scroll', onScroll)
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.key === '/' || (e.key === 'k' && (e.ctrlKey || e.metaKey))) && !searchOpen) {
+        e.preventDefault()
+        setSearchOpen(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [searchOpen])
 
   useEffect(() => {
     if (cartQuantity === 0) return
@@ -77,9 +90,13 @@ export default function Navbar() {
           </Link>
         </div>
         <div className='justify-self-end flex items-center gap-6'>
-          <Link href='/search' aria-label='Search' className='group relative p-1 rounded hover:bg-black hover:text-white'>
+          <button
+            aria-label='Search'
+            className='group relative p-1 rounded hover:bg-black hover:text-white'
+            onClick={() => setSearchOpen(true)}
+          >
             <FaSearch className='group-hover:animate-micro-bounce' />
-          </Link>
+          </button>
           <Link href='/cart' aria-label='Cart' className='group relative p-1 rounded hover:bg-black hover:text-white'>
             <FaShoppingCart className='group-hover:animate-micro-bounce' />
             {cartQuantity > 0 && (
@@ -93,6 +110,7 @@ export default function Navbar() {
         </div>
       </nav>
       {menuOpen && <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} />}
+      {searchOpen && <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />}
     </header>
   )
 }
