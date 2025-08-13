@@ -1,14 +1,56 @@
 @import 'swiper/css';
+@import './fonts.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --font-heading: 'Cinzel', 'Cormorant Garamond', serif;
+    --font-body: 'Outfit', 'Space Grotesk', 'Sora', sans-serif;
+  }
   html {
     scroll-behavior: smooth;
   }
   body {
-    @apply bg-white text-black;
+    @apply bg-white text-black font-body tracking-body font-light;
+    font-optical-sizing: auto;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading tracking-brand;
+    font-optical-sizing: auto;
+  }
+  h1 {
+    @apply text-3xl md:text-4xl font-extrabold;
+  }
+  h2 {
+    @apply text-2xl md:text-3xl font-bold;
+  }
+  h3 {
+    @apply text-xl md:text-2xl font-semibold;
+  }
+  h4 {
+    @apply text-lg md:text-xl font-medium;
+  }
+  h5 {
+    @apply text-base md:text-lg font-medium;
+  }
+  h6 {
+    @apply text-sm md:text-base font-medium;
+  }
+  p,
+  a,
+  span,
+  button,
+  input,
+  label {
+    @apply font-body tracking-body;
+    font-optical-sizing: auto;
   }
 }
 
