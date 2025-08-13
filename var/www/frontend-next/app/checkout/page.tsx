@@ -30,7 +30,7 @@ export default function CheckoutPage() {
 
   return (
     <main className="p-8 space-y-4">
-      <h1 className="text-3xl font-bold mb-4 tracking-wider">Checkout</h1>
+      <h1 className="text-3xl font-bold mb-4 tracking-brand">Checkout</h1>
       <form className="space-y-4 max-w-md" onSubmit={handleSubmit} noValidate>
         <div>
           <label htmlFor="checkout-name" className="block mb-1">

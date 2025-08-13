@@ -1,18 +1,23 @@
-'use client'
-import Image from 'next/image'
-import Link from 'next/link'
-import { FaTrash } from 'react-icons/fa'
-import { useCart } from '../../lib/store'
+'use client';
+import Image from 'next/image';
+import Link from 'next/link';
+import { FaTrash } from 'react-icons/fa';
+import { useCart } from '../../lib/store';
 
 export default function CartPage() {
-  const { items, updateQuantity, totalItems, totalPrice } = useCart()
+  const { items, updateQuantity, totalItems, totalPrice } = useCart();
 
   return (
     <main className="p-8 space-y-4">
-      <h1 className="text-3xl font-bold mb-4 tracking-wider">Cart</h1>
+      <h1 className="text-3xl font-bold mb-4 tracking-brand">Cart</h1>
       {items.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 space-y-6">
-          <Image src="/placeholder.svg" alt="Empty cart" width={200} height={200} />
+          <Image
+            src="/placeholder.svg"
+            alt="Empty cart"
+            width={200}
+            height={200}
+          />
           <Link href="/" className="px-4 py-2 border border-black">
             View Products
           </Link>
@@ -49,7 +54,9 @@ export default function CartPage() {
                       <div className="flex items-center border rounded w-max">
                         <button
                           className="px-2"
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          onClick={() =>
+                            updateQuantity(item.id, item.quantity - 1)
+                          }
                           aria-label="Decrease quantity"
                         >
                           -
@@ -58,12 +65,16 @@ export default function CartPage() {
                           type="number"
                           min={1}
                           value={item.quantity}
-                          onChange={(e) => updateQuantity(item.id, parseInt(e.target.value))}
+                          onChange={(e) =>
+                            updateQuantity(item.id, parseInt(e.target.value))
+                          }
                           className="w-12 text-center border-l border-r"
                         />
                         <button
                           className="px-2"
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          onClick={() =>
+                            updateQuantity(item.id, item.quantity + 1)
+                          }
                           aria-label="Increase quantity"
                         >
                           +
@@ -102,5 +113,5 @@ export default function CartPage() {
         </>
       )}
     </main>
-  )
+  );
 }

@@ -1,24 +1,24 @@
-'use client'
-import { useEffect, useState } from 'react'
-import Image from 'next/image'
-import { medusa } from '../../../lib/medusa'
-import { useCart } from '../../../lib/store'
-import ProductPageSkeleton from '../../../components/ProductPageSkeleton'
+'use client';
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import { medusa } from '../../../lib/medusa';
+import { useCart } from '../../../lib/store';
+import ProductPageSkeleton from '../../../components/ProductPageSkeleton';
 
 interface Product {
-  id: string
-  title: string
-  description: string
-  images: { url: string }[]
-  price: number
+  id: string;
+  title: string;
+  description: string;
+  images: { url: string }[];
+  price: number;
 }
 
 export default function ProductPage({ params }: { params: { id: string } }) {
-  const { id } = params
-  const [product, setProduct] = useState<Product | null>(null)
-  const [quantity, setQuantity] = useState(1)
-  const [selectedImage, setSelectedImage] = useState(0)
-  const add = useCart((state) => state.add)
+  const { id } = params;
+  const [product, setProduct] = useState<Product | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  const [selectedImage, setSelectedImage] = useState(0);
+  const add = useCart((state) => state.add);
 
   useEffect(() => {
     medusa.products.retrieve(id).then(({ product }) => {
@@ -27,13 +27,13 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         title: product.title,
         description: product.description,
         images: product.images || [],
-        price: product.variants[0]?.prices[0]?.amount / 100 || 0
-      })
-    })
-  }, [id])
+        price: product.variants[0]?.prices[0]?.amount / 100 || 0,
+      });
+    });
+  }, [id]);
 
   if (!product) {
-    return <ProductPageSkeleton />
+    return <ProductPageSkeleton />;
   }
 
   return (
@@ -71,7 +71,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           </div>
         </div>
         <div className="flex-1 space-y-8">
-          <h1 className="text-4xl font-bold tracking-wider">{product.title}</h1>
+          <h1 className="text-4xl font-bold tracking-brand">{product.title}</h1>
           <p className="text-2xl font-semibold">${product.price.toFixed(2)}</p>
           <p className="text-gray-700 leading-relaxed">{product.description}</p>
           <div className="flex items-center gap-6">
@@ -100,7 +100,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                   title: product.title,
                   price: product.price,
                   quantity,
-                  image: product.images[0]?.url || '/placeholder.svg'
+                  image: product.images[0]?.url || '/placeholder.svg',
                 })
               }
             >
@@ -110,6 +110,5 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         </div>
       </div>
     </main>
-  )
+  );
 }
-
