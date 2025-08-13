@@ -20,7 +20,7 @@ export default function CategoriesDropdown({ value, onChange }: Props) {
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="border p-2 rounded"
+      className='border p-2 rounded-md'
     >
       <option value="">All Categories</option>
       {categories.map((c) => (

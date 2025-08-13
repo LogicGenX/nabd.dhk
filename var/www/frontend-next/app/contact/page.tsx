@@ -101,9 +101,9 @@ export default function ContactPage() {
           />
           {errors.message && <p className="text-gray-700">{errors.message}</p>}
         </div>
-        <button className="bg-black text-white px-4 py-2" type="submit">
-          Send
-        </button>
+          <button className='bg-accent text-white px-4 py-2 rounded-md hover:bg-accent/90' type='submit'>
+            Send
+          </button>
       </form>
     </main>
   );

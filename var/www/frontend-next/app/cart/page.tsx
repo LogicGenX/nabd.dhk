@@ -102,14 +102,14 @@ export default function CartPage() {
             <span>Subtotal ({totalItems()} items)</span>
             <span className="text-xl">${totalPrice().toFixed(2)}</span>
           </div>
-          <div className="flex gap-4 pt-4">
-            <Link href="/" className="px-4 py-2 border border-black">
-              Continue Shopping
-            </Link>
-            <Link href="/checkout" className="px-4 py-2 bg-black text-white">
-              Checkout
-            </Link>
-          </div>
+            <div className='flex gap-4 pt-4'>
+              <Link href='/' className='px-4 py-2 border border-black rounded-md'>
+                Continue Shopping
+              </Link>
+              <Link href='/checkout' className='px-4 py-2 bg-accent text-white rounded-md hover:bg-accent/90'>
+                Checkout
+              </Link>
+            </div>
         </>
       )}
     </main>

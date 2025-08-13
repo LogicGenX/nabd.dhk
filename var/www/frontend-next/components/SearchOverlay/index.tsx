@@ -103,13 +103,13 @@ export default function SearchOverlay({ open, onClose }: Props) {
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder='Search products...'
-          className='w-full border p-2 rounded pr-10'
+          className='w-full border p-2 rounded-md pr-10'
           aria-label='Search products'
         />
         <button
           onClick={onClose}
           aria-label='Close search'
-          className='absolute top-4 right-4 rtl:left-4 rtl:right-auto p-2 rounded hover:bg-black hover:text-white'
+          className='absolute top-4 right-4 rtl:left-4 rtl:right-auto p-2 rounded-md hover:bg-accent hover:text-white'
         >
           <FaTimes />
         </button>

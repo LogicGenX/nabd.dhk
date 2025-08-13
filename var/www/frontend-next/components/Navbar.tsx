@@ -55,15 +55,15 @@ export default function Navbar() {
     <header
       className={`sticky top-0 z-50 backdrop-blur bg-white/70 border-b border-white/20 transition-shadow ${scrolled ? 'shadow-md' : ''}`}
     >
-      <nav className="grid grid-cols-3 items-center h-16 px-4">
-        <div className="flex items-center gap-6">
+      <nav className='grid grid-cols-3 items-center h-16 px-4'>
+        <div className='flex items-center gap-6'>
           <button
-            className="md:hidden p-1 rounded hover:bg-black hover:text-white"
+            className='md:hidden p-1 rounded-md hover:bg-accent hover:text-white'
             onClick={() => setMenuOpen(true)}
           >
             <FaBars />
           </button>
-          <div className="hidden md:flex items-center gap-6">
+          <div className='hidden md:flex items-center gap-6'>
             {links.map((l) => {
               const active = pathname === l.href;
               return (
@@ -71,16 +71,16 @@ export default function Navbar() {
                   key={l.href}
                   href={l.href}
                   aria-current={active ? 'page' : undefined}
-                  className="group relative px-2 py-1"
+                  className='group relative px-2 py-1'
                 >
                   <span
                     className={`transition-all ${active ? 'font-bold' : ''} group-hover:tracking-brand group-hover:-translate-y-0.5`}
                   >
                     {l.label}
                   </span>
-                  <span className="absolute inset-0 rounded-full bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <span className='absolute inset-0 rounded-full bg-accent/5 opacity-0 group-hover:opacity-100 transition-opacity' />
                   <span
-                    className={`absolute bottom-0 h-0.5 bg-black transition-all origin-center ${active ? 'w-full' : 'w-0 group-hover:w-full'} left-1/2 -translate-x-1/2 rtl:left-auto rtl:right-1/2 rtl:translate-x-1/2`}
+                    className={`absolute bottom-0 h-0.5 bg-accent transition-all origin-center ${active ? 'w-full' : 'w-0 group-hover:w-full'} left-1/2 -translate-x-1/2 rtl:left-auto rtl:right-1/2 rtl:translate-x-1/2`}
                   />
                 </Link>
               );
@@ -101,23 +101,23 @@ export default function Navbar() {
             </div>
           </Link>
         </div>
-        <div className="justify-self-end flex items-center gap-6">
+        <div className='justify-self-end flex items-center gap-6'>
           <button
-            aria-label="Search"
-            className="group relative p-1 rounded hover:bg-black hover:text-white"
+            aria-label='Search'
+            className='group relative p-1 rounded-md hover:bg-accent hover:text-white'
             onClick={() => setSearchOpen(true)}
           >
-            <FaSearch className="group-hover:animate-micro-bounce" />
+            <FaSearch className='group-hover:animate-micro-bounce' />
           </button>
           <Link
-            href="/cart"
-            aria-label="Cart"
-            className="group relative p-1 rounded hover:bg-black hover:text-white"
+            href='/cart'
+            aria-label='Cart'
+            className='group relative p-1 rounded-md hover:bg-accent hover:text-white'
           >
-            <FaShoppingCart className="group-hover:animate-micro-bounce" />
+            <FaShoppingCart className='group-hover:animate-micro-bounce' />
             {cartQuantity > 0 && (
               <span
-                className={`absolute -top-2 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white ${bump ? 'animate-bump' : ''}`}
+                className={`absolute -top-2 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-xs text-white ${bump ? 'animate-bump' : ''}`}
               >
                 {cartQuantity}
               </span>
