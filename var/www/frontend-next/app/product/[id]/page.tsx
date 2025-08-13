@@ -93,7 +93,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
               </button>
             </div>
             <button
-              className="px-8 py-3 bg-black text-white border border-black hover:bg-white hover:text-black transition-colors"
+              className='px-8 py-3 bg-accent text-white border border-accent rounded-md hover:bg-accent/90 transition-colors'
               onClick={() =>
                 add({
                   id: product.id,

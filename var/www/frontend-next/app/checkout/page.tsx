@@ -83,9 +83,9 @@ export default function CheckoutPage() {
           </select>
           {errors.payment && <p className="text-gray-700">{errors.payment}</p>}
         </div>
-        <button type="submit" className="w-full bg-black text-white py-2">
-          Place order
-        </button>
+          <button type='submit' className='w-full bg-accent text-white py-2 rounded-md hover:bg-accent/90'>
+            Place order
+          </button>
       </form>
     </main>
   );

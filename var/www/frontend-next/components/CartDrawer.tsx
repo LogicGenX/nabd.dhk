@@ -16,14 +16,14 @@ export default function CartDrawer() {
         onClick={() => setOpen(false)}
       />
       <aside
-        className={`fixed right-0 top-0 w-80 h-full bg-white shadow-lg p-4 space-y-4 transform transition-transform duration-300 ${
+        className={`fixed right-0 top-0 w-80 h-full bg-white shadow-md p-4 space-y-4 transform transition-transform duration-300 ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
         <button
-          className="absolute top-4 right-4 text-black"
+          className='absolute top-4 right-4 p-1 rounded-md text-black hover:bg-accent hover:text-white'
           onClick={() => setOpen(false)}
-          aria-label="Close cart"
+          aria-label='Close cart'
         >
           <FaTimes />
         </button>
