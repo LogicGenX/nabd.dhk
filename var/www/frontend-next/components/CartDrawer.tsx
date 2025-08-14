@@ -1,5 +1,6 @@
 'use client'
 import React, { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { FaTimes } from 'react-icons/fa'
 import { useCart } from '../lib/store'
 import CartEmptyState from './CartEmptyState'
@@ -43,10 +44,13 @@ export default function CartDrawer({ open, onClose }: Props) {
           <>
             <ul className='space-y-2'>
               {items.map((item, i) => (
-                <li key={i} className='flex justify-between'>
-                  <span>
-                    {item.title} x {item.quantity}
-                  </span>
+                <li key={i} className='flex items-center justify-between gap-2'>
+                  <div className='flex items-center gap-2'>
+                    <Image src={item.image} alt={item.title} width={40} height={40} className='rounded object-cover' />
+                    <span>
+                      {item.title} x {item.quantity}
+                    </span>
+                  </div>
                   <span>${(item.price * item.quantity).toFixed(2)}</span>
                 </li>
               ))}
