@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { FaTimes } from 'react-icons/fa'
 import { useCart } from '../lib/store'
 import CartEmptyState from './CartEmptyState'
@@ -7,6 +7,11 @@ import CartEmptyState from './CartEmptyState'
 export default function CartDrawer() {
   const { items, totalItems, totalPrice } = useCart()
   const [open, setOpen] = useState(true)
+  const [showEmpty, setShowEmpty] = useState(items.length === 0)
+
+  useEffect(() => {
+    setShowEmpty(items.length === 0)
+  }, [items.length])
 
   return (
     <>
@@ -28,14 +33,13 @@ export default function CartDrawer() {
         >
           <FaTimes />
         </button>
-        <h2 className="font-bold">Your Cart ({totalItems()} items)</h2>
-        {items.length === 0 ? (
-          <CartEmptyState />
-        ) : (
+        <h2 className='font-bold'>Your Cart ({totalItems()} items)</h2>
+        <CartEmptyState show={showEmpty} />
+        {!showEmpty && (
           <>
-            <ul className="space-y-2">
+            <ul className='space-y-2'>
               {items.map((item, i) => (
-                <li key={i} className="flex justify-between">
+                <li key={i} className='flex justify-between'>
                   <span>
                     {item.title} x {item.quantity}
                   </span>
@@ -43,7 +47,7 @@ export default function CartDrawer() {
                 </li>
               ))}
             </ul>
-            <div className="flex justify-between font-semibold border-t pt-2">
+            <div className='flex justify-between font-semibold border-t pt-2'>
               <span>Subtotal</span>
               <span>${totalPrice().toFixed(2)}</span>
             </div>

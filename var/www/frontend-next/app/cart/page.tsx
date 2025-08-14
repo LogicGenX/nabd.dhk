@@ -2,18 +2,23 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { FaTrash } from 'react-icons/fa'
+import { useEffect, useState } from 'react'
 import { useCart } from '../../lib/store'
 import CartEmptyState from '../../components/CartEmptyState'
 
 export default function CartPage() {
   const { items, updateQuantity, totalItems, totalPrice } = useCart()
+  const [showEmpty, setShowEmpty] = useState(items.length === 0)
+
+  useEffect(() => {
+    setShowEmpty(items.length === 0)
+  }, [items.length])
 
   return (
     <main className='p-8 space-y-4'>
       <h1 className='text-3xl font-bold mb-4 tracking-brand'>Cart</h1>
-      {items.length === 0 ? (
-        <CartEmptyState />
-      ) : (
+      <CartEmptyState show={showEmpty} />
+      {!showEmpty && (
         <>
           <div className='overflow-x-auto'>
             <table className='w-full border-collapse'>
