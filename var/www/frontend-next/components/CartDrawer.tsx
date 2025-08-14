@@ -1,12 +1,16 @@
 'use client'
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { FaTimes } from 'react-icons/fa'
 import { useCart } from '../lib/store'
 import CartEmptyState from './CartEmptyState'
 
-export default function CartDrawer() {
+interface Props {
+  open: boolean
+  onClose: () => void
+}
+
+export default function CartDrawer({ open, onClose }: Props) {
   const { items, totalItems, totalPrice } = useCart()
-  const [open, setOpen] = useState(true)
   const [showEmpty, setShowEmpty] = useState(items.length === 0)
 
   useEffect(() => {
@@ -19,7 +23,7 @@ export default function CartDrawer() {
         className={`fixed inset-0 bg-black transition-opacity duration-300 ${
           open ? 'bg-opacity-50' : 'bg-opacity-0 pointer-events-none'
         }`}
-        onClick={() => setOpen(false)}
+        onClick={onClose}
       />
       <aside
         className={`fixed right-0 top-0 w-80 h-full bg-white shadow-md p-4 space-y-4 transform transition-transform duration-300 ${
@@ -28,7 +32,7 @@ export default function CartDrawer() {
       >
         <button
           className='absolute top-4 right-4 p-1 rounded-md text-black hover:bg-accent hover:text-white'
-          onClick={() => setOpen(false)}
+          onClick={onClose}
           aria-label='Close cart'
         >
           <FaTimes />
