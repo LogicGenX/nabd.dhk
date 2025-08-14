@@ -5,9 +5,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
-import { FaBars, FaShoppingCart, FaSearch } from 'react-icons/fa';
-import { useCart } from '../lib/store';
-import SearchOverlay from './SearchOverlay';
+import { FaBars, FaShoppingCart, FaSearch } from 'react-icons/fa'
+import { useCart } from '../lib/store'
+import SearchOverlay from './SearchOverlay'
+import CartDrawer from './CartDrawer'
 
 const MobileMenu = dynamic(() => import('./MobileMenu'), { ssr: false });
 
@@ -18,11 +19,12 @@ const links = [
 
 export default function Navbar() {
   const pathname = usePathname();
-  const cartQuantity = useCart((state) => state.totalItems());
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const [bump, setBump] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
+  const cartQuantity = useCart(state => state.totalItems())
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+  const [bump, setBump] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [cartOpen, setCartOpen] = useState(false)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 0);
@@ -109,10 +111,10 @@ export default function Navbar() {
           >
             <FaSearch className='group-hover:animate-micro-bounce' />
           </button>
-          <Link
-            href='/cart'
-            aria-label='Cart'
+          <button
+            aria-label='Open cart'
             className='group relative p-1 rounded-md hover:bg-accent hover:text-white'
+            onClick={() => setCartOpen(o => !o)}
           >
             <FaShoppingCart className='group-hover:animate-micro-bounce' />
             {cartQuantity > 0 && (
@@ -122,7 +124,7 @@ export default function Navbar() {
                 {cartQuantity}
               </span>
             )}
-          </Link>
+          </button>
         </div>
       </nav>
       {menuOpen && (
@@ -131,6 +133,7 @@ export default function Navbar() {
       {searchOpen && (
         <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
       )}
+      <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
     </header>
-  );
+  )
 }
