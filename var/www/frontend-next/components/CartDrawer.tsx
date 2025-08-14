@@ -18,6 +18,11 @@ export default function CartDrawer({ open, onClose }: Props) {
     setShowEmpty(items.length === 0)
   }, [items.length])
 
+  useEffect(() => {
+    document.body.classList.toggle('overflow-hidden', open)
+    return () => document.body.classList.remove('overflow-hidden')
+  }, [open])
+
   return (
     <>
       <div
@@ -27,7 +32,7 @@ export default function CartDrawer({ open, onClose }: Props) {
         onClick={onClose}
       />
       <aside
-        className={`fixed right-0 top-0 w-80 h-full bg-white shadow-md p-4 space-y-4 transform transition-transform duration-300 ${
+        className={`fixed right-0 top-0 w-80 h-screen bg-white shadow-md p-4 space-y-4 transform transition-transform duration-300 ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
