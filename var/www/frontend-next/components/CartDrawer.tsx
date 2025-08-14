@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { FaTimes } from 'react-icons/fa'
 import { useCart } from '../lib/store'
+import CartEmptyState from './CartEmptyState'
 
 export default function CartDrawer() {
   const { items, totalItems, totalPrice } = useCart()
@@ -29,7 +30,7 @@ export default function CartDrawer() {
         </button>
         <h2 className="font-bold">Your Cart ({totalItems()} items)</h2>
         {items.length === 0 ? (
-          <p>Shopping cart is empty!</p>
+          <CartEmptyState />
         ) : (
           <>
             <ul className="space-y-2">
