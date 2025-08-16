@@ -25,7 +25,7 @@ export default function CartEmptyState({ show = false }: Props) {
     >
       <Image src='/logo.svg' alt='Empty cart' width={120} height={120} />
       <p className='text-xl font-semibold'>Your cart is empty</p>
-      <Link href='/' className='px-4 py-2 border border-black rounded-md'>
+      <Link href='/shop' className='px-4 py-2 border border-black rounded-md'>
         Continue Shopping
       </Link>
     </div>
