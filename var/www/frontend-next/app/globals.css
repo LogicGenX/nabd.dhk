@@ -79,6 +79,7 @@
   width: 100%;
   height: 1px;
   background-color: currentColor;
+  z-index: 0;
 }
 
 .underline-wipe-left::before {
@@ -92,6 +93,7 @@
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 300ms ease;
+  z-index: 1;
 }
 
 .underline-wipe-left:hover::before {
