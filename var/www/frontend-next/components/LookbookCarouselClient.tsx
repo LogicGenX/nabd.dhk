@@ -33,7 +33,7 @@ export default function LookbookCarouselClient({ items }: { items: LookbookItem[
                 </h2>
                 <Link
                   href='/shop'
-                  className='underline-from-center text-3xl md:text-4xl font-bold tracking-brand'
+                  className='underline-wipe-left text-3xl md:text-4xl font-bold tracking-brand'
                 >
                   Shop Now
                 </Link>
