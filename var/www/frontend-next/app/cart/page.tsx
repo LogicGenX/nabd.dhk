@@ -90,7 +90,7 @@ export default function CartPage() {
             <span className='text-xl'>${totalPrice().toFixed(2)}</span>
           </div>
           <div className='flex gap-4 pt-4'>
-            <Link href='/' className='px-4 py-2 border border-black rounded-md'>
+            <Link href='/shop' className='px-4 py-2 border border-black rounded-md'>
               Continue Shopping
             </Link>
             <Link
