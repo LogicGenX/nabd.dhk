@@ -26,13 +26,13 @@ export default function CartDrawer({ open, onClose }: Props) {
   return (
     <>
       <div
-        className={`fixed inset-0 bg-black transition-opacity duration-300 ${
+        className={`fixed inset-0 z-40 bg-black transition-opacity duration-300 ${
           open ? 'bg-opacity-50' : 'bg-opacity-0 pointer-events-none'
         }`}
         onClick={onClose}
       />
       <aside
-        className={`fixed right-0 top-0 w-80 h-screen bg-white shadow-md p-4 space-y-4 transform transition-transform duration-300 ${
+        className={`fixed right-0 top-0 z-50 w-80 h-screen bg-white shadow-md p-4 space-y-4 transform transition-transform duration-300 ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
