@@ -5,12 +5,6 @@
       "cwd": "/var/www/frontend-next",
       "script": "npm",
       "args": "start"
-    },
-    {
-      "name": "medusa",
-      "cwd": "/var/www/medusa-backend",
-      "script": "npm",
-      "args": "start"
     }
   ]
 }
