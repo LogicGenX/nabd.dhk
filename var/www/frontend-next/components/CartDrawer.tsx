@@ -37,21 +37,27 @@ export default function CartDrawer({ open, onClose }: Props) {
         }`}
       >
         <button
-          className='absolute top-4 right-4 p-1 rounded-md text-black hover:bg-accent hover:text-white'
+          className="absolute top-4 right-4 p-1 rounded-md text-black hover:bg-accent hover:text-white"
           onClick={onClose}
-          aria-label='Close cart'
+          aria-label="Close cart"
         >
           <FaTimes />
         </button>
-        <h2 className='font-bold'>Your Cart ({totalItems()} items)</h2>
+        <h2 className="font-bold">Your Cart ({totalItems()} items)</h2>
         <CartEmptyState show={showEmpty} />
         {!showEmpty && (
           <>
-            <ul className='space-y-2'>
+            <ul className="space-y-2">
               {items.map((item, i) => (
-                <li key={i} className='flex items-center justify-between gap-2'>
-                  <div className='flex items-center gap-2'>
-                    <Image src={item.image} alt={item.title} width={40} height={40} className='rounded object-cover' />
+                <li key={i} className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Image
+                      src={item.image}
+                      alt={item.title}
+                      width={40}
+                      height={40}
+                      className="rounded object-cover"
+                    />
                     <span>
                       {item.title} x {item.quantity}
                     </span>
@@ -60,7 +66,7 @@ export default function CartDrawer({ open, onClose }: Props) {
                 </li>
               ))}
             </ul>
-            <div className='flex justify-between font-semibold border-t pt-2'>
+            <div className="flex justify-between font-semibold border-t pt-2">
               <span>Subtotal</span>
               <span>${totalPrice().toFixed(2)}</span>
             </div>

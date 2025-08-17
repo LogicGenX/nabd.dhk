@@ -8,17 +8,21 @@ interface Props {
 }
 
 export default function CollectionsDropdown({ value, onChange }: Props) {
-  const [collections, setCollections] = useState<{ id: string; title: string }[]>([])
+  const [collections, setCollections] = useState<
+    { id: string; title: string }[]
+  >([])
 
   useEffect(() => {
-    medusa.collections.list().then(({ collections }) => setCollections(collections))
+    medusa.collections
+      .list()
+      .then(({ collections }) => setCollections(collections))
   }, [])
 
   return (
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className='border p-2 rounded-md'
+      className="border p-2 rounded-md"
     >
       <option value="">All Collections</option>
       {collections.map((c) => (

@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    appDir: true
+    appDir: true,
   },
   output: 'standalone',
   images: {
@@ -11,15 +11,15 @@ const nextConfig = {
         protocol: 'http',
         hostname: 'localhost',
         port: '7001',
-        pathname: '/**'
+        pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: 'cdn.sanity.io',
-        pathname: '/**'
-      }
-    ]
-  }
+        pathname: '/**',
+      },
+    ],
+  },
 }
 
 module.exports = nextConfig

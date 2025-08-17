@@ -22,17 +22,25 @@ export default function MobileMenu({ open, onClose }: Props) {
         }`}
       >
         <button
-          className='absolute top-4 right-4 hover:text-white hover:bg-accent p-1 rounded-md'
+          className="absolute top-4 right-4 hover:text-white hover:bg-accent p-1 rounded-md"
           onClick={onClose}
-          aria-label='Close menu'
+          aria-label="Close menu"
         >
           <FaTimes />
         </button>
-        <nav className='mt-8 flex flex-col space-y-4'>
-          <Link href='/' className='hover:underline decoration-gray-300' onClick={onClose}>
+        <nav className="mt-8 flex flex-col space-y-4">
+          <Link
+            href="/"
+            className="hover:underline decoration-gray-300"
+            onClick={onClose}
+          >
             Home
           </Link>
-          <Link href='/shop' className='hover:underline decoration-gray-300' onClick={onClose}>
+          <Link
+            href="/shop"
+            className="hover:underline decoration-gray-300"
+            onClick={onClose}
+          >
             Shop
           </Link>
         </nav>

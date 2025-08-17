@@ -8,7 +8,9 @@ interface Props {
 }
 
 export default function CategoriesDropdown({ value, onChange }: Props) {
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>(
+    [],
+  )
 
   useEffect(() => {
     medusa.productCategories
@@ -20,7 +22,7 @@ export default function CategoriesDropdown({ value, onChange }: Props) {
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className='border p-2 rounded-md'
+      className="border p-2 rounded-md"
     >
       <option value="">All Categories</option>
       {categories.map((c) => (

@@ -1,24 +1,24 @@
-'use client';
-import { useEffect, useState } from 'react';
-import Image from 'next/image';
-import { medusa } from '../../../lib/medusa';
-import { useCart } from '../../../lib/store';
-import ProductPageSkeleton from '../../../components/ProductPageSkeleton';
+'use client'
+import { useEffect, useState } from 'react'
+import Image from 'next/image'
+import { medusa } from '../../../lib/medusa'
+import { useCart } from '../../../lib/store'
+import ProductPageSkeleton from '../../../components/ProductPageSkeleton'
 
 interface Product {
-  id: string;
-  title: string;
-  description: string;
-  images: { url: string }[];
-  price: number;
+  id: string
+  title: string
+  description: string
+  images: { url: string }[]
+  price: number
 }
 
 export default function ProductPage({ params }: { params: { id: string } }) {
-  const { id } = params;
-  const [product, setProduct] = useState<Product | null>(null);
-  const [quantity, setQuantity] = useState(1);
-  const [selectedImage, setSelectedImage] = useState(0);
-  const add = useCart((state) => state.add);
+  const { id } = params
+  const [product, setProduct] = useState<Product | null>(null)
+  const [quantity, setQuantity] = useState(1)
+  const [selectedImage, setSelectedImage] = useState(0)
+  const add = useCart((state) => state.add)
 
   useEffect(() => {
     medusa.products.retrieve(id).then(({ product }) => {
@@ -28,12 +28,12 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         description: product.description,
         images: product.images || [],
         price: product.variants[0]?.prices[0]?.amount / 100 || 0,
-      });
-    });
-  }, [id]);
+      })
+    })
+  }, [id])
 
   if (!product) {
-    return <ProductPageSkeleton />;
+    return <ProductPageSkeleton />
   }
 
   return (
@@ -93,7 +93,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
               </button>
             </div>
             <button
-              className='px-8 py-3 bg-accent text-white border border-accent rounded-md hover:bg-accent/90 transition-colors'
+              className="px-8 py-3 bg-accent text-white border border-accent rounded-md hover:bg-accent/90 transition-colors"
               onClick={() =>
                 add({
                   id: product.id,
@@ -110,5 +110,5 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         </div>
       </div>
     </main>
-  );
+  )
 }

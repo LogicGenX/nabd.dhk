@@ -1,5 +1,5 @@
-import LookbookCarousel from '../components/LookbookCarousel';
-import FeaturedProducts from '../components/FeaturedProducts';
+import LookbookCarousel from '../components/LookbookCarousel'
+import FeaturedProducts from '../components/FeaturedProducts'
 
 export default function HomePage() {
   return (
@@ -12,5 +12,5 @@ export default function HomePage() {
         <FeaturedProducts />
       </section>
     </main>
-  );
+  )
 }

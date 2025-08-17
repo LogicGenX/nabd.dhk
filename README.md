@@ -29,6 +29,7 @@ sudo bash server-config/deploy.sh
 ```
 
 The services will be available at:
+
 - Frontend: `http://<your-domain>`
 - Medusa API: `http://<your-domain>/api/`
 - Sanity Studio: `http://<your-domain>/studio/`

@@ -4,7 +4,9 @@ export default function Footer() {
   return (
     <footer className="border-t border-gray-200 text-center text-sm p-8 space-y-4">
       <p className="max-w-xl mx-auto">
-        Drawing inspiration from contemporary global trends, we create timeless pieces with impeccable craftsmanship, proudly produced right here at home
+        Drawing inspiration from contemporary global trends, we create timeless
+        pieces with impeccable craftsmanship, proudly produced right here at
+        home
       </p>
       <nav className="flex justify-center space-x-6 text-gray-600">
         <Link href="/story">About</Link>
