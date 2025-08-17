@@ -16,7 +16,7 @@ export default async function ProductGrid({
   q,
   order,
   limit,
-  offset
+  offset,
 }: ProductGridProps) {
   const params: any = { limit, offset }
   if (collectionId) params.collection_id = collectionId
@@ -34,7 +34,7 @@ export default async function ProductGrid({
       id: p.id,
       title: p.title,
       thumbnail: thumb,
-      price: p.variants[0]?.prices[0]?.amount / 100 || 0
+      price: p.variants[0]?.prices[0]?.amount / 100 || 0,
     }
   })
 

@@ -1,24 +1,24 @@
-'use client';
+'use client'
 
-import { useState, Suspense } from 'react';
-import dynamic from 'next/dynamic';
-import ProductGrid from '../../components/ProductGrid';
-import ProductCardSkeleton from '../../components/ProductCardSkeleton';
+import { useState, Suspense } from 'react'
+import dynamic from 'next/dynamic'
+import ProductGrid from '../../components/ProductGrid'
+import ProductCardSkeleton from '../../components/ProductCardSkeleton'
 
 const CollectionsDropdown = dynamic(
   () => import('../../components/CollectionsDropdown'),
   { ssr: false },
-);
+)
 const CategoriesDropdown = dynamic(
   () => import('../../components/CategoriesDropdown'),
   { ssr: false },
-);
+)
 
 export default function ShopPage() {
-  const [collection, setCollection] = useState('');
-  const [category, setCategory] = useState('');
-  const [order, setOrder] = useState('');
-  const [q, setQ] = useState('');
+  const [collection, setCollection] = useState('')
+  const [category, setCategory] = useState('')
+  const [order, setOrder] = useState('')
+  const [q, setQ] = useState('')
 
   return (
     <main className="p-8">
@@ -64,5 +64,5 @@ export default function ShopPage() {
         />
       </Suspense>
     </main>
-  );
+  )
 }

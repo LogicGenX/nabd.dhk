@@ -11,15 +11,17 @@ describe('SearchOverlay', () => {
     render(<Navbar />)
     const btn = screen.getByLabelText('Search')
     await user.click(btn)
-    expect(screen.getByRole('dialog', { name: 'Search overlay' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('dialog', { name: 'Search overlay' }),
+    ).toBeInTheDocument()
   })
 
   it('mirrors close button in RTL', () => {
     cleanup()
     render(
-      <div dir='rtl'>
+      <div dir="rtl">
         <SearchOverlay open onClose={() => {}} />
-      </div>
+      </div>,
     )
     const btn = screen.getByLabelText('Close search')
     expect(btn.className).toContain('rtl:left-4')

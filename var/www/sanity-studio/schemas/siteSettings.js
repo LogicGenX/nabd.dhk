@@ -5,6 +5,6 @@ export default {
   fields: [
     { name: 'heroTagline', title: 'Hero Tagline', type: 'string' },
     { name: 'contactEmail', title: 'Contact Email', type: 'string' },
-    { name: 'instagramUrl', title: 'Instagram URL', type: 'url' }
-  ]
+    { name: 'instagramUrl', title: 'Instagram URL', type: 'url' },
+  ],
 }

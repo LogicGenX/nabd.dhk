@@ -4,10 +4,14 @@ import Footer from '../components/Footer'
 
 export const metadata = {
   title: 'nabd.dhk',
-  description: 'Fashion boutique'
+  description: 'Fashion boutique',
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="en">
       <body className="min-h-screen flex flex-col">

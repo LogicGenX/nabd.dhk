@@ -29,7 +29,7 @@ export default function FeaturedProducts() {
             id: p.id,
             title: p.title,
             thumbnail: thumb,
-            price: p.variants[0]?.prices[0]?.amount / 100 || 0
+            price: p.variants[0]?.prices[0]?.amount / 100 || 0,
           }
         })
         setProducts(mapped)
@@ -40,7 +40,9 @@ export default function FeaturedProducts() {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-8">
       {loading
-        ? Array.from({ length: 4 }).map((_, i) => <ProductCardSkeleton key={i} />)
+        ? Array.from({ length: 4 }).map((_, i) => (
+            <ProductCardSkeleton key={i} />
+          ))
         : products.map((p) => (
             <Link key={p.id} href={`/product/${p.id}`} className="group block">
               <div className="relative h-48 overflow-hidden">

@@ -6,6 +6,6 @@ export default {
     { name: 'title', title: 'Title', type: 'string' },
     { name: 'photo', title: 'Photo', type: 'image' },
     { name: 'season', title: 'Season', type: 'string' },
-    { name: 'order', title: 'Order', type: 'number' }
-  ]
+    { name: 'order', title: 'Order', type: 'number' },
+  ],
 }

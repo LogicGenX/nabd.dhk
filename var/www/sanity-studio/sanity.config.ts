@@ -1,6 +1,6 @@
-import { defineConfig } from 'sanity';
-import { structureTool } from 'sanity/structure';
-import schemas from './schemas';
+import { defineConfig } from 'sanity'
+import { structureTool } from 'sanity/structure'
+import schemas from './schemas'
 
 export default defineConfig({
   name: 'nabd-studio',
@@ -9,4 +9,4 @@ export default defineConfig({
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || 'production',
   plugins: [structureTool()],
   schema: { types: schemas },
-});
+})

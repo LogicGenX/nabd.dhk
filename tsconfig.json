@@ -1,6 +1,4 @@
 {
   "files": [],
-  "references": [
-    { "path": "./var/www/frontend-next" }
-  ]
+  "references": [{ "path": "./var/www/frontend-next" }]
 }

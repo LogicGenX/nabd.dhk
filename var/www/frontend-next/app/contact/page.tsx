@@ -1,44 +1,42 @@
-'use client';
+'use client'
 
-import { useEffect, useState } from 'react';
-import { sanity } from '../../lib/sanity';
+import { useEffect, useState } from 'react'
+import { sanity } from '../../lib/sanity'
 
 export default function ContactPage() {
-  const [form, setForm] = useState({ email: '', message: '' });
-  const [errors, setErrors] = useState<{ email?: string; message?: string }>(
-    {},
-  );
+  const [form, setForm] = useState({ email: '', message: '' })
+  const [errors, setErrors] = useState<{ email?: string; message?: string }>({})
   const [contactInfo, setContactInfo] = useState<{
-    contactEmail?: string;
-    instagramUrl?: string;
-  }>({});
+    contactEmail?: string
+    instagramUrl?: string
+  }>({})
 
   useEffect(() => {
     sanity
       .fetch(`*[_type == "siteSettings"][0]{contactEmail, instagramUrl}`)
-      .then((data) => setContactInfo(data || {}));
-  }, []);
+      .then((data) => setContactInfo(data || {}))
+  }, [])
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+    setForm({ ...form, [e.target.name]: e.target.value })
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newErrors: typeof errors = {};
-    if (!form.email) newErrors.email = 'Email is required';
+    e.preventDefault()
+    const newErrors: typeof errors = {}
+    if (!form.email) newErrors.email = 'Email is required'
     else if (!/^[\w.-]+@([\w-]+\.)+[\w-]{2,}$/.test(form.email))
-      newErrors.email = 'Enter a valid email';
-    if (!form.message) newErrors.message = 'Message is required';
-    setErrors(newErrors);
+      newErrors.email = 'Enter a valid email'
+    if (!form.message) newErrors.message = 'Message is required'
+    setErrors(newErrors)
     if (Object.keys(newErrors).length === 0) {
       // handle submission
     }
-  };
+  }
 
-  const { contactEmail, instagramUrl } = contactInfo;
+  const { contactEmail, instagramUrl } = contactInfo
 
   return (
     <main className="p-8 space-y-4">
@@ -101,10 +99,13 @@ export default function ContactPage() {
           />
           {errors.message && <p className="text-gray-700">{errors.message}</p>}
         </div>
-          <button className='bg-accent text-white px-4 py-2 rounded-md hover:bg-accent/90' type='submit'>
-            Send
-          </button>
+        <button
+          className="bg-accent text-white px-4 py-2 rounded-md hover:bg-accent/90"
+          type="submit"
+        >
+          Send
+        </button>
       </form>
     </main>
-  );
+  )
 }
