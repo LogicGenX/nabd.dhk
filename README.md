@@ -36,6 +36,33 @@ The services will be available at:
 
 A sample seed file is included for Medusa in `medusa-backend/data/seed.json`.
 
+## Local Development
+
+The Medusa backend, database, Redis and a development Nginx proxy run inside Docker:
+
+```bash
+cd var/www/medusa-backend
+docker compose up
+```
+
+The Nginx service in the Compose file exposes port 80 and forwards requests to Medusa,
+so do not start the host Nginx when using this setup.
+
+Run the frontend and Sanity Studio locally:
+
+```bash
+# Frontend
+cd var/www/frontend-next
+yarn dev
+
+# Sanity Studio
+cd var/www/sanity-studio
+yarn dev
+```
+
+Infrastructure services run in Docker while the Next.js frontend and Sanity Studio
+run on your machine.
+
 ## Admin UI
 
 The Medusa backend now serves the admin dashboard at `/app/`. The `/admin/`
