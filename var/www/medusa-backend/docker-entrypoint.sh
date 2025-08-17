@@ -14,7 +14,7 @@ psql postgres://postgres:postgres@db:5432/postgres -tc "SELECT 1 FROM pg_databas
   psql postgres://postgres:postgres@db:5432/postgres -c "CREATE DATABASE medusa"
 
 # Ensure musl-compatible SWC binary is installed
-npm install @swc/core-linux-x64-musl@1.13.3 --no-save
+yarn add @swc/core-linux-x64-musl@1.13.3 --no-lockfile
 
 # Run migrations
 npx medusa migrations run

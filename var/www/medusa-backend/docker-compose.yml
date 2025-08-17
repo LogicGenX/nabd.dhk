@@ -2,7 +2,7 @@ version: '3.7'
 services:
   medusa:
     build: .
-    command: npm start
+    command: yarn start
     volumes:
       - .:/app
     ports:
