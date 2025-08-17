@@ -49,7 +49,7 @@ docker compose up
 The Nginx service in the Compose file exposes port 80 and forwards requests to Medusa,
 so do not start the host Nginx when using this setup.
 
-Run the frontend and Sanity Studio locally:
+Run the frontend and Sanity Studio locally with `yarn dev`:
 
 ```bash
 # Frontend

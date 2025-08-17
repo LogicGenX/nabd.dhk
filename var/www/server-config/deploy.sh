@@ -6,7 +6,8 @@ sudo apt install -y curl nginx docker.io docker-compose certbot python3-certbot-
 
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt install -y nodejs
-sudo npm install -g yarn pm2
+sudo corepack enable
+sudo yarn global add pm2
 
 # clone repo assumed already present at /var/www
 cd /var/www/sanity-studio

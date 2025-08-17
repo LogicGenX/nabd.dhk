@@ -3,7 +3,7 @@
     {
       "name": "frontend",
       "cwd": "/var/www/frontend-next",
-      "script": "npm",
+      "script": "yarn",
       "args": "start"
     }
   ]
