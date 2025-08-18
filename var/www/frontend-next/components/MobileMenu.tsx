@@ -11,13 +11,13 @@ export default function MobileMenu({ open, onClose }: Props) {
   return (
     <>
       <div
-        className={`fixed inset-0 bg-black transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black z-40 transition-opacity duration-300 ${
           open ? 'bg-opacity-50' : 'bg-opacity-0 pointer-events-none'
         }`}
         onClick={onClose}
       />
       <aside
-        className={`fixed left-0 top-0 w-64 h-full bg-white shadow-md p-4 transform transition-transform duration-300 ${
+        className={`fixed left-0 top-0 w-64 h-full bg-white z-50 shadow-md p-4 transform transition-transform duration-300 ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
