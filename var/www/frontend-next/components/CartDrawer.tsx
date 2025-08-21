@@ -11,7 +11,7 @@ interface Props {
 }
 
 export default function CartDrawer({ open, onClose }: Props) {
-  const { items, totalItems, totalPrice } = useCart()
+  const { items, totalPrice } = useCart()
   const [showEmpty, setShowEmpty] = useState(items.length === 0)
 
   useEffect(() => {
@@ -36,14 +36,16 @@ export default function CartDrawer({ open, onClose }: Props) {
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        <button
-          className="absolute top-4 right-4 p-1 rounded-md text-black hover:bg-accent hover:text-white"
-          onClick={onClose}
-          aria-label="Close cart"
-        >
-          <FaTimes />
-        </button>
-        <h2 className="font-bold">Your Cart ({totalItems()} items)</h2>
+        <div className='flex items-center justify-between p-2 border-b border-gray-200'>
+          <h2 className='font-bold'>Your Cart</h2>
+          <button
+            className='p-1 rounded-md text-black hover:bg-accent hover:text-white'
+            onClick={onClose}
+            aria-label='Close cart'
+          >
+            <FaTimes />
+          </button>
+        </div>
         <CartEmptyState show={showEmpty} />
         {!showEmpty && (
           <>
