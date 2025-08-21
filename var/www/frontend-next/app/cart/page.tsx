@@ -15,8 +15,8 @@ export default function CartPage() {
   }, [items.length])
 
   return (
-    <main className="p-8 space-y-4">
-      <h1 className="text-3xl font-bold mb-4 tracking-brand">Cart</h1>
+    <main className='max-w-screen-md mx-auto p-4 md:p-8 space-y-4'>
+      <h1 className='text-2xl md:text-3xl font-bold mb-4 tracking-tight'>Cart</h1>
       <CartEmptyState show={showEmpty} />
       {!showEmpty && (
         <>
@@ -46,10 +46,10 @@ export default function CartPage() {
                         <span className="font-medium">{item.title}</span>
                       </div>
                     </td>
-                    <td className="p-2">
-                      <div className="flex items-center border rounded w-max">
+                    <td className='p-2'>
+                      <div className='flex items-center border border-gray-300 rounded w-max'>
                         <button
-                          className="px-2"
+                          className='px-2'
                           onClick={() =>
                             updateQuantity(item.id, item.quantity - 1)
                           }
@@ -58,16 +58,16 @@ export default function CartPage() {
                           -
                         </button>
                         <input
-                          type="number"
+                          type='number'
                           min={1}
                           value={item.quantity}
                           onChange={(e) =>
                             updateQuantity(item.id, parseInt(e.target.value))
                           }
-                          className="w-12 text-center border-l border-r"
+                          className='w-12 text-center border-l border-r border-gray-300'
                         />
                         <button
-                          className="px-2"
+                          className='px-2'
                           onClick={() =>
                             updateQuantity(item.id, item.quantity + 1)
                           }
@@ -98,16 +98,16 @@ export default function CartPage() {
             <span>Subtotal ({totalItems()} items)</span>
             <span className="text-xl">${totalPrice().toFixed(2)}</span>
           </div>
-          <div className="flex gap-4 pt-4">
+          <div className='flex gap-4 pt-4'>
             <Link
-              href="/shop"
-              className="px-4 py-2 border border-black rounded-md"
+              href='/shop'
+              className='px-4 py-2 border border-gray-300 rounded-md text-gray-600'
             >
               Continue Shopping
             </Link>
             <Link
-              href="/checkout"
-              className="px-4 py-2 bg-accent text-white rounded-md hover:bg-accent/90"
+              href='/checkout'
+              className='px-4 py-2 bg-accent text-white rounded-md hover:bg-accent/90'
             >
               Checkout
             </Link>
