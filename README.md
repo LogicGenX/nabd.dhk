@@ -25,7 +25,8 @@ var/www/
 2. Run the one-shot deployment script on your server:
 
 ```bash
-sudo bash server-config/deploy.sh
+cd server-config
+DOMAIN=example.com EMAIL=admin@example.com bash deploy.sh
 ```
 
 The services will be available at:
