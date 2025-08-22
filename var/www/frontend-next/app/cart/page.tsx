@@ -32,8 +32,8 @@ export default function CartPage() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((item, i) => (
-                  <tr key={i} className="border-b border-gray-200">
+                {items.map((item) => (
+                  <tr key={item.id} className="border-b border-gray-200">
                     <td className="p-2">
                       <div className="flex items-center gap-4">
                         <Image
@@ -61,9 +61,14 @@ export default function CartPage() {
                           type='number'
                           min={1}
                           value={item.quantity}
-                          onChange={(e) =>
-                            updateQuantity(item.id, parseInt(e.target.value))
-                          }
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value, 10)
+                            if (isNaN(value) || value < 1) {
+                              updateQuantity(item.id, 1)
+                            } else {
+                              updateQuantity(item.id, value)
+                            }
+                          }}
                           className='w-12 text-center border-l border-r border-gray-300'
                         />
                         <button

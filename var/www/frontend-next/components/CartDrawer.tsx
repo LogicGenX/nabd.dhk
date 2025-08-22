@@ -50,8 +50,8 @@ export default function CartDrawer({ open, onClose }: Props) {
         {!showEmpty && (
           <>
             <ul className="space-y-2">
-              {items.map((item, i) => (
-                <li key={i} className="flex items-center justify-between gap-2">
+              {items.map((item) => (
+                <li key={item.id} className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <Image
                       src={item.image}
