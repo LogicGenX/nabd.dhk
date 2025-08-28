@@ -36,7 +36,6 @@ The services will be available at:
 - Sanity Studio: `http://<your-domain>/studio/`
 - Medusa Admin: `http://<your-domain>/app/`
 
-A sample seed file is included for Medusa in `medusa-backend/data/seed.json`.
 
 ## Local Development
 
