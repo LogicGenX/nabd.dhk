@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
+import { useSearchParams, useRouter } from 'next/navigation'
 import ProductGrid from '../../components/ProductGrid'
+import { medusa } from '../../lib/medusa'
 
 const CollectionsFilter = dynamic(
   () => import('../../components/CollectionsFilter'),
@@ -14,10 +16,66 @@ const CategoriesFilter = dynamic(
 )
 
 export default function ShopPage() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
   const [collection, setCollection] = useState<any>(null)
   const [category, setCategory] = useState<any>(null)
   const [order, setOrder] = useState('')
   const [q, setQ] = useState('')
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    const init = async () => {
+      const collectionId = searchParams.get('collection')
+      const categoryId = searchParams.get('category')
+      const tasks: Promise<void>[] = []
+      if (collectionId) {
+        tasks.push(
+          medusa.collections
+            .retrieve(collectionId)
+            .then(async ({ collection }) => {
+              const { count } = await medusa.products.list({
+                collection_id: collectionId,
+                limit: 1,
+              })
+              setCollection({ id: collection.id, title: collection.title, count })
+            })
+        )
+      }
+      if (categoryId) {
+        tasks.push(
+          medusa.productCategories
+            .retrieve(categoryId)
+            .then(async ({ product_category }) => {
+              const { count } = await medusa.products.list({
+                category_id: categoryId,
+                limit: 1,
+              })
+              setCategory({
+                id: product_category.id,
+                name: product_category.name,
+                count,
+              })
+            })
+        )
+      }
+      await Promise.all(tasks)
+      setReady(true)
+    }
+    init()
+  }, [])
+
+  useEffect(() => {
+    if (!ready) return
+    const params = new URLSearchParams()
+    if (collection?.id) params.set('collection', collection.id)
+    if (category?.id) params.set('category', category.id)
+    if (order) params.set('order', order)
+    if (q) params.set('q', q)
+    const query = params.toString()
+    const path = window.location.pathname
+    router.replace(`${path}${query ? `?${query}` : ''}`)
+  }, [collection, category, order, q, ready, router])
 
   const active = [
     collection && {
@@ -98,12 +156,14 @@ export default function ShopPage() {
         </div>
       )}
 
-      <ProductGrid
-        collectionId={collection?.id}
-        categoryId={category?.id}
-        order={order || undefined}
-        q={q || undefined}
-      />
+      {ready && (
+        <ProductGrid
+          collectionId={collection?.id}
+          categoryId={category?.id}
+          order={order || undefined}
+          q={q || undefined}
+        />
+      )}
     </main>
   )
 }
