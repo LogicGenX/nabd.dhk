@@ -9,12 +9,12 @@ import { FaBars, FaShoppingCart, FaSearch } from 'react-icons/fa'
 import { useCart } from '../lib/store'
 import SearchOverlay from './SearchOverlay'
 import CartDrawer from './CartDrawer'
+import ShopDropdown from './ShopDropdown'
 
 const MobileMenu = dynamic(() => import('./MobileMenu'), { ssr: false })
 
 const links = [
   { href: '/', label: 'Home' },
-  { href: '/shop', label: 'Shop' },
 ]
 
 export default function Navbar() {
@@ -87,6 +87,26 @@ export default function Navbar() {
                 </Link>
               )
             })}
+            <div className="relative group">
+              <Link
+                href="/shop"
+                aria-current={pathname.startsWith('/shop') ? 'page' : undefined}
+                className="relative px-2 py-1 block focus:outline-none"
+              >
+                <span
+                  className={`transition-all ${pathname.startsWith('/shop') ? 'font-bold' : ''} group-hover:tracking-brand group-hover:-translate-y-0.5`}
+                >
+                  Shop
+                </span>
+                <span className="absolute inset-0 rounded-full bg-accent/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <span
+                  className={`absolute bottom-0 h-0.5 bg-accent transition-all origin-center ${pathname.startsWith('/shop') ? 'w-full' : 'w-0 group-hover:w-full'} left-1/2 -translate-x-1/2 rtl:left-auto rtl:right-1/2 rtl:translate-x-1/2`}
+                />
+              </Link>
+              <div className="absolute left-0 top-full mt-2 hidden group-hover:block group-focus-within:block">
+                <ShopDropdown />
+              </div>
+            </div>
           </div>
         </div>
         <div className="justify-self-center">
