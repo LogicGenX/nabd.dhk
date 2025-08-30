@@ -18,7 +18,7 @@ export default function LookbookCarouselClient({
   const shouldLoop = items.length > 1
 
   return (
-    <section className="relative z-10 w-full aspect-[4/5] md:aspect-video overflow-hidden">
+    <section className="relative z-0 w-full aspect-[4/5] md:aspect-video overflow-hidden">
       <Swiper loop={shouldLoop} watchOverflow className="h-full w-full">
         {items.map((item, index) => (
           <SwiperSlide key={`${item.title}-${index}`} className="h-full">
