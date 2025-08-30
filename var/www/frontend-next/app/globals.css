@@ -13,8 +13,11 @@
     scroll-behavior: smooth;
   }
   body {
-    @apply bg-white text-black font-body tracking-body font-light overflow-x-hidden;
+    @apply bg-white text-black font-body tracking-body font-light overflow-x-hidden leading-relaxed;
     font-optical-sizing: auto;
+  }
+  section {
+    @apply py-12 md:py-16;
   }
   h1,
   h2,

@@ -5,7 +5,33 @@ module.exports = {
   content: ['./app/**/*.{js,ts,jsx,tsx}', './components/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
-      colors,
+      colors: {
+        ...colors,
+        warm: {
+          50: '#fafaf9',
+          100: '#f5f5f4',
+          200: '#e7e5e4',
+          300: '#d6d3d1',
+          400: '#a8a29e',
+          500: '#78716c',
+          600: '#57534e',
+          700: '#44403c',
+          800: '#292524',
+          900: '#1c1917',
+        },
+        burgundy: {
+          50: '#fdf5f6',
+          100: '#f8e6e9',
+          200: '#f1ccd4',
+          300: '#e8aab7',
+          400: '#d46a8a',
+          500: '#800020',
+          600: '#660019',
+          700: '#4d0013',
+          800: '#33000d',
+          900: '#1a0006',
+        },
+      },
       borderRadius: radii,
       boxShadow: shadows,
       keyframes: {
