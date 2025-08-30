@@ -54,6 +54,7 @@ module.exports = {
       fontFamily: {
         heading: ['Cinzel', 'Cormorant Garamond', 'serif'],
         body: ['Outfit', 'Space Grotesk', 'Sora', 'sans-serif'],
+        archivo: ['Archivo Black', 'sans-serif'],
       },
       fontSize: {
         xs: ['12px', { lineHeight: '16px' }],
