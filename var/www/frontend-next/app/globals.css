@@ -13,7 +13,7 @@
     scroll-behavior: smooth;
   }
   body {
-    @apply bg-white text-black font-body tracking-body font-light;
+    @apply bg-white text-black font-body tracking-body font-light overflow-x-hidden;
     font-optical-sizing: auto;
   }
   h1,
