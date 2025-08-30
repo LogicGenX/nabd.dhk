@@ -1,5 +1,6 @@
 import LookbookCarousel from '../components/LookbookCarousel'
 import FeaturedProducts from '../components/FeaturedProducts'
+import OurStory from '../components/OurStory'
 
 export default function HomePage() {
   return (
@@ -11,6 +12,7 @@ export default function HomePage() {
         </h2>
         <FeaturedProducts />
       </section>
+      <OurStory />
     </main>
   )
 }
