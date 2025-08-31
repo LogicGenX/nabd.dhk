@@ -74,7 +74,7 @@ export default function ProductGrid({
         <div className='text-center py-4'>
           <button
             onClick={() => load()}
-            className='px-4 py-2 border rounded'
+            className='px-5 py-3 border rounded-full'
           >
             Load more
           </button>

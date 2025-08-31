@@ -12,9 +12,10 @@ interface Option {
 interface Props {
   selected?: string
   onSelect: (opt: Option | null) => void
+  variant?: 'pills' | 'list'
 }
 
-export default function CollectionsFilter({ selected, onSelect }: Props) {
+export default function CollectionsFilter({ selected, onSelect, variant = 'pills' }: Props) {
   const [collections, setCollections] = useState<Option[]>([])
 
   useEffect(() => {
@@ -34,11 +35,42 @@ export default function CollectionsFilter({ selected, onSelect }: Props) {
 
   const total = collections.reduce((sum, c) => sum + c.count, 0)
 
+  if (variant === 'list') {
+    return (
+      <div>
+        <h4 className='text-sm uppercase tracking-wide text-gray-600 mb-2'>Collections</h4>
+        <div className='space-y-2'>
+          <button
+            onClick={() => onSelect(null)}
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border ${
+              selected ? 'bg-white' : 'bg-black text-white border-black'
+            }`}
+          >
+            <span>All</span>
+            <span className='text-xs opacity-80'>{total}</span>
+          </button>
+          {collections.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => onSelect(selected === c.id ? null : c)}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border ${
+                selected === c.id ? 'bg-black text-white border-black' : 'bg-white'
+              }`}
+            >
+              <span>{c.title}</span>
+              <span className='text-xs opacity-80'>{c.count}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className='flex flex-wrap gap-2'>
       <button
         onClick={() => onSelect(null)}
-        className={`px-3 py-1 rounded-full border ${
+        className={`px-4 py-2 rounded-full border ${
           selected ? 'bg-white' : 'bg-black text-white'
         }`}
       >
@@ -48,7 +80,7 @@ export default function CollectionsFilter({ selected, onSelect }: Props) {
         <button
           key={c.id}
           onClick={() => onSelect(selected === c.id ? null : c)}
-          className={`px-3 py-1 rounded-full border ${
+          className={`px-4 py-2 rounded-full border ${
             selected === c.id ? 'bg-black text-white' : 'bg-white'
           }`}
         >

@@ -5,15 +5,10 @@ import dynamic from 'next/dynamic'
 import { useSearchParams, useRouter } from 'next/navigation'
 import ProductGrid from '../../components/ProductGrid'
 import { medusa } from '../../lib/medusa'
+import FiltersDrawer from '../../components/FiltersDrawer'
 
-const CollectionsFilter = dynamic(
-  () => import('../../components/CollectionsFilter'),
-  { ssr: false },
-)
-const CategoriesFilter = dynamic(
-  () => import('../../components/CategoriesFilter'),
-  { ssr: false },
-)
+const CollectionsFilter = dynamic(() => import('../../components/CollectionsFilter'), { ssr: false })
+const CategoriesFilter = dynamic(() => import('../../components/CategoriesFilter'), { ssr: false })
 
 export default function ShopPage() {
   const searchParams = useSearchParams()
@@ -23,6 +18,7 @@ export default function ShopPage() {
   const [order, setOrder] = useState('')
   const [q, setQ] = useState('')
   const [ready, setReady] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   useEffect(() => {
     const init = async () => {
@@ -87,8 +83,7 @@ export default function ShopPage() {
       clear: () => setCategory(null),
     },
     order && {
-      label:
-        order === 'price' ? 'Price: Low to High' : 'Price: High to Low',
+      label: order === 'price' ? 'Price: Low to High' : 'Price: High to Low',
       clear: () => setOrder(''),
     },
     q && { label: `Search: ${q}`, clear: () => setQ('') },
@@ -102,55 +97,65 @@ export default function ShopPage() {
   }
 
   return (
-    <main className="p-8">
-      <h1 className="text-3xl font-bold mb-4 tracking-brand">Shop</h1>
-
-      <div className="flex flex-col md:flex-row gap-4 mb-6">
-        <CollectionsFilter selected={collection?.id} onSelect={setCollection} />
-        <CategoriesFilter selected={category?.id} onSelect={setCategory} />
-
-        <div className="flex gap-2">
-          <button
-            onClick={() => setOrder(order === 'price' ? '' : 'price')}
-            className={`px-3 py-1 rounded-full border ${
-              order === 'price' ? 'bg-black text-white' : 'bg-white'
-            }`}
+    <main className='container mx-auto px-4 py-6'>
+      <div className='mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4'>
+        <div>
+          <h1 className='text-3xl md:text-4xl font-bold tracking-brand'>Shop</h1>
+          <p className='text-sm text-gray-600'>Refined essentials and elevated staples</p>
+        </div>
+        <div className='flex items-center gap-2'>
+          <div className='relative flex-1 md:w-80'>
+            <input
+              type='text'
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder='Search products...'
+              className='w-full border rounded-full pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-black/20'
+            />
+            <span className='absolute left-3 top-1/2 -translate-y-1/2 text-gray-400'>
+              🔎
+            </span>
+          </div>
+          <select
+            className='border rounded-full px-3 py-2 bg-white'
+            value={order}
+            onChange={(e) => setOrder(e.target.value)}
           >
-            Price: Low to High
-          </button>
-          <button
-            onClick={() => setOrder(order === '-price' ? '' : '-price')}
-            className={`px-3 py-1 rounded-full border ${
-              order === '-price' ? 'bg-black text-white' : 'bg-white'
-            }`}
-          >
-            Price: High to Low
+            <option value=''>Sort: Featured</option>
+            <option value='price'>Price: Low to High</option>
+            <option value='-price'>Price: High to Low</option>
+          </select>
+          <button className='md:hidden px-4 py-2 rounded-full border' onClick={() => setFiltersOpen(true)}>
+            Filters
           </button>
         </div>
+      </div>
 
-        <input
-          type="text"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search products..."
-          className="border p-2 rounded flex-1"
-        />
+      {/* Desktop filters */}
+      <div className='hidden md:flex flex-col gap-4 mb-6'>
+        <div className='rounded-2xl border border-black/5 shadow-sm p-3 bg-white/70 backdrop-blur'>
+          <CollectionsFilter selected={collection?.id} onSelect={setCollection} />
+        </div>
+        <div className='rounded-2xl border border-black/5 shadow-sm p-3 bg-white/70 backdrop-blur'>
+          <CategoriesFilter selected={category?.id} onSelect={setCategory} />
+        </div>
       </div>
 
       {active.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 mb-4">
+        <div className='flex flex-wrap items-center gap-2 mb-4'>
           {active.map((f, i) => (
-            <span
-              key={i}
-              className="px-3 py-1 rounded-full bg-gray-200 text-sm flex items-center"
-            >
+            <span key={i} className='px-3 py-1 rounded-full bg-gray-100 border text-sm flex items-center'>
               {f.label}
-              <button className="ml-2" onClick={f.clear}>
+              <button
+                className='ml-2 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-200'
+                onClick={f.clear}
+                aria-label={`Clear ${f.label}`}
+              >
                 ×
               </button>
             </span>
           ))}
-          <button className="text-sm underline ml-auto" onClick={clearAll}>
+          <button className='text-sm underline ml-auto' onClick={clearAll}>
             Clear all
           </button>
         </div>
@@ -164,6 +169,27 @@ export default function ShopPage() {
           q={q || undefined}
         />
       )}
+
+      {/* Mobile filters drawer */}
+      <FiltersDrawer open={filtersOpen} onClose={() => setFiltersOpen(false)}>
+        <CollectionsFilter
+          selected={collection?.id}
+          onSelect={(opt) => {
+            setCollection(opt)
+            setFiltersOpen(false)
+          }}
+          variant='list'
+        />
+        <CategoriesFilter
+          selected={category?.id}
+          onSelect={(opt) => {
+            setCategory(opt)
+            setFiltersOpen(false)
+          }}
+          variant='list'
+        />
+      </FiltersDrawer>
     </main>
   )
 }
+

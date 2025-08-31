@@ -22,6 +22,16 @@ export default function SearchOverlay({ open, onClose }: Props) {
   const overlayRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  // Prevent background scroll on mobile when overlay is open
+  useEffect(() => {
+    if (open) {
+      document.body.classList.add('overflow-hidden')
+    } else {
+      document.body.classList.remove('overflow-hidden')
+    }
+    return () => document.body.classList.remove('overflow-hidden')
+  }, [open])
+
   useEffect(() => {
     if (!open) return
     const focusable =
@@ -116,11 +126,11 @@ export default function SearchOverlay({ open, onClose }: Props) {
             className="w-full border p-4 rounded-full pr-12 text-lg focus:outline-none focus:ring-2 focus:ring-black/20"
             aria-label="Search products"
           />
-          <span className="absolute right-16 top-1/2 -translate-y-1/2 text-xs text-gray-500">Esc to close</span>
+          <span className="hidden md:inline absolute right-16 top-1/2 -translate-y-1/2 text-xs text-gray-500">Esc to close</span>
           <button
             onClick={onClose}
             aria-label="Close search"
-            className="absolute top-1/2 -translate-y-1/2 right-4 p-2 rounded-full hover:bg-gray-100"
+            className="absolute top-1/2 -translate-y-1/2 right-4 w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100"
           >
             <FaTimes />
           </button>

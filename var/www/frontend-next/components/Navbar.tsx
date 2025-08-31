@@ -76,8 +76,9 @@ export default function Navbar() {
       <nav className={`grid grid-cols-3 items-center h-16 px-4 ${pathname === '/' ? 'text-white' : ''}`}>
         <div className="flex items-center gap-6">
           <button
-            className={`md:hidden p-1 rounded-md ${pathname === '/' ? 'hover:bg-white/20 text-white' : 'hover:bg-accent hover:text-white'}`}
+            className={`md:hidden w-10 h-10 flex items-center justify-center rounded-md ${pathname === '/' ? 'hover:bg-white/20 text-white' : 'hover:bg-accent hover:text-white'}`}
             onClick={() => setMenuOpen(true)}
+            aria-label='Open menu'
           >
             <FaBars />
           </button>
@@ -150,14 +151,14 @@ export default function Navbar() {
         <div className="justify-self-end flex items-center gap-6">
           <button
             aria-label="Search"
-            className={`group relative p-1 rounded-md ${pathname === '/' ? 'hover:bg-white/20 text-white' : 'hover:bg-accent hover:text-white'}`}
+            className={`group relative w-10 h-10 flex items-center justify-center rounded-md ${pathname === '/' ? 'hover:bg-white/20 text-white' : 'hover:bg-accent hover:text-white'}`}
             onClick={() => setSearchOpen(true)}
           >
             <FaSearch className="group-hover:animate-micro-bounce text-xl md:text-2xl" />
           </button>
           <button
             aria-label="Open cart"
-            className={`group relative p-1 rounded-md ${pathname === '/' ? 'hover:bg-white/20 text-white' : 'hover:bg-accent hover:text-white'}`}
+            className={`group relative w-10 h-10 flex items-center justify-center rounded-md ${pathname === '/' ? 'hover:bg-white/20 text-white' : 'hover:bg-accent hover:text-white'}`}
             onClick={() => setCartOpen((o) => !o)}
           >
             <FaShoppingCart className="group-hover:animate-micro-bounce text-xl md:text-2xl" />
