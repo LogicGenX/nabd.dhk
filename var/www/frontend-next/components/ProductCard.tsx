@@ -18,7 +18,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       href={`/product/${product.id}`}
       className="group block bg-white border border-gray-200 rounded-md shadow-sm"
     >
-      <div className="relative h-56 overflow-hidden rounded-t-md">
+      <div className="relative overflow-hidden rounded-t-md aspect-[4/5]">
         <Image
           src={product.thumbnail}
           alt={product.title}

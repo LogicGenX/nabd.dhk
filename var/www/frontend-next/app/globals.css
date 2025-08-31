@@ -91,6 +91,7 @@
   text-decoration: none;
 }
 
+/* base line (always visible) */
 .underline-wipe-left::after {
   content: '';
   position: absolute;
@@ -101,16 +102,18 @@
   background-color: currentColor;
   transform: scaleX(1);
   transform-origin: left;
+  opacity: 0.4;
   z-index: 0;
 }
 
+/* animated overlay (wipes left→right) */
 .underline-wipe-left::before {
   content: '';
   position: absolute;
   left: 0;
   bottom: -2px;
   width: 100%;
-  height: 1px;
+  height: 2px;
   background-color: currentColor;
   transform: scaleX(0);
   transform-origin: left;
@@ -127,17 +130,32 @@
   text-decoration: none;
 }
 
+.underline-slide::before,
 .underline-slide::after {
   content: '';
   position: absolute;
   left: 50%;
   bottom: -2px;
   width: 100%;
-  height: 2px;
+  height: 1px;
   background-color: currentColor;
+}
+
+/* constant base underline */
+.underline-slide::before {
+  transform: translateX(-50%) scaleX(1);
+  transform-origin: center;
+  opacity: 0.4;
+  z-index: 0;
+}
+
+/* animated overlay underline */
+.underline-slide::after {
+  height: 2px;
   transform: translateX(-50%) scaleX(0);
   transform-origin: center;
   transition: transform 300ms ease;
+  z-index: 1;
 }
 
 .underline-slide:hover::after {

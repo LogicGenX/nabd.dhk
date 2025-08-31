@@ -6,6 +6,8 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import ProductGrid from '../../components/ProductGrid'
 import { medusa } from '../../lib/medusa'
 import FiltersDrawer from '../../components/FiltersDrawer'
+import Link from 'next/link'
+import CategoryChips from '../../components/CategoryChips'
 
 const CollectionsFilter = dynamic(() => import('../../components/CollectionsFilter'), { ssr: false })
 const CategoriesFilter = dynamic(() => import('../../components/CategoriesFilter'), { ssr: false })
@@ -19,6 +21,14 @@ export default function ShopPage() {
   const [q, setQ] = useState('')
   const [ready, setReady] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
+
+  // UI-only extras (not yet wired to API)
+  const [size, setSize] = useState<string>('')
+  const [color, setColor] = useState<string>('')
+  const [fit, setFit] = useState<string>('')
+  const [fabric, setFabric] = useState<string>('')
+  const [priceMin, setPriceMin] = useState<string>('')
+  const [priceMax, setPriceMax] = useState<string>('')
 
   useEffect(() => {
     const init = async () => {
@@ -35,7 +45,7 @@ export default function ShopPage() {
                 limit: 1,
               })
               setCollection({ id: collection.id, title: collection.title, count })
-            })
+            }),
         )
       }
       if (categoryId) {
@@ -52,7 +62,7 @@ export default function ShopPage() {
                 name: product_category.name,
                 count,
               })
-            })
+            }),
         )
       }
       await Promise.all(tasks)
@@ -98,77 +108,132 @@ export default function ShopPage() {
 
   return (
     <main className='container mx-auto px-4 py-6'>
-      <div className='mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4'>
-        <div>
-          <h1 className='text-3xl md:text-4xl font-bold tracking-brand'>Shop</h1>
-          <p className='text-sm text-gray-600'>Refined essentials and elevated staples</p>
-        </div>
-        <div className='flex items-center gap-2'>
-          <div className='relative flex-1 md:w-80'>
-            <input
-              type='text'
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder='Search products...'
-              className='w-full border rounded-full pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-black/20'
-            />
-            <span className='absolute left-3 top-1/2 -translate-y-1/2 text-gray-400'>
-              🔎
-            </span>
+      {/* Hero strip */}
+      <div className='mb-6'>
+        <nav className='text-sm text-gray-500 mb-2'>
+          <Link href='/' className='underline-slide'>Home</Link>
+          <span className='mx-2'>/</span>
+          <span>Shop</span>
+        </nav>
+        <h1 className='text-3xl md:text-4xl font-bold tracking-brand mb-1'>Shop</h1>
+        <p className='text-sm text-gray-600 mb-3'>Refined essentials and elevated staples</p>
+        <CategoryChips selected={category?.id} onSelect={setCategory} />
+      </div>
+
+      <div className='flex gap-6'>
+        {/* Left sidebar (desktop) */}
+        <aside className='hidden md:block w-72 shrink-0'>
+          <details open className='rounded-2xl border border-black/5 shadow-sm p-3 bg-white/70 backdrop-blur mb-3'>
+            <summary className='cursor-pointer text-sm font-semibold'>Collections</summary>
+            <div className='pt-3'>
+              <CollectionsFilter selected={collection?.id} onSelect={setCollection} variant='list' />
+            </div>
+          </details>
+          <details open className='rounded-2xl border border-black/5 shadow-sm p-3 bg-white/70 backdrop-blur mb-3'>
+            <summary className='cursor-pointer text-sm font-semibold'>Category</summary>
+            <div className='pt-3'>
+              <CategoriesFilter selected={category?.id} onSelect={setCategory} variant='list' />
+            </div>
+          </details>
+          <details className='rounded-2xl border border-black/5 shadow-sm p-3 bg-white/70 backdrop-blur mb-3'>
+            <summary className='cursor-pointer text-sm font-semibold'>Size</summary>
+            <div className='pt-3 grid grid-cols-4 gap-2'>
+              {['XS','S','M','L','XL'].map((s) => (
+                <button key={s} className={`px-2 py-1 rounded border ${size===s?'bg-black text-white':'bg-white'}`} onClick={()=>setSize(size===s?'':s)}>{s}</button>
+              ))}
+            </div>
+          </details>
+          <details className='rounded-2xl border border-black/5 shadow-sm p-3 bg-white/70 backdrop-blur mb-3'>
+            <summary className='cursor-pointer text-sm font-semibold'>Color</summary>
+            <div className='pt-3 flex flex-wrap gap-2'>
+              {['Black','White','Navy','Beige','Olive'].map((c) => (
+                <button key={c} className={`px-3 py-1 rounded-full border ${color===c?'bg-black text-white':'bg-white'}`} onClick={()=>setColor(color===c?'':c)}>{c}</button>
+              ))}
+            </div>
+          </details>
+          <details className='rounded-2xl border border-black/5 shadow-sm p-3 bg-white/70 backdrop-blur mb-3'>
+            <summary className='cursor-pointer text-sm font-semibold'>Price</summary>
+            <div className='pt-3 flex items-center gap-2'>
+              <input value={priceMin} onChange={(e)=>setPriceMin(e.target.value)} placeholder='Min' className='w-20 border rounded px-2 py-1'/>
+              <span>-</span>
+              <input value={priceMax} onChange={(e)=>setPriceMax(e.target.value)} placeholder='Max' className='w-20 border rounded px-2 py-1'/>
+            </div>
+          </details>
+          <details className='rounded-2xl border border-black/5 shadow-sm p-3 bg-white/70 backdrop-blur mb-3'>
+            <summary className='cursor-pointer text-sm font-semibold'>Fabric</summary>
+            <div className='pt-3 flex flex-wrap gap-2'>
+              {['Cotton','Linen','Denim','Wool'].map((f) => (
+                <button key={f} className={`px-3 py-1 rounded-full border ${fabric===f?'bg-black text-white':'bg-white'}`} onClick={()=>setFabric(fabric===f?'':f)}>{f}</button>
+              ))}
+            </div>
+          </details>
+          <details className='rounded-2xl border border-black/5 shadow-sm p-3 bg-white/70 backdrop-blur'>
+            <summary className='cursor-pointer text-sm font-semibold'>Fit</summary>
+            <div className='pt-3 flex flex-wrap gap-2'>
+              {['Regular','Relaxed','Slim','Oversized'].map((f) => (
+                <button key={f} className={`px-3 py-1 rounded-full border ${fit===f?'bg-black text-white':'bg-white'}`} onClick={()=>setFit(fit===f?'':f)}>{f}</button>
+              ))}
+            </div>
+          </details>
+        </aside>
+
+        {/* Main content */}
+        <div className='flex-1'>
+          {/* Top bar: search, sort, mobile filter button */}
+          <div className='mb-4 flex items-center gap-2'>
+            <div className='relative flex-1 md:w-80'>
+              <input
+                type='text'
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder='Search products...'
+                className='w-full border rounded-full pl-4 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-black/20'
+              />
+            </div>
+            <select
+              className='border rounded-full px-3 py-2 bg-white'
+              value={order}
+              onChange={(e) => setOrder(e.target.value)}
+            >
+              <option value=''>Sort: Featured</option>
+              <option value='price'>Price: Low to High</option>
+              <option value='-price'>Price: High to Low</option>
+            </select>
+            <button className='md:hidden px-4 py-2 rounded-full border' onClick={() => setFiltersOpen(true)}>
+              Filters
+            </button>
           </div>
-          <select
-            className='border rounded-full px-3 py-2 bg-white'
-            value={order}
-            onChange={(e) => setOrder(e.target.value)}
-          >
-            <option value=''>Sort: Featured</option>
-            <option value='price'>Price: Low to High</option>
-            <option value='-price'>Price: High to Low</option>
-          </select>
-          <button className='md:hidden px-4 py-2 rounded-full border' onClick={() => setFiltersOpen(true)}>
-            Filters
-          </button>
-        </div>
-      </div>
 
-      {/* Desktop filters */}
-      <div className='hidden md:flex flex-col gap-4 mb-6'>
-        <div className='rounded-2xl border border-black/5 shadow-sm p-3 bg-white/70 backdrop-blur'>
-          <CollectionsFilter selected={collection?.id} onSelect={setCollection} />
-        </div>
-        <div className='rounded-2xl border border-black/5 shadow-sm p-3 bg-white/70 backdrop-blur'>
-          <CategoriesFilter selected={category?.id} onSelect={setCategory} />
-        </div>
-      </div>
-
-      {active.length > 0 && (
-        <div className='flex flex-wrap items-center gap-2 mb-4'>
-          {active.map((f, i) => (
-            <span key={i} className='px-3 py-1 rounded-full bg-gray-100 border text-sm flex items-center'>
-              {f.label}
-              <button
-                className='ml-2 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-200'
-                onClick={f.clear}
-                aria-label={`Clear ${f.label}`}
-              >
-                ×
+          {active.length > 0 && (
+            <div className='flex flex-wrap items-center gap-2 mb-4'>
+              {active.map((f, i) => (
+                <span key={i} className='px-3 py-1 rounded-full bg-gray-100 border text-sm flex items-center'>
+                  {f.label}
+                  <button
+                    className='ml-2 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-200'
+                    onClick={f.clear}
+                    aria-label={`Clear ${f.label}`}
+                  >
+                    A-
+                  </button>
+                </span>
+              ))}
+              <button className='text-sm underline ml-auto' onClick={clearAll}>
+                Clear all
               </button>
-            </span>
-          ))}
-          <button className='text-sm underline ml-auto' onClick={clearAll}>
-            Clear all
-          </button>
-        </div>
-      )}
+            </div>
+          )}
 
-      {ready && (
-        <ProductGrid
-          collectionId={collection?.id}
-          categoryId={category?.id}
-          order={order || undefined}
-          q={q || undefined}
-        />
-      )}
+          {ready && (
+            <ProductGrid
+              collectionId={collection?.id}
+              categoryId={category?.id}
+              order={order || undefined}
+              q={q || undefined}
+            />
+          )}
+        </div>
+      </div>
 
       {/* Mobile filters drawer */}
       <FiltersDrawer open={filtersOpen} onClose={() => setFiltersOpen(false)}>
@@ -176,7 +241,6 @@ export default function ShopPage() {
           selected={collection?.id}
           onSelect={(opt) => {
             setCollection(opt)
-            setFiltersOpen(false)
           }}
           variant='list'
         />
@@ -184,10 +248,49 @@ export default function ShopPage() {
           selected={category?.id}
           onSelect={(opt) => {
             setCategory(opt)
-            setFiltersOpen(false)
           }}
           variant='list'
         />
+        <div>
+          <h4 className='text-sm uppercase tracking-wide text-gray-600 mb-2'>Size</h4>
+          <div className='grid grid-cols-4 gap-2'>
+            {['XS','S','M','L','XL'].map((s) => (
+              <button key={s} className={`px-2 py-1 rounded border ${size===s?'bg-black text-white':'bg-white'}`} onClick={()=>setSize(size===s?'':s)}>{s}</button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <h4 className='text-sm uppercase tracking-wide text-gray-600 mb-2'>Color</h4>
+          <div className='flex flex-wrap gap-2'>
+            {['Black','White','Navy','Beige','Olive'].map((c) => (
+              <button key={c} className={`px-3 py-1 rounded-full border ${color===c?'bg-black text-white':'bg-white'}`} onClick={()=>setColor(color===c?'':c)}>{c}</button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <h4 className='text-sm uppercase tracking-wide text-gray-600 mb-2'>Price</h4>
+          <div className='flex items-center gap-2'>
+            <input value={priceMin} onChange={(e)=>setPriceMin(e.target.value)} placeholder='Min' className='w-20 border rounded px-2 py-1'/>
+            <span>-</span>
+            <input value={priceMax} onChange={(e)=>setPriceMax(e.target.value)} placeholder='Max' className='w-20 border rounded px-2 py-1'/>
+          </div>
+        </div>
+        <div>
+          <h4 className='text-sm uppercase tracking-wide text-gray-600 mb-2'>Fabric</h4>
+          <div className='flex flex-wrap gap-2'>
+            {['Cotton','Linen','Denim','Wool'].map((f) => (
+              <button key={f} className={`px-3 py-1 rounded-full border ${fabric===f?'bg-black text-white':'bg-white'}`} onClick={()=>setFabric(fabric===f?'':f)}>{f}</button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <h4 className='text-sm uppercase tracking-wide text-gray-600 mb-2'>Fit</h4>
+          <div className='flex flex-wrap gap-2'>
+            {['Regular','Relaxed','Slim','Oversized'].map((f) => (
+              <button key={f} className={`px-3 py-1 rounded-full border ${fit===f?'bg-black text-white':'bg-white'}`} onClick={()=>setFit(fit===f?'':f)}>{f}</button>
+            ))}
+          </div>
+        </div>
       </FiltersDrawer>
     </main>
   )

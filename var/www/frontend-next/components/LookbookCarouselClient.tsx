@@ -8,6 +8,7 @@ interface LookbookItem {
   title: string
   season: string
   url: string
+  collection?: string
 }
 
 export default function LookbookCarouselClient({
@@ -31,15 +32,12 @@ export default function LookbookCarouselClient({
                 className="object-cover"
                 priority={index === 0}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent flex flex-col items-center justify-center text-white">
-                <h2 className="text-2xl md:text-4xl font-bold mb-4 tracking-brand">
-                  {item.season} Lookbook
-                </h2>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent text-white flex items-end justify-center pb-6 pointer-events-none">
                 <Link
-                  href="/shop"
-                  className="underline-wipe-left text-3xl md:text-4xl font-bold tracking-brand"
+                  href={item.collection ? `/shop?collection=${item.collection}` : '/shop'}
+                  className="pointer-events-auto underline-wipe-left text-2xl md:text-3xl font-bold tracking-brand"
                 >
-                  Shop Now
+                  {item.season} Lookbook
                 </Link>
               </div>
             </div>
