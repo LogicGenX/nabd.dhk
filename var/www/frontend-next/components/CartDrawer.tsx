@@ -37,7 +37,7 @@ export default function CartDrawer({ open, onClose }: Props) {
         }`}
       >
         <div className='flex items-center justify-between p-2 border-b border-gray-200'>
-          <h2 className='font-bold'>Your Cart</h2>
+          <h2 className='font-bold'>Cart.</h2>
           <button
             className='p-1 rounded-md text-black hover:bg-accent hover:text-white'
             onClick={onClose}
