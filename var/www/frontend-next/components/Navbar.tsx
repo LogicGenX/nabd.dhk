@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
@@ -25,6 +25,8 @@ export default function Navbar() {
   const [bump, setBump] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 0)
@@ -52,6 +54,20 @@ export default function Navbar() {
     const t = setTimeout(() => setBump(false), 300)
     return () => clearTimeout(t)
   }, [cartQuantity])
+
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [])
+
+  useEffect(() => {
+    setDropdownOpen(false)
+  }, [pathname])
 
   return (
     <header
@@ -87,25 +103,33 @@ export default function Navbar() {
                 </Link>
               )
             })}
-            <div className="relative group">
-              <Link
-                href="/shop"
+            <div
+              ref={dropdownRef}
+              className='relative'
+              onMouseEnter={() => setDropdownOpen(true)}
+              onMouseLeave={() => setDropdownOpen(false)}
+            >
+              <button
+                onClick={() => setDropdownOpen((o) => !o)}
                 aria-current={pathname.startsWith('/shop') ? 'page' : undefined}
-                className="relative px-2 py-1 block focus:outline-none"
+                aria-expanded={dropdownOpen}
+                className='group relative px-2 py-1 focus:outline-none'
               >
                 <span
                   className={`transition-all ${pathname.startsWith('/shop') ? 'font-bold' : ''} group-hover:tracking-brand group-hover:-translate-y-0.5`}
                 >
                   Shop
                 </span>
-                <span className="absolute inset-0 rounded-full bg-accent/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <span className='absolute inset-0 rounded-full bg-accent/5 opacity-0 group-hover:opacity-100 transition-opacity' />
                 <span
                   className={`absolute bottom-0 h-0.5 bg-accent transition-all origin-center ${pathname.startsWith('/shop') ? 'w-full' : 'w-0 group-hover:w-full'} left-1/2 -translate-x-1/2 rtl:left-auto rtl:right-1/2 rtl:translate-x-1/2`}
                 />
-              </Link>
-              <div className="absolute left-0 top-full mt-2 hidden group-hover:block group-focus-within:block">
-                <ShopDropdown />
-              </div>
+              </button>
+              {dropdownOpen && (
+                <div className='absolute left-0 top-full mt-2'>
+                  <ShopDropdown />
+                </div>
+              )}
             </div>
           </div>
         </div>
