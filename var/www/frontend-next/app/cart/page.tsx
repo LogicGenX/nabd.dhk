@@ -10,15 +10,15 @@ export default function CartPage() {
   if (items.length === 0) {
     return (
       <main className='flex min-h-screen'>
-        <div className='hidden md:block w-1/2 relative'>
+        <div className='hidden md:block w-1/3 relative'>
           <Image src='/placeholder.svg' alt='Empty cart illustration' fill className='object-cover' />
         </div>
-        <div className='flex w-full md:w-1/2 flex-col items-center justify-center text-center relative'>
-          <h1 className='absolute top-4 left-4 font-archivo text-black/40'>
+        <div className='flex w-full md:w-2/3 flex-col items-center justify-center text-center relative'>
+          <h1 className='absolute top-4 left-4 font-extrabold tracking-brand text-black/40'>
             CART<sup>{items.length}</sup>
           </h1>
-          <p className='text-2xl font-archivo text-black/40 mb-6'>YOUR CART IS EMPTY</p>
-          <Link href='/shop' className='px-4 py-2 bg-gray-200 text-gray-600 rounded-md border border-gray-300'>
+          <p className='text-3xl md:text-4xl font-extrabold uppercase tracking-brand text-black/50 mb-6'>YOUR CART IS EMPTY</p>
+          <Link href='/shop' className='px-6 py-2 bg-gray-200 text-gray-700 rounded-full shadow-inner'>
             Continue Shopping
           </Link>
         </div>

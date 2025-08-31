@@ -6,8 +6,8 @@
 
 @layer base {
   :root {
-    --font-heading: 'Cinzel', 'Cormorant Garamond', serif;
-    --font-body: 'Outfit', 'Space Grotesk', 'Sora', sans-serif;
+    --font-heading: 'Archivo Black', 'Cinzel', 'Cormorant Garamond', serif;
+    --font-body: 'Archivo Black', 'Outfit', 'Space Grotesk', 'Sora', sans-serif;
   }
   html {
     scroll-behavior: smooth;
@@ -70,6 +70,22 @@
   animation: heroZoom 2000ms ease-out both;
 }
 
+.hero-zoom-inout {
+  animation: heroZoomInOut 3500ms ease-out both;
+}
+
+@keyframes heroZoomInOut {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 .underline-wipe-left {
   position: relative;
   text-decoration: none;
@@ -104,6 +120,28 @@
 
 .underline-wipe-left:hover::before {
   transform: scaleX(1);
+}
+
+.underline-slide {
+  position: relative;
+  text-decoration: none;
+}
+
+.underline-slide::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -2px;
+  width: 100%;
+  height: 2px;
+  background-color: currentColor;
+  transform: translateX(-50%) scaleX(0);
+  transform-origin: center;
+  transition: transform 300ms ease;
+}
+
+.underline-slide:hover::after {
+  transform: translateX(-50%) scaleX(1);
 }
 
 .swiper,

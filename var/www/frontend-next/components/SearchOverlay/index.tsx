@@ -13,6 +13,7 @@ interface Props {
 
 export default function SearchOverlay({ open, onClose }: Props) {
   const [query, setQuery] = useState('')
+  const [debounced, setDebounced] = useState('')
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<{ id: string; name: string }[]>(
     [],
@@ -50,7 +51,12 @@ export default function SearchOverlay({ open, onClose }: Props) {
   }, [open, onClose])
 
   useEffect(() => {
-    if (!query) {
+    const t = setTimeout(() => setDebounced(query.trim()), 250)
+    return () => clearTimeout(t)
+  }, [query])
+
+  useEffect(() => {
+    if (!debounced) {
       setProducts([])
       setCategories([])
       return
@@ -60,7 +66,7 @@ export default function SearchOverlay({ open, onClose }: Props) {
       setLoading(true)
       try {
         const [prodRes, catRes] = await Promise.all([
-          medusa.products.list({ q: query }),
+          medusa.products.list({ q: debounced }),
           medusa.productCategories.list(),
         ])
         if (!active) return
@@ -77,7 +83,7 @@ export default function SearchOverlay({ open, onClose }: Props) {
           }
         })
         const filtered = catRes.product_categories.filter((c: any) =>
-          c.name.toLowerCase().includes(query.toLowerCase()),
+          c.name.toLowerCase().includes(debounced.toLowerCase()),
         )
         setProducts(mapped)
         setCategories(filtered)
@@ -89,70 +95,76 @@ export default function SearchOverlay({ open, onClose }: Props) {
     return () => {
       active = false
     }
-  }, [query])
+  }, [debounced])
 
   return (
     <div
       ref={overlayRef}
-      className={`fixed inset-0 z-50 bg-white flex flex-col transform transition-all duration-300 ${open ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'}`}
+      className={`fixed inset-0 z-50 flex items-start md:items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-all duration-300 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
       role="dialog"
       aria-modal="true"
       aria-label="Search overlay"
     >
-      <div className="relative p-4 border-b">
-        <input
-          ref={inputRef}
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search products..."
-          className="w-full border p-2 rounded-md pr-10"
-          aria-label="Search products"
-        />
-        <button
-          onClick={onClose}
-          aria-label="Close search"
-          className="absolute top-4 right-4 rtl:left-4 rtl:right-auto p-2 rounded-md hover:bg-accent hover:text-white"
-        >
-          <FaTimes />
-        </button>
-      </div>
-      <div className="flex-1 overflow-y-auto p-4">
-        {loading && <p>Searching...</p>}
-        {!loading && categories.length > 0 && (
-          <section className="mb-4">
-            <h2 className="text-lg font-bold mb-2">Categories</h2>
-            <ul className="list-disc list-inside">
-              {categories.map((c) => (
-                <li key={c.id}>
-                  <Link
-                    href={`/shop?category=${c.id}`}
-                    onClick={onClose}
-                    className="hover:underline"
-                  >
-                    {c.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-        {!loading && products.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {products.map((p) => (
-              <ProductCard key={p.id} product={p} />
-            ))}
-          </div>
-        )}
-        {!loading &&
-          query &&
-          products.length === 0 &&
-          categories.length === 0 && (
-            <p>
-              No results could be found. Please try again with a different
-              query.
-            </p>
+      <div className={`w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden transform transition-all duration-300 ${open ? 'translate-y-0 scale-100' : 'translate-y-4 scale-95'}`}>
+        <div className="relative p-4 border-b">
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search products, collections, categories"
+            className="w-full border p-4 rounded-full pr-12 text-lg focus:outline-none focus:ring-2 focus:ring-black/20"
+            aria-label="Search products"
+          />
+          <span className="absolute right-16 top-1/2 -translate-y-1/2 text-xs text-gray-500">Esc to close</span>
+          <button
+            onClick={onClose}
+            aria-label="Close search"
+            className="absolute top-1/2 -translate-y-1/2 right-4 p-2 rounded-full hover:bg-gray-100"
+          >
+            <FaTimes />
+          </button>
+        </div>
+        <div className="max-h-[70vh] overflow-y-auto p-4">
+          {loading && <p>Searching...</p>}
+          {!loading && categories.length > 0 && (
+            <section className="mb-4">
+              <h2 className="text-lg font-bold mb-2">Categories</h2>
+              <ul className="flex flex-wrap gap-2">
+                {categories.map((c) => (
+                  <li key={c.id}>
+                    <Link
+                      href={`/shop?category=${c.id}`}
+                      onClick={onClose}
+                      className="inline-block px-3 py-1 rounded-full bg-gray-100 hover:bg-gray-200 text-sm"
+                    >
+                      {c.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
           )}
+          {!loading && products.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {products.map((p) => (
+                <ProductCard key={p.id} product={p} />
+              ))}
+            </div>
+          )}
+          {!loading && !debounced && (
+            <p className="text-gray-500">Try searching 'shirt', 'hoodie' or 'accessory'</p>
+          )}
+          {!loading &&
+            debounced &&
+            products.length === 0 &&
+            categories.length === 0 && (
+              <p>
+                No results could be found. Please try again with a different
+                query.
+              </p>
+            )}
+        </div>
       </div>
     </div>
   )

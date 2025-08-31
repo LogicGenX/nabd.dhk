@@ -13,6 +13,7 @@ module.exports = {
   plugins: [
     './plugins/bkash',
     './plugins/cod',
+    './plugins/product-policy',
     'medusa-fulfillment-manual',
     './admin-extensions',
     {

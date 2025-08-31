@@ -71,12 +71,12 @@ export default function Navbar() {
 
   return (
     <header
-      className={`sticky top-0 z-50 backdrop-blur bg-white/70 border-b border-white/20 transition-shadow ${scrolled ? 'shadow-md' : ''}`}
+      className={`${pathname === '/' ? 'absolute top-0 w-full z-50 bg-transparent' : `sticky top-0 z-50 backdrop-blur bg-white/70 border-b border-white/20 ${scrolled ? 'shadow-md' : ''}`} transition-shadow`}
     >
-      <nav className="grid grid-cols-3 items-center h-16 px-4">
+      <nav className={`grid grid-cols-3 items-center h-16 px-4 ${pathname === '/' ? 'text-white' : ''}`}>
         <div className="flex items-center gap-6">
           <button
-            className="md:hidden p-1 rounded-md hover:bg-accent hover:text-white"
+            className={`md:hidden p-1 rounded-md ${pathname === '/' ? 'hover:bg-white/20 text-white' : 'hover:bg-accent hover:text-white'}`}
             onClick={() => setMenuOpen(true)}
           >
             <FaBars />
@@ -105,7 +105,7 @@ export default function Navbar() {
             })}
             <div
               ref={dropdownRef}
-              className='relative'
+              className='relative pt-2'
               onMouseEnter={() => setDropdownOpen(true)}
               onMouseLeave={() => setDropdownOpen(false)}
             >
@@ -126,8 +126,8 @@ export default function Navbar() {
                 />
               </button>
               {dropdownOpen && (
-                <div className='absolute left-0 top-full mt-2'>
-                  <ShopDropdown />
+                <div className='absolute left-0 top-full z-50'>
+                  <ShopDropdown onNavigate={() => setDropdownOpen(false)} />
                 </div>
               )}
             </div>
@@ -150,17 +150,17 @@ export default function Navbar() {
         <div className="justify-self-end flex items-center gap-6">
           <button
             aria-label="Search"
-            className="group relative p-1 rounded-md hover:bg-accent hover:text-white"
+            className={`group relative p-1 rounded-md ${pathname === '/' ? 'hover:bg-white/20 text-white' : 'hover:bg-accent hover:text-white'}`}
             onClick={() => setSearchOpen(true)}
           >
-            <FaSearch className="group-hover:animate-micro-bounce" />
+            <FaSearch className="group-hover:animate-micro-bounce text-xl md:text-2xl" />
           </button>
           <button
             aria-label="Open cart"
-            className="group relative p-1 rounded-md hover:bg-accent hover:text-white"
+            className={`group relative p-1 rounded-md ${pathname === '/' ? 'hover:bg-white/20 text-white' : 'hover:bg-accent hover:text-white'}`}
             onClick={() => setCartOpen((o) => !o)}
           >
-            <FaShoppingCart className="group-hover:animate-micro-bounce" />
+            <FaShoppingCart className="group-hover:animate-micro-bounce text-xl md:text-2xl" />
             {cartQuantity > 0 && (
               <span
                 className={`absolute -top-2 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-xs text-white ${bump ? 'animate-bump' : ''}`}

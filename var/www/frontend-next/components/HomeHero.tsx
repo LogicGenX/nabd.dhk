@@ -28,23 +28,27 @@ export default async function HomeHero() {
         alt={settings?.heroTagline || 'Hero image'}
         fill
         sizes='100vw'
-        className='object-cover'
+        className='object-cover hero-zoom-inout'
         priority
       />
-      <div className='absolute inset-0 flex flex-col items-center justify-center text-white text-center gap-2'>
-        <h1 className='text-3xl md:text-5xl font-bold tracking-brand'>NABD</h1>
-        <Link
-          href='/shop'
-          className='text-2xl md:text-4xl font-bold tracking-brand'
-        >
-          SHOP ALL
-        </Link>
+      <div className='absolute inset-0'>
+        <div className='absolute inset-x-0 top-1/4 flex flex-col items-center justify-center text-white text-center gap-2'>
+          <h1 className='text-3xl md:text-5xl font-bold tracking-brand'>NABD</h1>
+          <Link
+            href='/shop'
+            className='text-2xl md:text-4xl font-bold tracking-brand underline-slide transition-transform hover:-translate-y-0.5'
+          >
+            SHOP ALL
+          </Link>
+        </div>
         {settings?.heroTagline && (
           <Link
             href={collectionLink}
-            className='text-lg md:text-2xl font-bold tracking-brand'
+            className='absolute left-1/2 -translate-x-1/2 bottom-6 text-lg md:text-2xl font-bold tracking-brand text-black'
           >
-            {settings.heroTagline}
+            <span className='px-3 py-1 rounded bg-white/60 backdrop-blur-sm underline-wipe-left'>
+              {settings.heroTagline}
+            </span>
           </Link>
         )}
       </div>

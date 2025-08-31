@@ -17,9 +17,7 @@ export default function OurStory() {
         <div>
           <h2 className='text-2xl font-bold mb-4 tracking-brand'>Our Story</h2>
           <p className='mb-6'>
-            Born from a passion for mindful design, our brand blends modern
-            aesthetics with ethical craftsmanship. Every piece reflects our
-            commitment to sustainability and timeless style.
+            Elevating your lifestyle with luxurious comfort. Crafted for those who seek elegance in every moment.
           </p>
           <Link
             href='/story'
