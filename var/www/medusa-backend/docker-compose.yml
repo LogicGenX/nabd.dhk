@@ -5,6 +5,7 @@ services:
     command: yarn start
     volumes:
       - .:/app
+      - /app/node_modules
     ports:
       - '7001:9000'
     environment:
