@@ -40,11 +40,13 @@ export default async function HomeHero() {
         priority
       />
       <div className='absolute inset-0 pointer-events-none'>
-        <div className='absolute inset-x-0 top-1/4 flex flex-col items-center justify-center text-white text-center gap-2'>
-          <h1 className='text-3xl md:text-5xl font-bold tracking-brand'>NABD</h1>
+        <div className='absolute inset-x-0 top-1/4 flex flex-col items-center justify-center text-white text-center gap-1 md:gap-2'>
+          <h1 className='text-4xl md:text-6xl font-extrabold tracking-brand uppercase font-archivo text-shadow-hero'>
+            NABD
+          </h1>
           <Link
             href='/shop'
-            className='pointer-events-auto text-2xl md:text-4xl font-bold tracking-brand underline-slide transition-transform hover:-translate-y-0.5'
+            className='pointer-events-auto text-2xl md:text-4xl font-bold tracking-brand uppercase font-archivo underline-strong transition-transform hover:-translate-y-0.5 text-shadow-hero'
           >
             SHOP ALL
           </Link>
@@ -53,9 +55,9 @@ export default async function HomeHero() {
           <div className='absolute inset-0 flex items-end justify-center pb-6'>
             <Link
               href={lookbook?.season ? lookbookCollectionLink : collectionLink}
-              className='pointer-events-auto text-lg md:text-2xl font-bold tracking-brand text-white underline-wipe-left'
+              className='pointer-events-auto text-2xl md:text-3xl font-extrabold tracking-brand uppercase font-archivo text-white underline-wipe-left text-shadow-hero'
             >
-              {lookbook?.season ? `${lookbook.season} Lookbook` : settings?.heroTagline}
+              {lookbook?.season ? lookbook.season : settings?.heroTagline}
             </Link>
           </div>
         )}

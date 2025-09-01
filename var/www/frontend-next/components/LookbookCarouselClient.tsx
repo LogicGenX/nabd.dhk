@@ -37,7 +37,7 @@ export default function LookbookCarouselClient({
                   href={item.collection ? `/shop?collection=${item.collection}` : '/shop'}
                   className="pointer-events-auto underline-wipe-left text-2xl md:text-3xl font-bold tracking-brand"
                 >
-                  {item.season} Lookbook
+                  {item.season}
                 </Link>
               </div>
             </div>
