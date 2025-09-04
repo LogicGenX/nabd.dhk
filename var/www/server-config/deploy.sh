@@ -24,7 +24,14 @@ yarn install
 yarn build
 
 cd /var/www/medusa-backend
-cp .env.template .env
+# Ensure env file exists; prefer template.env if present
+if [ ! -f .env ]; then
+  if [ -f template.env ]; then
+    cp template.env .env
+  elif [ -f .env.template ]; then
+    cp .env.template .env
+  fi
+fi
 sudo docker compose up -d
 
 cd /var/www/frontend-next

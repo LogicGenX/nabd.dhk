@@ -20,7 +20,10 @@ module.exports = {
       resolve: 'medusa-file-local',
       options: {
         upload_dir: 'uploads',
-        base_url: process.env.MEDUSA_BACKEND_URL || 'http://localhost:7001',
+        base_url:
+          process.env.MEDUSA_BACKEND_URL ||
+          process.env.MEDUSA_ADMIN_BACKEND_URL ||
+          '/api',
       },
     },
     {
@@ -29,7 +32,9 @@ module.exports = {
         path: '/app',
         serve: true,
         backend:
-          process.env.MEDUSA_ADMIN_BACKEND_URL || 'http://localhost:7001',
+          process.env.MEDUSA_ADMIN_BACKEND_URL ||
+          process.env.MEDUSA_BACKEND_URL ||
+          'http://localhost:7001',
         autoRebuild: true,
       },
     },

@@ -35,7 +35,7 @@ export default function LookbookCarouselClient({
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent text-white flex items-end justify-center pb-6 pointer-events-none">
                 <Link
                   href={item.collection ? `/shop?collection=${item.collection}` : '/shop'}
-                  className="pointer-events-auto underline-wipe-left text-2xl md:text-3xl font-bold tracking-brand"
+                  className="pointer-events-auto text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-brand uppercase font-archivo text-white underline-wipe-left text-shadow-hero"
                 >
                   {item.season}
                 </Link>

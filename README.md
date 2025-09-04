@@ -81,3 +81,16 @@ field. Selected `collectionId` and `categoryId` values are passed to
 `medusa.products.list({ collection_id, category_id, q, order, limit, offset })`
 so product queries can combine both filters along with search and sorting
 options.
+
+## Medusa Admin Login (Dev)
+
+- For local HTTP, ensure cookies are not marked `Secure` by running Medusa in development mode:
+  - `var/www/medusa-backend/.env` should contain `NODE_ENV=development`.
+- The Admin UI is served at `/app` and the Admin API is under `/admin`.
+  - With Compose mapping `9000 -> 7001`, open `http://localhost:7001/app`.
+  - With the provided dev Nginx, you can also use `http://localhost/app`.
+- Default admin credentials (created or updated automatically):
+  - Email: `admin@nabd.dhk`
+  - Password: `supersecret12345678`
+
+If you see auth errors before logging in, clear cookies for `localhost` and confirm `NODE_ENV=development` in `.env`.
