@@ -22,6 +22,10 @@ export default function ShopPage() {
   const [ready, setReady] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
 
+  // Derive IDs from URL so effect deps are stable
+  const collectionId = searchParams.get('collection')
+  const categoryId = searchParams.get('category')
+
   // UI-only extras (not yet wired to API)
   const [size, setSize] = useState<string>('')
   const [color, setColor] = useState<string>('')
@@ -32,8 +36,6 @@ export default function ShopPage() {
 
   useEffect(() => {
     const init = async () => {
-      const collectionId = searchParams.get('collection')
-      const categoryId = searchParams.get('category')
       const tasks: Promise<void>[] = []
       if (collectionId) {
         tasks.push(
@@ -69,7 +71,7 @@ export default function ShopPage() {
       setReady(true)
     }
     init()
-  }, [])
+  }, [collectionId, categoryId])
 
   useEffect(() => {
     if (!ready) return
@@ -295,4 +297,3 @@ export default function ShopPage() {
     </main>
   )
 }
-

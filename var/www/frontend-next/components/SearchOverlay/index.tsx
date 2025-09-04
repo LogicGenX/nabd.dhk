@@ -163,7 +163,7 @@ export default function SearchOverlay({ open, onClose }: Props) {
             </div>
           )}
           {!loading && !debounced && (
-            <p className="text-gray-500">Try searching 'shirt', 'hoodie' or 'accessory'</p>
+            <p className="text-gray-500">Try searching &apos;shirt&apos;, &apos;hoodie&apos; or &apos;accessory&apos;</p>
           )}
           {!loading &&
             debounced &&

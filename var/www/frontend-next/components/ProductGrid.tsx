@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { medusa } from '../lib/medusa'
 import ProductCard, { type Product } from './ProductCard'
 import ProductCardSkeleton from './ProductCardSkeleton'
@@ -24,37 +24,63 @@ export default function ProductGrid({
   const [hasMore, setHasMore] = useState(true)
   const limit = 12
 
-  const load = async (reset = false) => {
-    if (loading) return
-    setLoading(true)
-    const params: any = { limit, offset: reset ? 0 : offset }
-    if (collectionId) params.collection_id = collectionId
-    if (categoryId) params.category_id = categoryId
-    if (q) params.q = q
-    if (order) params.order = order
-    const { products } = await medusa.products.list(params)
-    const mapped: Product[] = products.map((p: any) => {
-      const thumb =
-        (typeof p.thumbnail === 'string' && p.thumbnail) ||
-        p.images?.[0]?.url ||
-        '/placeholder.svg'
-      return {
-        id: p.id,
-        title: p.title,
-        thumbnail: thumb,
-        price: p.variants[0]?.prices[0]?.amount / 100 || 0,
-      }
-    })
-    setProducts((prev) => (reset ? mapped : [...prev, ...mapped]))
-    setOffset((prev) => (reset ? mapped.length : prev + mapped.length))
-    setHasMore(products.length === limit)
-    setLoading(false)
-  }
+  // Keep mutable values stable for load() without bloating deps
+  const loadingRef = useRef<boolean>(false)
+  const offsetRef = useRef<number>(0)
+
+  // Sync refs with state
+  useEffect(() => {
+    loadingRef.current = loading
+  }, [loading])
+  useEffect(() => {
+    offsetRef.current = offset
+  }, [offset])
+
+  const load = useCallback(
+    async (reset = false) => {
+      if (loadingRef.current) return
+      setLoading(true)
+      loadingRef.current = true
+
+      const effectiveOffset = reset ? 0 : offsetRef.current
+      const params: any = { limit, offset: effectiveOffset }
+      if (collectionId) params.collection_id = collectionId
+      if (categoryId) params.category_id = categoryId
+      if (q) params.q = q
+      if (order) params.order = order
+
+      const { products } = await medusa.products.list(params)
+      const mapped: Product[] = products.map((p: any) => {
+        const thumb =
+          (typeof p.thumbnail === 'string' && p.thumbnail) ||
+          p.images?.[0]?.url ||
+          '/placeholder.svg'
+        return {
+          id: p.id,
+          title: p.title,
+          thumbnail: thumb,
+          price: p.variants[0]?.prices[0]?.amount / 100 || 0,
+        }
+      })
+
+      // Update products and offsets
+      setProducts((prev) => (reset ? mapped : [...prev, ...mapped]))
+      const newOffset = reset ? mapped.length : effectiveOffset + mapped.length
+      offsetRef.current = newOffset
+      setOffset(newOffset)
+      setHasMore(products.length === limit)
+
+      setLoading(false)
+      loadingRef.current = false
+    },
+    [collectionId, categoryId, q, order]
+  )
 
   useEffect(() => {
     setOffset(0)
+    offsetRef.current = 0
     load(true)
-  }, [collectionId, categoryId, q, order])
+  }, [load])
 
   return (
     <div>
