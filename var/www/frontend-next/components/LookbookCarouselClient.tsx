@@ -19,7 +19,7 @@ export default function LookbookCarouselClient({
   const shouldLoop = items.length > 1
 
   return (
-    <section className="relative z-0 w-full aspect-[4/5] md:aspect-video overflow-hidden">
+    <section className="relative z-0 w-full min-h-[100dvh] md:min-h-screen md:aspect-video overflow-hidden py-0">
       <Swiper loop={shouldLoop} watchOverflow className="h-full w-full">
         {items.map((item, index) => (
           <SwiperSlide key={`${item.title}-${index}`} className="h-full">
@@ -32,10 +32,10 @@ export default function LookbookCarouselClient({
                 className="object-cover"
                 priority={index === 0}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent text-white flex items-end justify-center pb-6 pointer-events-none">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent text-white flex items-end justify-center pb-6 px-4 pointer-events-none">
                 <Link
                   href={item.collection ? `/shop?collection=${item.collection}` : '/shop'}
-                  className="pointer-events-auto text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-brand uppercase font-archivo text-white underline-wipe-left text-shadow-hero"
+                  className="pointer-events-auto whitespace-nowrap text-lg sm:text-3xl md:text-4xl font-extrabold tracking-normal sm:tracking-brand uppercase font-archivo text-white underline-wipe-left text-shadow-hero"
                 >
                   {item.season}
                 </Link>

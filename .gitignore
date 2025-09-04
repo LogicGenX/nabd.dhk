@@ -6,3 +6,4 @@ dist
 var/www/medusa-backend/uploads/*
 !var/www/medusa-backend/uploads/.gitkeep
 var/www/sanity-studio/package-lock.json
+.vscode/settings.json

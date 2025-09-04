@@ -30,7 +30,7 @@ export default async function HomeHero() {
     : '/shop'
 
   return (
-    <section className='relative w-full aspect-[4/5] md:h-screen md:aspect-auto overflow-hidden py-0'>
+    <section className='relative w-full min-h-[100dvh] md:min-h-screen md:aspect-auto overflow-hidden py-0'>
       <Image
         src={lookbook?.url || '/placeholder.svg'}
         alt={settings?.heroTagline || 'Hero image'}
@@ -41,21 +41,21 @@ export default async function HomeHero() {
       />
       <div className='absolute inset-0 pointer-events-none'>
         <div className='absolute inset-x-0 top-1/4 flex flex-col items-center justify-center text-white text-center gap-1'>
-          <h1 className='text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-brand uppercase font-archivo text-shadow-hero'>
+          <h1 className='text-lg sm:text-3xl md:text-4xl font-extrabold tracking-brand uppercase font-archivo text-shadow-hero whitespace-nowrap'>
             NABD
           </h1>
           <Link
             href='/shop'
-            className='pointer-events-auto text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-brand uppercase font-archivo text-white underline-wipe-left text-shadow-hero'
+            className='pointer-events-auto text-lg sm:text-3xl md:text-4xl font-extrabold tracking-brand uppercase font-archivo text-white underline-wipe-left text-shadow-hero whitespace-nowrap'
           >
             SHOP ALL
           </Link>
         </div>
         {(lookbook?.season || settings?.heroTagline) && (
-          <div className='absolute inset-0 flex items-end justify-center pb-6'>
+          <div className='absolute inset-0 flex items-end justify-center pb-6 px-4'>
             <Link
               href={lookbook?.season ? lookbookCollectionLink : collectionLink}
-              className='pointer-events-auto text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-brand uppercase font-archivo text-white underline-wipe-left text-shadow-hero'
+              className='pointer-events-auto whitespace-nowrap text-lg sm:text-3xl md:text-4xl font-extrabold tracking-normal sm:tracking-brand uppercase font-archivo text-white underline-wipe-left text-shadow-hero'
             >
               {lookbook?.season ? lookbook.season : settings?.heroTagline}
             </Link>

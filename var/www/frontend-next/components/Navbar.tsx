@@ -20,6 +20,7 @@ const links = [
 export default function Navbar() {
   const pathname = usePathname()
   const cartQuantity = useCart((state) => state.totalItems())
+  const [mounted, setMounted] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [bump, setBump] = useState(false)
@@ -29,6 +30,9 @@ export default function Navbar() {
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    // Ensure client-only UI (e.g., cart badge) renders after hydration
+    setMounted(true)
+
     const onScroll = () => setScrolled(window.scrollY > 0)
     window.addEventListener('scroll', onScroll)
     return () => window.removeEventListener('scroll', onScroll)
@@ -162,7 +166,7 @@ export default function Navbar() {
             onClick={() => setCartOpen((o) => !o)}
           >
             <FaShoppingCart className="group-hover:animate-micro-bounce text-xl md:text-2xl" />
-            {cartQuantity > 0 && (
+            {mounted && cartQuantity > 0 && (
               <span
                 className={`absolute -top-2 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-xs text-white ${bump ? 'animate-bump' : ''}`}
               >

@@ -13,12 +13,15 @@ interface Props {
 export default function CartDrawer({ open, onClose }: Props) {
   const { items, totalPrice } = useCart()
   const [showEmpty, setShowEmpty] = useState(items.length === 0)
+  const [hydrated, setHydrated] = useState(false)
 
   useEffect(() => {
     setShowEmpty(items.length === 0)
   }, [items.length])
 
   useEffect(() => {
+    setHydrated(true)
+
     document.body.classList.toggle('overflow-hidden', open)
     return () => document.body.classList.remove('overflow-hidden')
   }, [open])
@@ -46,8 +49,8 @@ export default function CartDrawer({ open, onClose }: Props) {
             <FaTimes />
           </button>
         </div>
-        <CartEmptyState show={showEmpty} />
-        {!showEmpty && (
+        {hydrated && <CartEmptyState show={showEmpty} />}
+        {hydrated && !showEmpty && (
           <>
             <ul className="space-y-2">
               {items.map((item) => (
