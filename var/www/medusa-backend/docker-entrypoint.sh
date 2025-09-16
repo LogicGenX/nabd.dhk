@@ -4,7 +4,8 @@
 # supplied by the Dockerfile's ENTRYPOINT invocation.
 
 # Wait for Postgres to be ready
-until pg_isready -h db -p 5432 >/dev/null 2>&1; do
+PG_WAIT_DSN=${DATABASE_URL:-postgres://postgres:postgres@db:5432/postgres}
+until pg_isready -d "$PG_WAIT_DSN" >/dev/null 2>&1; do
   echo "Waiting for Postgres..."
   sleep 1
 done
@@ -12,9 +13,6 @@ done
 # Create the database if it doesn't exist
 psql postgres://postgres:postgres@db:5432/postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'medusa'" | grep -q 1 || \
   psql postgres://postgres:postgres@db:5432/postgres -c "CREATE DATABASE medusa"
-
-# Ensure musl-compatible SWC binary is installed
-yarn add @swc/core-linux-x64-musl@1.13.3 --no-lockfile
 
 # Ensure .env exists (from template) for secrets/JWT
 if [ ! -f .env ] && [ -f template.env ]; then

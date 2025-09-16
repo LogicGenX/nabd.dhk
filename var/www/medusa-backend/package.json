@@ -2,9 +2,11 @@
   "name": "medusa-backend",
   "private": true,
   "scripts": {
-    "start": "npx medusa start -p 9000 -H 0.0.0.0",
+    "start": "npx medusa start -p ${PORT:-9000} -H 0.0.0.0",
     "seed": "npx medusa seed -f ./data/seed.json",
     "migrate": "npx medusa migrations run",
+    "ensure:admin": "node ./scripts/ensure-admin.js || npx medusa user -e ${MEDUSA_ADMIN_EMAIL:-admin@nabd.dhk} -p ${MEDUSA_ADMIN_PASSWORD:-supersecret12345678} -f ${MEDUSA_ADMIN_FIRST:-Admin} -l ${MEDUSA_ADMIN_LAST:-User}",
+    "postdeploy": "yarn migrate && yarn ensure:admin || true",
     "test": "node test/test.js"
   },
   "dependencies": {
