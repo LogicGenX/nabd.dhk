@@ -5,7 +5,10 @@
 const { Client } = require('pg')
 const Scrypt = require('scrypt-kdf')
 const { randomUUID } = require('crypto')
-require('dotenv').config()
+
+if (!process.env.DATABASE_URL) {
+  require('dotenv').config()
+}
 
 async function ensureAdmin() {
   const email = process.env.MEDUSA_ADMIN_EMAIL || 'admin@nabd.dhk'

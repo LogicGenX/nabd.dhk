@@ -42,12 +42,10 @@ else
     psql postgres://postgres:postgres@db:5432/postgres -c "CREATE DATABASE medusa"
 fi
 
-# Ensure .env exists (from template) for secrets/JWT
-if [ -z "$RENDER" ]; then
-  if [ ! -f .env ] && [ -f template.env ]; then
-    echo "Local dev: creating .env from template.env"
-    cp template.env .env
-  fi
+# Ensure .env exists (from template) for secrets/JWT (local Compose only)
+if [ -z "$DATABASE_URL" ] && [ ! -f .env ] && [ -f template.env ]; then
+  echo "Local dev: creating .env from template.env"
+  cp template.env .env
 fi
 
 # Run migrations
