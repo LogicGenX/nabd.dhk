@@ -30,7 +30,7 @@ module.exports = {
       resolve: '@medusajs/admin',
       options: {
         path: '/app',
-        serve: true,
+        serve: false,
         backend:
           process.env.MEDUSA_ADMIN_BACKEND_URL ||
           process.env.MEDUSA_BACKEND_URL ||
