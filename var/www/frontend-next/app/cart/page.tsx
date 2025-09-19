@@ -3,6 +3,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { FaTrash } from 'react-icons/fa'
 import { useCart } from '../../lib/store'
+import { formatAmount } from '../../lib/currency'
 
 export default function CartPage() {
   const { items, updateQuantity, totalItems, totalPrice } = useCart()
@@ -87,9 +88,9 @@ export default function CartPage() {
                     </button>
                   </div>
                 </td>
-                <td className='p-2'>${item.price.toFixed(2)}</td>
+                <td className='p-2'>{formatAmount(item.price)}</td>
                 <td className='p-2 font-semibold'>
-                  ${(item.price * item.quantity).toFixed(2)}
+                  {formatAmount(item.price * item.quantity)}
                 </td>
                 <td className='p-2 text-center'>
                   <button
@@ -106,7 +107,7 @@ export default function CartPage() {
       </div>
       <div className='flex justify-between items-center font-semibold pt-4'>
         <span>Subtotal ({totalItems()} items)</span>
-        <span className='text-xl'>${totalPrice().toFixed(2)}</span>
+        <span className='text-xl'>{formatAmount(totalPrice())}</span>
       </div>
       <div className='flex gap-4 pt-4'>
         <Link

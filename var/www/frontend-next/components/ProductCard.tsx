@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import { formatAmount } from '../lib/currency'
 
 export interface Product {
   id: string
@@ -34,7 +35,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       </div>
       <div className="p-2 text-sm">
         <h3 className="font-bold text-black">{product.title}</h3>
-        <p className="font-bold text-black">${product.price.toFixed(2)}</p>
+        <p className="font-bold text-black">{formatAmount(product.price)}</p>
       </div>
     </Link>
   )

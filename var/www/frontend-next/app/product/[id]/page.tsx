@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { medusa } from '../../../lib/medusa'
+import { formatAmount } from '../../../lib/currency'
 import { useCart } from '../../../lib/store'
 import ProductPageSkeleton from '../../../components/ProductPageSkeleton'
 
@@ -72,7 +73,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         </div>
         <div className="flex-1 space-y-8">
           <h1 className="text-4xl font-bold tracking-brand">{product.title}</h1>
-          <p className="text-2xl font-semibold">${product.price.toFixed(2)}</p>
+          <p className="text-2xl font-semibold">{formatAmount(product.price)}</p>
           <p className="text-gray-700 leading-relaxed">{product.description}</p>
           <div className="flex items-center gap-6">
             <div className="flex items-center border rounded">

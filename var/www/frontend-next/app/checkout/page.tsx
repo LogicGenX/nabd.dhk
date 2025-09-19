@@ -93,7 +93,7 @@ export default function CheckoutPage() {
         <section className="space-y-4">
           <h2 className="text-xl font-semibold">Shipping method</h2>
           <div className="p-3 border border-gray-700 rounded-md">
-            Standard shipping (3-5 days)
+            Standard shipping - delivery timing to be confirmed
           </div>
         </section>
 

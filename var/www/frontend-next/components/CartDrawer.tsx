@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { FaTimes } from 'react-icons/fa'
 import { useCart } from '../lib/store'
+import { formatAmount } from '../lib/currency'
 import CartEmptyState from './CartEmptyState'
 
 interface Props {
@@ -67,13 +68,13 @@ export default function CartDrawer({ open, onClose }: Props) {
                       {item.title} x {item.quantity}
                     </span>
                   </div>
-                  <span>${(item.price * item.quantity).toFixed(2)}</span>
+                  <span>{formatAmount(item.price * item.quantity)}</span>
                 </li>
               ))}
             </ul>
             <div className="flex justify-between font-semibold border-t pt-2">
               <span>Subtotal</span>
-              <span>${totalPrice().toFixed(2)}</span>
+              <span>{formatAmount(totalPrice())}</span>
             </div>
           </>
         )}

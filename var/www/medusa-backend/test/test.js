@@ -1,5 +1,12 @@
 const assert = require('assert')
 
-assert.strictEqual(1 + 1, 2)
+const runAdminLiteTests = require('./admin-lite.test')
 
-console.log('tests passed')
+;(async () => {
+  assert.strictEqual(1 + 1, 2)
+  await runAdminLiteTests()
+  console.log('tests passed')
+})().catch((error) => {
+  console.error(error)
+  process.exit(1)
+})

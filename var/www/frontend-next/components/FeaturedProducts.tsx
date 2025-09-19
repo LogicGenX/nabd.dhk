@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { medusa } from '../lib/medusa'
+import { formatAmount } from '../lib/currency'
 import ProductCardSkeleton from './ProductCardSkeleton'
 
 interface Product {
@@ -56,7 +57,7 @@ export default function FeaturedProducts() {
               </div>
               <div className="mt-2 text-sm">
                 <h3>{p.title}</h3>
-                <p className="font-semibold">${p.price.toFixed(2)}</p>
+                <p className="font-semibold">{formatAmount(p.price)}</p>
               </div>
             </Link>
           ))}
