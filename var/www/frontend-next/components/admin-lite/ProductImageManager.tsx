@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, type ChangeEvent } from 'react'
+import { redirectToLogin } from '../../lib/admin-lite'
 
 interface Props {
   images: string[]
@@ -26,15 +27,24 @@ export default function ProductImageManager({ images, thumbnail, onChange, onSel
       const response = await fetch('/api/lite/uploads', {
         method: 'POST',
         body: formData,
+        credentials: 'include',
       })
+
+      if (response.status === 401) {
+        redirectToLogin()
+        throw new Error('Not authenticated')
+      }
+
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}))
         throw new Error(payload?.message || 'Upload failed')
       }
+
       const payload = await response.json()
       const newUrls = (payload?.uploads || [])
         .map((entry: { url?: string | null }) => entry?.url)
         .filter((url: string | null | undefined): url is string => Boolean(url))
+
       if (newUrls.length) {
         onChange([...images, ...newUrls])
         if (!thumbnail && newUrls[0]) {
@@ -62,7 +72,7 @@ export default function ProductImageManager({ images, thumbnail, onChange, onSel
       <div className='flex items-center gap-3'>
         <label className='rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100'>
           <input type='file' multiple className='hidden' onChange={onFilesSelected} accept='image/*' />
-          {uploading ? 'Uploading…' : 'Upload images'}
+          {uploading ? 'Uploading...' : 'Upload images'}
         </label>
         {error && <span className='text-sm text-rose-600'>{error}</span>}
       </div>
@@ -85,3 +95,5 @@ export default function ProductImageManager({ images, thumbnail, onChange, onSel
     </div>
   )
 }
+
+

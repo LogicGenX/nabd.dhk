@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { ReactNode } from 'react'
+import UserMenu from '../../../components/admin-lite/UserMenu'
 
 export default function AdminLiteLayout({ children }: { children: ReactNode }) {
   const links = [
@@ -16,13 +17,16 @@ export default function AdminLiteLayout({ children }: { children: ReactNode }) {
             <span className="text-xs uppercase tracking-widest text-slate-500">Admin Lite</span>
             <h1 className="text-xl font-semibold text-slate-900">nabd.dhk</h1>
           </div>
-          <nav className="flex gap-4 text-sm font-medium text-slate-600">
-            {links.map((link) => (
-              <Link key={link.href} href={link.href} className="rounded-full px-3 py-1 hover:bg-slate-100">
-                {link.label}
-              </Link>
-            ))}
-          </nav>
+          <div className="flex items-center gap-6">
+            <nav className="flex gap-4 text-sm font-medium text-slate-600">
+              {links.map((link) => (
+                <Link key={link.href} href={link.href} className="rounded-full px-3 py-1 hover:bg-slate-100">
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+            <UserMenu />
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>

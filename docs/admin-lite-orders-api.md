@@ -1,7 +1,7 @@
 Admin Lite Orders & Customers API
 ================================
 
-All routes live under /admin/lite and require the Admin Lite JWT (Authorization: Bearer <token> or x-admin-lite-token). Responses use JSON unless noted. Amounts are returned in minor units for the configured currency (BDT).
+All routes live under /admin/lite and require a Medusa admin bearer token (Authorization: Bearer <token>). The Next.js proxy obtains this token at login and injects it for every request. Responses use JSON unless noted. Amounts are returned in minor units for the configured currency (BDT).
 
 Rate limiting defaults to 120 requests per minute per client IP (configurable via ADMIN_LITE_RATE_LIMIT).
 
@@ -120,3 +120,4 @@ Catalog Helpers — GET /admin/lite/catalog
 Upload Media — POST /admin/lite/uploads
   - Accepts multipart form-data with field "files".
   - Returns uploads: [{ url }] suitable for use in product payloads.
+

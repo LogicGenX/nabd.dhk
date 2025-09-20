@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+const ADMIN_COOKIE = 'admin_lite_token'
 const backendBase = process.env.MEDUSA_BACKEND_URL || process.env.NEXT_PUBLIC_MEDUSA_URL
-const adminToken = process.env.ADMIN_LITE_JWT
-const forwardedOrigin = process.env.ADMIN_LITE_PROXY_ORIGIN || (process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : undefined)
 
 const buildTargetUrl = (segments: string[] | undefined, search: string) => {
   const parts = segments && segments.length ? segments.join('/') : ''
@@ -12,36 +11,87 @@ const buildTargetUrl = (segments: string[] | undefined, search: string) => {
   return url + search
 }
 
-const copyHeaders = (request: NextRequest) => {
-  const headers = new Headers()
-  headers.set('authorization', 'Bearer ' + adminToken)
-  if (forwardedOrigin) {
-    headers.set('origin', forwardedOrigin)
-    headers.set('x-forwarded-origin', forwardedOrigin)
-    headers.set('x-forwarded-host', forwardedOrigin.replace(/^https?:\/\//, ''))
+const deriveOrigin = (req: NextRequest) => {
+  const referer = req.headers.get('referer')
+  let refererOrigin: string | undefined
+  if (referer) {
+    try {
+      refererOrigin = new URL(referer).origin
+    } catch (error) {
+      console.warn('[admin-lite] Unable to parse referer header', referer)
+    }
   }
+  return (
+    req.headers.get('origin') ||
+    req.headers.get('x-forwarded-origin') ||
+    refererOrigin
+  )
+}
+
+const safeJsonParse = (value: string | null) => {
+  if (!value) return undefined
+  try {
+    return JSON.parse(value)
+  } catch (error) {
+    return value
+  }
+}
+
+const copyHeaders = (request: NextRequest, token: string) => {
+  const headers = new Headers()
+  headers.set('authorization', 'Bearer ' + token)
+
+  const origin = deriveOrigin(request)
+  if (origin) {
+    headers.set('origin', origin)
+    headers.set('x-forwarded-origin', origin)
+    headers.set('x-forwarded-host', origin.replace(/^https?:\/\//, ''))
+  }
+
   request.headers.forEach((value, key) => {
-    if (key === 'host' || key === 'content-length' || key === 'authorization') return
-    if (key === 'cookie') headers.append(key, value)
-    else if (!headers.has(key)) headers.set(key, value)
+    const lower = key.toLowerCase()
+    if (['host', 'content-length', 'authorization'].includes(lower)) return
+    if (lower === 'cookie') {
+      headers.append(key, value)
+      return
+    }
+    if (!headers.has(key)) headers.set(key, value)
   })
+
   if (!headers.has('content-type') && request.headers.has('content-type')) {
     const contentType = request.headers.get('content-type')
     if (contentType) headers.set('content-type', contentType)
   }
+
   return headers
+}
+
+const clearAuthCookie = (response: NextResponse) => {
+  response.cookies.set({
+    name: ADMIN_COOKIE,
+    value: '',
+    maxAge: 0,
+    httpOnly: true,
+    secure: process.env.NODE_ENV !== 'development',
+    sameSite: 'lax',
+    path: '/',
+  })
 }
 
 const proxy = async (req: NextRequest, context: { params: { path?: string[] } }) => {
   if (!backendBase) {
     return NextResponse.json({ message: 'MEDUSA_BACKEND_URL not configured' }, { status: 500 })
   }
-  if (!adminToken) {
-    return NextResponse.json({ message: 'ADMIN_LITE_JWT not configured' }, { status: 500 })
+
+  const token = req.cookies.get(ADMIN_COOKIE)?.value
+  if (!token) {
+    const res = NextResponse.json({ message: 'Not authenticated' }, { status: 401 })
+    clearAuthCookie(res)
+    return res
   }
 
   const targetUrl = buildTargetUrl(context.params.path, req.nextUrl.search)
-  const headers = copyHeaders(req)
+  const headers = copyHeaders(req, token)
   const init: RequestInit = {
     method: req.method,
     headers,
@@ -49,21 +99,37 @@ const proxy = async (req: NextRequest, context: { params: { path?: string[] } })
     cache: 'no-store',
   }
 
-  if (req.method !== 'GET' && req.method !== 'HEAD') {
+  if (!['GET', 'HEAD'].includes(req.method)) {
     init.body = await req.arrayBuffer()
   }
 
-  const response = await fetch(targetUrl, init)
+  let backendResponse: Response
+  try {
+    backendResponse = await fetch(targetUrl, init)
+  } catch (error) {
+    console.error('[admin-lite] Proxy request failed', error)
+    return NextResponse.json({ message: 'Unable to reach backend' }, { status: 502 })
+  }
+
+  if (backendResponse.status === 401) {
+    const payloadText = await backendResponse.text()
+    const details = safeJsonParse(payloadText)
+    const res = NextResponse.json({ message: 'Session expired', details }, { status: 401 })
+    clearAuthCookie(res)
+    return res
+  }
+
   const responseHeaders = new Headers()
-  response.headers.forEach((value, key) => {
-    if (key.toLowerCase() === 'transfer-encoding') return
+  backendResponse.headers.forEach((value, key) => {
+    const lower = key.toLowerCase()
+    if (['transfer-encoding', 'content-length', 'set-cookie'].includes(lower)) return
     responseHeaders.set(key, value)
   })
 
-  const body = await response.arrayBuffer()
+  const body = await backendResponse.arrayBuffer()
   return new NextResponse(body, {
-    status: response.status,
-    statusText: response.statusText,
+    status: backendResponse.status,
+    statusText: backendResponse.statusText,
     headers: responseHeaders,
   })
 }

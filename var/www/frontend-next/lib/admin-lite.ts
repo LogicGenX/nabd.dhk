@@ -10,41 +10,55 @@ const toQuery = (params: Record<string, string | number | undefined | null>) => 
   return query ? '?' + query : ''
 }
 
+export const redirectToLogin = () => {
+  if (typeof window === 'undefined') return
+  const next = window.location.pathname + window.location.search
+  const target = new URL('/admin/login', window.location.origin)
+  target.searchParams.set('next', next)
+  window.location.replace(target.toString())
+}
+
 export const liteFetch = async <T = any>(path: string, init: LiteRequestInit = {}) => {
+  const headers = new Headers(init.headers || {})
   const options: RequestInit = {
     ...init,
-    headers: {
-      'content-type': 'application/json',
-      ...(init.headers || {}),
-    },
+    headers,
     cache: 'no-store',
+    credentials: 'include',
   }
 
   if (init.json !== undefined) {
+    if (!headers.has('content-type')) {
+      headers.set('content-type', 'application/json')
+    }
     options.body = JSON.stringify(init.json)
+    delete (options as any).json
   }
 
-  const res = await fetch('/api/lite/' + path.replace(/^\/+/, ''), options)
-  const contentType = res.headers.get('content-type') || ''
-  if (!res.ok) {
-    let payload: any = undefined
+  const cleanedPath = path.replace(/^\/+/, '')
+  const response = await fetch('/api/lite/' + cleanedPath, options)
+
+  if (response.status === 401) {
+    redirectToLogin()
+    throw new Error('Not authenticated')
+  }
+
+  const contentType = response.headers.get('content-type') || ''
+  if (!response.ok) {
+    let payload: any
     if (contentType.includes('application/json')) {
-      try {
-        payload = await res.json()
-      } catch (err) {
-        payload = undefined
-      }
+      payload = await response.json().catch(() => null)
     } else {
-      payload = await res.text()
+      payload = await response.text().catch(() => null)
     }
     const message = payload && typeof payload === 'object' && 'message' in payload ? payload.message : payload
     throw new Error(message || 'Admin Lite request failed')
   }
 
   if (contentType.includes('application/json')) {
-    return res.json() as Promise<T>
+    return response.json() as Promise<T>
   }
-  return res.text() as unknown as Promise<T>
+  return response.text() as unknown as Promise<T>
 }
 
 export const buildQuery = toQuery
