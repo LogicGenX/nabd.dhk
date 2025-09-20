@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+export const runtime = 'nodejs'
+
 const ADMIN_COOKIE = 'admin_lite_token'
 const DAY_IN_SECONDS = 60 * 60 * 24
 
@@ -47,7 +49,7 @@ const unauthorized = (message = 'Not authenticated') => {
 const fetchCurrentUser = async (token: string) => {
   let url: string
   try {
-    url = buildBackendUrl('/admin/users/me')
+    url = buildBackendUrl('/admin/auth')
   } catch (error) {
     console.error('[admin-lite] Missing Medusa backend url', error)
     return { status: 500, body: { message: 'MEDUSA_BACKEND_URL not configured' } }
@@ -60,11 +62,12 @@ const fetchCurrentUser = async (token: string) => {
       headers: {
         authorization: 'Bearer ' + token,
         accept: 'application/json',
+        'accept-encoding': 'identity',
       },
       cache: 'no-store',
     })
   } catch (error) {
-    console.error('[admin-lite] Unable to reach /admin/users/me', error)
+    console.error('[admin-lite] Unable to reach /admin/auth', error)
     return { status: 502, body: { message: 'Unable to reach backend' } }
   }
 
@@ -73,7 +76,7 @@ const fetchCurrentUser = async (token: string) => {
   }
 
   if (!response.ok) {
-    console.error('[admin-lite] /admin/users/me failed', response.status)
+    console.error('[admin-lite] /admin/auth failed', response.status)
     return { status: response.status, body: await readJson(response) }
   }
 
@@ -94,51 +97,54 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'Email and password are required' }, { status: 400 })
   }
 
-  let tokenUrl: string
+  let authUrl: string
   try {
-    tokenUrl = buildBackendUrl('/admin/auth/token')
+    authUrl = buildBackendUrl('/admin/auth')
   } catch (error) {
     console.error('[admin-lite] Backend not configured', error)
     return NextResponse.json({ message: 'MEDUSA_BACKEND_URL not configured' }, { status: 500 })
   }
 
-  let tokenResponse: Response
+  let authResponse: Response
   try {
-    tokenResponse = await fetch(tokenUrl, {
+    authResponse = await fetch(authUrl, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
         accept: 'application/json',
+        'accept-encoding': 'identity',
       },
       cache: 'no-store',
       body: JSON.stringify({ email, password }),
     })
   } catch (error) {
-    console.error('[admin-lite] Failed to reach Medusa auth/token', error)
+    console.error('[admin-lite] Failed to reach /admin/auth', error)
     return NextResponse.json({ message: 'Unable to reach backend' }, { status: 502 })
   }
 
-  const tokenBody = await readJson(tokenResponse)
-  if (tokenResponse.status === 401) {
+  const authBody = await readJson(authResponse)
+  if (authResponse.status === 401) {
     return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 })
   }
-  if (!tokenResponse.ok) {
-    console.error('[admin-lite] auth/token failed', tokenResponse.status, tokenBody)
+  if (!authResponse.ok) {
+    console.error('[admin-lite] /admin/auth login failed', authResponse.status, authBody)
     return NextResponse.json({ message: 'Authentication failed' }, { status: 502 })
   }
 
-  const accessToken = tokenBody.access_token || tokenBody.token
+  const accessToken = authBody?.access_token || authBody?.token || authBody?.user?.token
   if (!accessToken) {
-    console.error('[admin-lite] Missing access token from auth/token response', tokenBody)
+    console.error('[admin-lite] Missing access token from /admin/auth response', authBody)
     return NextResponse.json({ message: 'Authentication response malformed' }, { status: 502 })
   }
 
-  let user = null
-  const userResult = await fetchCurrentUser(accessToken)
-  if (userResult.status === 200) {
-    user = userResult.body.user || null
-  } else if (userResult.status !== 401) {
-    console.warn('[admin-lite] Unable to fetch admin profile', userResult.status)
+  let user = authBody?.user || null
+  if (!user) {
+    const who = await fetchCurrentUser(accessToken)
+    if (who.status === 200) {
+      user = who.body.user || null
+    } else if (who.status !== 401) {
+      console.warn('[admin-lite] Unable to fetch admin profile after login', who.status)
+    }
   }
 
   const res = NextResponse.json({ ok: true, user })

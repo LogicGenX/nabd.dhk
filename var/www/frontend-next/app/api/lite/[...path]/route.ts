@@ -1,13 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+export const runtime = 'nodejs'
+
 const ADMIN_COOKIE = 'admin_lite_token'
 const backendBase = process.env.MEDUSA_BACKEND_URL || process.env.NEXT_PUBLIC_MEDUSA_URL
+
+const hopByHopHeaders = new Set([
+  'connection',
+  'keep-alive',
+  'proxy-connection',
+  'transfer-encoding',
+  'upgrade',
+  'te',
+  'trailer',
+  'content-length',
+  'accept-encoding',
+])
 
 const buildTargetUrl = (segments: string[] | undefined, search: string) => {
   const parts = segments && segments.length ? segments.join('/') : ''
   const trimmed = parts.replace(/^\/+/, '')
   const base = (backendBase || '').replace(/\/$/, '')
-  const url = base + '/admin/lite' + (trimmed ? '/' + trimmed : '')
+  const url = base + '/admin' + (trimmed ? '/' + trimmed : '')
   return url + search
 }
 
@@ -50,7 +64,7 @@ const copyHeaders = (request: NextRequest, token: string) => {
 
   request.headers.forEach((value, key) => {
     const lower = key.toLowerCase()
-    if (['host', 'content-length', 'authorization'].includes(lower)) return
+    if (hopByHopHeaders.has(lower)) return
     if (lower === 'cookie') {
       headers.append(key, value)
       return
@@ -63,6 +77,7 @@ const copyHeaders = (request: NextRequest, token: string) => {
     if (contentType) headers.set('content-type', contentType)
   }
 
+  headers.set('accept-encoding', 'identity')
   return headers
 }
 
@@ -122,9 +137,11 @@ const proxy = async (req: NextRequest, context: { params: { path?: string[] } })
   const responseHeaders = new Headers()
   backendResponse.headers.forEach((value, key) => {
     const lower = key.toLowerCase()
-    if (['transfer-encoding', 'content-length', 'set-cookie'].includes(lower)) return
+    if (hopByHopHeaders.has(lower) || lower === 'set-cookie') return
     responseHeaders.set(key, value)
   })
+
+  responseHeaders.delete('content-encoding')
 
   const body = await backendResponse.arrayBuffer()
   return new NextResponse(body, {
