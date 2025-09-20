@@ -15,6 +15,7 @@ interface LiteProductSummary {
   currency_code: string
   thumbnail?: string | null
   updated_at: string
+  in_stock: boolean
 }
 
 interface ProductListResponse {
@@ -27,6 +28,7 @@ interface ProductListResponse {
 interface CatalogResponse {
   collections: { id: string; title: string }[]
   categories: { id: string; name: string }[]
+  sizes: string[]
 }
 
 const statusOptions = [
@@ -44,16 +46,18 @@ export default function ProductsPage() {
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
   const [collectionId, setCollectionId] = useState('')
+  const [size, setSize] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [catalog, setCatalog] = useState<CatalogResponse>({ collections: [], categories: [] })
+  const [catalog, setCatalog] = useState<CatalogResponse>({ collections: [], categories: [], sizes: [] })
+  const [stockUpdatingId, setStockUpdatingId] = useState<string | null>(null)
 
   const loadCatalog = useCallback(async () => {
     try {
       const data = await liteFetch<CatalogResponse>('catalog')
       setCatalog(data)
     } catch (err) {
-      // ignore, filters will simply be empty
+      // ignore catalog failures; filters will be empty
     }
   }, [])
 
@@ -72,6 +76,7 @@ export default function ProductsPage() {
           q: search || undefined,
           status: status || undefined,
           collection_id: collectionId || undefined,
+          size: size || undefined,
         })
         const data = await liteFetch<ProductListResponse>('products' + query)
         setProducts(data.products)
@@ -84,7 +89,7 @@ export default function ProductsPage() {
         setLoading(false)
       }
     },
-    [limit, search, status, collectionId]
+    [limit, search, status, collectionId, size]
   )
 
   useEffect(() => {
@@ -97,6 +102,21 @@ export default function ProductsPage() {
   const goToPage = (page: number) => {
     const newOffset = (page - 1) * limit
     fetchProducts(newOffset)
+  }
+
+  const toggleStock = async (product: LiteProductSummary) => {
+    setStockUpdatingId(product.id)
+    try {
+      const response = await liteFetch<{ product: LiteProductSummary }>('products/' + product.id + '/inventory', {
+        method: 'PATCH',
+        json: { in_stock: !product.in_stock },
+      })
+      setProducts((prev) => prev.map((entry) => (entry.id === product.id ? response.product : entry)))
+    } catch (err: any) {
+      setError(err?.message || 'Failed to update inventory')
+    } finally {
+      setStockUpdatingId(null)
+    }
   }
 
   const collectionOptions = useMemo(
@@ -123,7 +143,7 @@ export default function ProductsPage() {
       </div>
 
       <form
-        className='grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-4'
+        className='grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-5'
         onSubmit={(event) => {
           event.preventDefault()
           fetchProducts(0)
@@ -166,6 +186,21 @@ export default function ProductsPage() {
             ))}
           </select>
         </label>
+        <label className='flex flex-col text-xs font-semibold uppercase tracking-wide text-slate-500'>
+          Size
+          <select
+            value={size}
+            onChange={(event) => setSize(event.target.value)}
+            className='mt-1 rounded-lg border border-slate-300 px-3 py-2 text-sm'
+          >
+            <option value=''>All sizes</option>
+            {catalog.sizes.map((entry) => (
+              <option key={entry} value={entry}>
+                {entry}
+              </option>
+            ))}
+          </select>
+        </label>
         <button
           type='submit'
           className='mt-5 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:bg-slate-400'
@@ -185,6 +220,7 @@ export default function ProductsPage() {
               <th className='px-4 py-3 text-left'>Status</th>
               <th className='px-4 py-3 text-left'>Collection</th>
               <th className='px-4 py-3 text-left'>Categories</th>
+              <th className='px-4 py-3 text-left'>Stock</th>
               <th className='px-4 py-3 text-left'>Price</th>
               <th className='px-4 py-3 text-left'>Updated</th>
             </tr>
@@ -212,13 +248,29 @@ export default function ProductsPage() {
                 <td className='px-4 py-3 text-xs text-slate-500'>
                   {product.categories.length ? product.categories.map((category) => category.name).join(', ') : '—'}
                 </td>
+                <td className='px-4 py-3'>
+                  <button
+                    type='button'
+                    onClick={() => toggleStock(product)}
+                    disabled={stockUpdatingId === product.id || loading}
+                    className={[
+                      'rounded-full px-3 py-1 text-xs font-semibold shadow-sm transition',
+                      product.in_stock
+                        ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                        : 'bg-slate-200 text-slate-600 hover:bg-slate-300',
+                      stockUpdatingId === product.id || loading ? 'cursor-not-allowed opacity-60' : '',
+                    ].filter(Boolean).join(' ')}
+                  >
+                    {product.in_stock ? 'In stock' : 'Out of stock'}
+                  </button>
+                </td>
                 <td className='px-4 py-3 font-medium text-slate-900'>{formatAmount(product.price / 100)}</td>
                 <td className='px-4 py-3 text-slate-600'>{new Date(product.updated_at).toLocaleString()}</td>
               </tr>
             ))}
             {!products.length && !loading && (
               <tr>
-                <td colSpan={6} className='px-4 py-8 text-center text-slate-500'>
+                <td colSpan={7} className='px-4 py-8 text-center text-slate-500'>
                   No products match the current filters.
                 </td>
               </tr>

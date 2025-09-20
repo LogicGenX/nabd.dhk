@@ -13,10 +13,7 @@ interface CatalogCategory {
   name: string
 }
 
-export interface CatalogData {
-  collections: CatalogCollection[]
-  categories: CatalogCategory[]
-}
+export interface CatalogData {\n  collections: CatalogCollection[]\n  categories: CatalogCategory[]\n  sizes: string[]\n}
 
 export interface EditableProduct {
   id?: string
@@ -281,3 +278,4 @@ export default function ProductForm({
     </form>
   )
 }
+

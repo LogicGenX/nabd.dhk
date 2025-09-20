@@ -30,9 +30,12 @@ Day-to-day tasks
 - Review the last five orders from the customer profile.
 
 **Manage products**
-- Open Products to review titles, status, and pricing.
-- Use Add product to upload media, assign collections/categories, and set BDT pricing (minor units handled).
-- Edit an existing product to adjust copy, media, or price; saved changes publish immediately to the storefront.
+- Open Products to review titles, status, pricing, and stock; collection and size filters hydrate from /api/lite/catalog.
+- Use Add product to upload media, assign collections/categories, and set BDT pricing (values are stored in minor units).
+- Variant inventory controls persist Medusa manage_inventory, inventory_quantity, and allow_backorder for each variant.
+- The In stock / Out of stock toggle calls /api/lite/products/:id/inventory to zero quantities and disable backorders when off, restoring a minimum quantity of 1 (and the original backorder flag) when re-enabled.
+- Size filters and variant size inputs read from the Size option; adding or editing Size values refreshes the filter list after save.
+- Tags are intentionally unsupported in Admin Lite.
 
 **Exports**
 - Orders CSV export is available under Orders -> Export. Download the CSV for finance or reconciliation.
@@ -49,9 +52,23 @@ Operational guardrails
 - Do not add new PII fields without confirming compliance requirements.
 - Rate limits default to 120 requests per minute. Adjust cautiously if Vercel proxy batching triggers 429s.
 
+API Notes
+---------
+- /api/lite/catalog responds with { collections, categories, sizes } and omits tags.
+- Proxy handlers force accept-encoding: identity and drop hop-by-hop headers to match Vercel expectations.
+
 Support playbook
 ----------------
 - 401 or 403 responses: confirm the Medusa session token has not expired (users may need to log in again) and verify ADMIN_LITE_ALLOWED_ORIGINS.
 - 429 responses: review rate limit env vars or investigate automation loops.
 - Unexpected 5xx: check Medusa logs, ensure JWT_SECRET is present, and restart the service if config changed.
 - For feature requests, document UX, payload, and backend surface first; keep scope lean.
+
+Smoke checklist after deploy
+---------------------------
+- Login works.
+- /api/lite/catalog returns 200.
+- Products list shows the Sizes filter and real values.
+- Product row toggle flips stock correctly.
+- Variant quantity edits persist.
+- Creating a category/collection updates the filters after refresh.

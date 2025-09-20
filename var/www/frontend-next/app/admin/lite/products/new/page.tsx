@@ -19,7 +19,7 @@ const emptyProduct = {
 
 export default function CreateProductPage() {
   const router = useRouter()
-  const [catalog, setCatalog] = useState<CatalogData>({ collections: [], categories: [] })
+  const [catalog, setCatalog] = useState<CatalogData>({ collections: [], categories: [], sizes: [] })
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -82,3 +82,4 @@ export default function CreateProductPage() {
     </section>
   )
 }
+

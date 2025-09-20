@@ -1,10 +1,4 @@
-const DEFAULT_RELATIONS = [
-  'variants',
-  'variants.prices',
-  'images',
-  'categories',
-  'collection',
-]
+const DEFAULT_RELATIONS = [\n  'variants',\n  'variants.prices',\n  'variants.options',\n  'options',\n  'images',\n  'categories',\n  'collection',\n]
 
 const mapPrice = (product, currency) => {
   const variants = product.variants || []
@@ -19,6 +13,18 @@ const mapPrice = (product, currency) => {
 
 const serializeProduct = (product, currency) => {
   const price = mapPrice(product, currency)
+  const variants = mapVariants(product, currency)
+  const options = Array.isArray(product.options)
+    ? product.options.map((option) => ({
+        id: option.id,
+        title: option.title,
+      }))
+    : []
+  const inStock = variants.some((variant) => {
+    if (!variant.manage_inventory) return true
+    return (variant.inventory_quantity ?? 0) > 0
+  })
+
   return {
     id: product.id,
     title: product.title,
@@ -38,6 +44,9 @@ const serializeProduct = (product, currency) => {
     image_objects: Array.isArray(product.images)
       ? product.images.map((image) => ({ id: image.id, url: image.url }))
       : [],
+    options,
+    variants,
+    in_stock: inStock,
     price: price.amount || 0,
     currency_code: price.currency_code || currency,
     variant_id: price.variant_id || null,
@@ -47,7 +56,6 @@ const serializeProduct = (product, currency) => {
     updated_at: product.updated_at,
   }
 }
-
 const parseLimit = (value, fallback, max) => {
   const parsed = parseInt(value, 10)
   if (!Number.isFinite(parsed) || parsed <= 0) return fallback
@@ -72,15 +80,43 @@ exports.list = async (req, res) => {
   if (req.query.collection_id) selector.collection_id = req.query.collection_id
   if (req.query.status) selector.status = req.query.status
 
+  const sizeFilter = req.query.size ? String(req.query.size).trim().toLowerCase() : null
+
   const productService = req.scope.resolve('productService')
+
+  const mapAndRespond = (products, count) => {
+    const payload = products.map((product) => serializeProduct(product, DEFAULT_CURRENCY))
+    res.json({ products: payload, count, limit, offset })
+  }
+
+  if (sizeFilter) {
+    const allProducts = await productService.list(selector, {
+      relations: DEFAULT_RELATIONS,
+    })
+
+    const filtered = allProducts.filter((product) => {
+      if (!Array.isArray(product.options)) return false
+      const sizeOption = product.options.find((option) => option?.title && option.title.toLowerCase() === 'size')
+      if (!sizeOption || !sizeOption.id) return false
+      return Array.isArray(product.variants) && product.variants.some((variant) => {
+        return Array.isArray(variant.options) && variant.options.some((option) => {
+          return option?.option_id === sizeOption.id && typeof option?.value === 'string' && option.value.toLowerCase() === sizeFilter
+        })
+      })
+    })
+
+    const count = filtered.length
+    const paginated = filtered.slice(offset, offset + limit)
+    return mapAndRespond(paginated, count)
+  }
+
   const [products, count] = await productService.listAndCount(selector, {
     relations: DEFAULT_RELATIONS,
     skip: offset,
     take: limit,
   })
 
-  const payload = products.map((product) => serializeProduct(product, DEFAULT_CURRENCY))
-  res.json({ products: payload, count, limit, offset })
+  mapAndRespond(products, count)
 }
 
 exports.retrieve = async (req, res) => {
@@ -242,4 +278,51 @@ exports.catalog = async (req, res) => {
       handle: category.handle,
     })),
   })
+}exports.updateInventory = async (req, res) => {
+  const productId = req.params.id
+  const { in_stock, variant_ids: variantIds } = req.body || {}
+  if (typeof in_stock !== 'boolean') {
+    return res.status(400).json({ message: 'in_stock must be boolean' })
+  }
+
+  const productService = req.scope.resolve('productService')
+  const productVariantService = req.scope.resolve('productVariantService')
+  const manager = req.scope.resolve('manager')
+
+  const product = await productService.retrieve(productId, {
+    relations: ['variants'],
+  })
+
+  if (!Array.isArray(product.variants) || product.variants.length === 0) {
+    return res.status(400).json({ message: 'Product has no variants to update' })
+  }
+
+  const targetIds = Array.isArray(variantIds) && variantIds.length
+    ? product.variants.filter((variant) => variantIds.includes(variant.id)).map((variant) => variant.id)
+    : product.variants.map((variant) => variant.id)
+
+  if (!targetIds.length) {
+    return res.status(400).json({ message: 'No matching variants found for update' })
+  }
+
+  await manager.transaction(async (transactionManager) => {
+    const variantRepo = productVariantService.withTransaction(transactionManager)
+    for (const variant of product.variants) {
+      if (!targetIds.includes(variant.id)) continue
+      const payload = {
+        manage_inventory: true,
+      }
+      if (in_stock) {
+        const quantity = typeof variant.inventory_quantity === 'number' ? variant.inventory_quantity : 0
+        payload.inventory_quantity = quantity > 0 ? quantity : 1
+      } else {
+        payload.inventory_quantity = 0
+      }
+      payload.allow_backorder = !!variant.allow_backorder && in_stock
+      await variantRepo.update(variant.id, payload)
+    }
+  })
+
+  const refreshed = await productService.retrieve(productId, { relations: DEFAULT_RELATIONS })
+  res.json({ product: serializeProduct(refreshed, DEFAULT_CURRENCY) })
 }
