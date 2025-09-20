@@ -48,6 +48,13 @@ if [ -z "$DATABASE_URL" ] && [ ! -f .env ] && [ -f template.env ]; then
   cp template.env .env
 fi
 
+# Sync compiled sources so Render picks up custom APIs
+if [ -d src ]; then
+  echo "Syncing Medusa src to dist..."
+  rm -rf dist
+  cp -R src dist
+fi
+
 # Run migrations
 if command -v medusa >/dev/null 2>&1; then
   medusa migrations run
