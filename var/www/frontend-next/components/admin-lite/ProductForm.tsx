@@ -13,7 +13,11 @@ interface CatalogCategory {
   name: string
 }
 
-export interface CatalogData {\n  collections: CatalogCollection[]\n  categories: CatalogCategory[]\n  sizes: string[]\n}
+export interface CatalogData {
+  collections: CatalogCollection[]
+  categories: CatalogCategory[]
+  sizes: string[]
+}
 
 export interface EditableProduct {
   id?: string
