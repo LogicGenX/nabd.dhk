@@ -57,6 +57,8 @@ API Notes
 ---------
 - /api/lite/catalog responds with { collections, categories, sizes } and omits tags.
 - POST /api/lite/catalog/collections and /api/lite/catalog/categories create catalogue metadata and return the newly created resource for immediate selection.
+- Ensure the Medusa backend has the product categories feature flag enabled (`product_categories: true` in `medusa-config.js`) and migrations applied so category creation succeeds.
+- Backend boots now run migrations automatically; if you need to skip them set `MEDUSA_SKIP_MIGRATIONS=true` before starting the service.
 - Proxy handlers force accept-encoding: identity and drop hop-by-hop headers to match Vercel expectations.
 
 Support playbook

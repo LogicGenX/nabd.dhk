@@ -43,4 +43,7 @@ module.exports = {
     eventBus: { resolve: '@medusajs/event-bus-local' },
     cacheService: { resolve: '@medusajs/cache-inmemory' },
   },
+  featureFlags: {
+    product_categories: true,
+  },
 }
