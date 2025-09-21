@@ -18,13 +18,36 @@ export const getBackendBase = () => {
   return process.env.MEDUSA_BACKEND_URL || process.env.NEXT_PUBLIC_MEDUSA_URL
 }
 
+const ADMIN_SUFFIX_PATTERN = /\/admin(?:\/lite)?$/i
+
+const ensureAdminBase = (base: string) => {
+  const trimmed = base.trim()
+  if (!trimmed) {
+    throw new Error('MEDUSA_BACKEND_URL not configured')
+  }
+  const withoutTrailingSlash = trimmed.replace(/\/+$/, '')
+  const normalizedRoot = withoutTrailingSlash.replace(ADMIN_SUFFIX_PATTERN, '')
+  return normalizedRoot + '/admin'
+}
+
+const normalizeAdminPath = (path: string) => {
+  const trimmed = (path || '').trim()
+  if (!trimmed) return ''
+  const withoutLeadingSlash = trimmed.replace(/^\/+/, '')
+  const withoutAdminPrefix = withoutLeadingSlash.startsWith('admin/')
+    ? withoutLeadingSlash.slice(6)
+    : withoutLeadingSlash
+  return withoutAdminPrefix ? '/' + withoutAdminPrefix : ''
+}
+
 export const buildAdminUrl = (path: string) => {
   const base = getBackendBase()
   if (!base) {
     throw new Error('MEDUSA_BACKEND_URL not configured')
   }
-  const cleaned = path.startsWith('/') ? path : '/' + path
-  return base.replace(/\/$/, '') + '/admin' + cleaned
+  const adminBase = ensureAdminBase(base)
+  const suffix = normalizeAdminPath(path)
+  return adminBase + suffix
 }
 
 export const clearAuthCookie = (response: NextResponse) => {

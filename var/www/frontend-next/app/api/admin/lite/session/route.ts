@@ -1,21 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { ADMIN_COOKIE, buildAdminUrl } from '../../../lite/_utils/backend'
 
 export const runtime = 'nodejs'
 
-const ADMIN_COOKIE = 'admin_lite_token'
 const DAY_IN_SECONDS = 60 * 60 * 24
-
-const getBackendBase = () => {
-  return process.env.MEDUSA_BACKEND_URL || process.env.NEXT_PUBLIC_MEDUSA_URL
-}
-
-const buildBackendUrl = (path: string) => {
-  const base = getBackendBase()
-  if (!base) {
-    throw new Error('MEDUSA_BACKEND_URL not configured')
-  }
-  return base.replace(/\/$/, '') + path
-}
 
 const readJson = async (response: Response) => {
   const text = await response.text()
@@ -49,7 +37,7 @@ const unauthorized = (message = 'Not authenticated') => {
 const fetchCurrentUser = async (token: string) => {
   let url: string
   try {
-    url = buildBackendUrl('/admin/auth')
+    url = buildAdminUrl('auth')
   } catch (error) {
     console.error('[admin-lite] Missing Medusa backend url', error)
     return { status: 500, body: { message: 'MEDUSA_BACKEND_URL not configured' } }
@@ -99,7 +87,7 @@ export async function POST(req: NextRequest) {
 
   let authUrl: string
   try {
-    authUrl = buildBackendUrl('/admin/auth')
+    authUrl = buildAdminUrl('auth')
   } catch (error) {
     console.error('[admin-lite] Backend not configured', error)
     return NextResponse.json({ message: 'MEDUSA_BACKEND_URL not configured' }, { status: 500 })
