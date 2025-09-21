@@ -1,13 +1,58 @@
 const jwt = require('jsonwebtoken')
 
 const normalizeOrigin = (value) => value.toLowerCase().replace(/\/+$/, '')
-const getAllowedOrigins = () => {
-  const raw = process.env.ADMIN_LITE_ALLOWED_ORIGINS
+const escapeRegex = (value) => value.replace(/[|\\{}()[\]^$+*?.-]/g, '\\$&')
+
+const buildAllowedOriginMatchers = (raw) => {
   if (!raw) return []
-  return raw.split(',').map((value) => normalizeOrigin(value.trim())).filter(Boolean)
+
+  return raw
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .map((value) => {
+      const normalized = normalizeOrigin(value)
+      if (!normalized) return null
+      if (!normalized.includes('*')) {
+        return { value: normalized, test: (candidate) => candidate === normalized }
+      }
+      const pattern = '^' + normalized.split('*').map(escapeRegex).join('.*') + '$'
+      const regex = new RegExp(pattern)
+      return { value: normalized, test: (candidate) => regex.test(candidate) }
+    })
+    .filter(Boolean)
 }
 
-const allowedOrigins = getAllowedOrigins()
+let cachedAllowedOrigins = buildAllowedOriginMatchers(process.env.ADMIN_LITE_ALLOWED_ORIGINS || '')
+let cachedAllowedOriginsRaw = process.env.ADMIN_LITE_ALLOWED_ORIGINS || ''
+
+const getAllowedOrigins = () => {
+  const raw = process.env.ADMIN_LITE_ALLOWED_ORIGINS || ''
+  if (raw !== cachedAllowedOriginsRaw) {
+    cachedAllowedOrigins = buildAllowedOriginMatchers(raw)
+    cachedAllowedOriginsRaw = raw
+  }
+  return cachedAllowedOrigins
+}
+
+const matchesAllowedOrigin = (allowedOrigins, value) => {
+  if (!value) return false
+
+  const normalized = normalizeOrigin(value)
+  if (!normalized) return false
+
+  for (const entry of allowedOrigins) {
+    if (entry.test(normalized)) return true
+    if (!normalized.includes('://')) {
+      const httpsCandidate = normalizeOrigin('https://' + normalized)
+      if (entry.test(httpsCandidate)) return true
+      const httpCandidate = normalizeOrigin('http://' + normalized)
+      if (entry.test(httpCandidate)) return true
+    }
+  }
+
+  return false
+}
 
 module.exports = (req, res, next) => {
   const secret = process.env.ADMIN_LITE_JWT_SECRET
@@ -28,13 +73,19 @@ module.exports = (req, res, next) => {
   if (!token) {
     return res.status(401).json({ message: 'Missing Admin Lite token' })
   }
-  const originHeader = req.get('origin') || req.get('x-forwarded-origin') || req.get('x-forwarded-host')
-  if (allowedOrigins.length && originHeader) {
-    const normalizedOrigin = normalizeOrigin(originHeader)
-    const hostHeader = req.get('host')
-    const normalizedHost = hostHeader ? normalizeOrigin(hostHeader) : null
-    const isAllowed = allowedOrigins.includes(normalizedOrigin) || (normalizedHost && allowedOrigins.includes(normalizedHost))
-    if (!isAllowed) {
+  const allowedOrigins = getAllowedOrigins()
+  if (allowedOrigins.length) {
+    const originCandidates = [
+      req.get('origin'),
+      req.get('x-forwarded-origin'),
+      req.get('x-forwarded-host'),
+      req.get('host'),
+    ].filter(Boolean)
+
+    if (
+      originCandidates.length &&
+      !originCandidates.some((candidate) => matchesAllowedOrigin(allowedOrigins, candidate))
+    ) {
       return res.status(403).json({ message: 'Origin not allowed' })
     }
   }
