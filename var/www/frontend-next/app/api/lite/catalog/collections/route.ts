@@ -55,36 +55,46 @@ export const POST = async (req: NextRequest) => {
 
   try {
     const payload = await readJson(req)
-    let upstream = await forward(req, token, 'collections', payload)
-    if (upstream.status === 404) {
-      console.warn('[admin-lite] admin collections endpoint missing, trying lite/catalog/collections')
-      upstream = await forward(req, token, 'lite/catalog/collections', payload)
-    }
-    const text = await upstream.text()
-    if (!upstream.ok) {
-      console.error('[admin-lite] create collection upstream error', upstream.status, text)
-      const message = (() => {
-        try {
-          const parsed = JSON.parse(text)
-          return typeof parsed?.message === 'string' ? parsed.message : 'Backend request failed'
-        } catch (error) {
-          return 'Backend request failed'
-        }
-      })()
-      throw NextResponse.json({ message }, { status: upstream.status >= 400 && upstream.status < 500 ? upstream.status : 502 })
-    }
-
-    let data: any = {}
-    if (text) {
-      try {
-        data = JSON.parse(text)
-      } catch (error) {
-        console.error('[admin-lite] create collection parse error', error)
-        throw NextResponse.json({ message: 'Invalid backend response' }, { status: 502 })
+    const paths = ['lite/catalog/collections', 'collections']
+    let lastResponse: Response | null = null
+    for (const path of paths) {
+      const upstream = await forward(req, token, path, payload)
+      if (upstream.status === 404) {
+        console.warn('[admin-lite] create collection endpoint missing', path)
+        lastResponse = upstream
+        continue
       }
+      const text = await upstream.text()
+      if (!upstream.ok) {
+        console.error('[admin-lite] create collection upstream error', upstream.status, text)
+        const message = (() => {
+          try {
+            const parsed = JSON.parse(text)
+            return typeof parsed?.message === 'string' ? parsed.message : 'Backend request failed'
+          } catch (error) {
+            return 'Backend request failed'
+          }
+        })()
+        throw NextResponse.json({ message }, { status: upstream.status >= 400 && upstream.status < 500 ? upstream.status : 502 })
+      }
+
+      let data: any = {}
+      if (text) {
+        try {
+          data = JSON.parse(text)
+        } catch (error) {
+          console.error('[admin-lite] create collection parse error', error)
+          throw NextResponse.json({ message: 'Invalid backend response' }, { status: 502 })
+        }
+      }
+
+      return NextResponse.json(data, { status: upstream.status })
     }
 
-    return NextResponse.json(data, { status: upstream.status })
+    if (lastResponse) {
+      return NextResponse.json({ message: 'Collections feature not available on backend' }, { status: 404 })
+    }
+    return NextResponse.json({ message: 'Create collection failed' }, { status: 502 })
   } catch (error) {
     if (error instanceof NextResponse) {
       return error
