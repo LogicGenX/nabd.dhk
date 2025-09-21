@@ -576,4 +576,18 @@ module.exports = async () => {
     .set('Authorization', authHeader)
     .send({ action: 'unsupported' })
     .expect(400)
+
+  process.env.ADMIN_LITE_JWT_SECRET = ''
+  process.env.JWT_SECRET = 'fallback-secret'
+
+  const fallbackApp = buildApp()
+  const fallbackToken = jwt.sign(
+    { sub: 'staff_fallback', email: 'fallback@nabd.dhk', name: 'Fallback Staff' },
+    process.env.JWT_SECRET
+  )
+
+  await request(fallbackApp)
+    .get('/admin/lite/orders')
+    .set('Authorization', 'Bearer ' + fallbackToken)
+    .expect(200)
 }

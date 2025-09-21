@@ -26,6 +26,17 @@ const buildAllowedOriginMatchers = (raw) => {
 let cachedAllowedOrigins = buildAllowedOriginMatchers(process.env.ADMIN_LITE_ALLOWED_ORIGINS || '')
 let cachedAllowedOriginsRaw = process.env.ADMIN_LITE_ALLOWED_ORIGINS || ''
 
+const resolveSecret = () => {
+  const candidates = [process.env.ADMIN_LITE_JWT_SECRET, process.env.JWT_SECRET]
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string') {
+      const trimmed = candidate.trim()
+      if (trimmed) return trimmed
+    }
+  }
+  return null
+}
+
 const getAllowedOrigins = () => {
   const raw = process.env.ADMIN_LITE_ALLOWED_ORIGINS || ''
   if (raw !== cachedAllowedOriginsRaw) {
@@ -55,7 +66,7 @@ const matchesAllowedOrigin = (allowedOrigins, value) => {
 }
 
 module.exports = (req, res, next) => {
-  const secret = process.env.ADMIN_LITE_JWT_SECRET
+  const secret = resolveSecret()
   if (!secret) {
     const logger = req.scope && req.scope.resolve ? req.scope.resolve('logger') : null
     if (logger && logger.error) logger.error('Admin Lite JWT secret missing')
