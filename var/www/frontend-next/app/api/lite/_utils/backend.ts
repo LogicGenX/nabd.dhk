@@ -19,6 +19,7 @@ export const getBackendBase = () => {
 }
 
 const ADMIN_SUFFIX_PATTERN = /\/admin(?:\/lite)?$/i
+const STORE_SUFFIX_PATTERN = /\/store$/i
 
 const ensureAdminBase = (base: string) => {
   const trimmed = base.trim()
@@ -26,7 +27,8 @@ const ensureAdminBase = (base: string) => {
     throw new Error('MEDUSA_BACKEND_URL not configured')
   }
   const withoutTrailingSlash = trimmed.replace(/\/+$/, '')
-  const normalizedRoot = withoutTrailingSlash.replace(ADMIN_SUFFIX_PATTERN, '')
+  const withoutStoreSuffix = withoutTrailingSlash.replace(STORE_SUFFIX_PATTERN, '')
+  const normalizedRoot = withoutStoreSuffix.replace(ADMIN_SUFFIX_PATTERN, '')
   return normalizedRoot + '/admin'
 }
 
