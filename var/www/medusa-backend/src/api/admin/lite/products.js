@@ -1,4 +1,12 @@
-const DEFAULT_RELATIONS = [\n  'variants',\n  'variants.prices',\n  'variants.options',\n  'options',\n  'images',\n  'categories',\n  'collection',\n]
+const DEFAULT_RELATIONS = [
+  'variants',
+  'variants.prices',
+  'variants.options',
+  'options',
+  'images',
+  'categories',
+  'collection',
+]
 
 const slugify = (value, fallbackPrefix) => {
   if (!value || typeof value !== 'string') {
@@ -22,6 +30,65 @@ const mapPrice = (product, currency) => {
   const prioritized =
     variant.prices.find((price) => price.currency_code === currency) || variant.prices[0]
   return { amount: prioritized.amount || 0, currency_code: prioritized.currency_code || currency, variant_id: variant.id }
+}
+
+const mapVariantOptions = (variant) => {
+  if (!variant || !Array.isArray(variant.options)) {
+    return []
+  }
+
+  return variant.options.map((option) => ({
+    id: option.id,
+    option_id: option.option_id,
+    value: option.value ?? null,
+  }))
+}
+
+const mapVariantPrices = (variant, currency) => {
+  if (!variant || !Array.isArray(variant.prices)) {
+    return []
+  }
+
+  return variant.prices.map((price) => ({
+    id: price.id,
+    amount: typeof price.amount === 'number' ? price.amount : 0,
+    currency_code: (price.currency_code || currency || '').toLowerCase(),
+  }))
+}
+
+const mapVariants = (product, currency) => {
+  if (!product || !Array.isArray(product.variants)) {
+    return []
+  }
+
+  return product.variants.map((variant, index) => {
+    const prices = mapVariantPrices(variant, currency)
+    const prioritized =
+      prices.find((price) => price.currency_code === currency) || prices[0] || null
+
+    return {
+      id: variant.id,
+      title:
+        variant.title ||
+        (product.variants.length === 1
+          ? 'Default'
+          : 'Variant ' + (index + 1)),
+      sku: variant.sku || null,
+      inventory_quantity:
+        typeof variant.inventory_quantity === 'number'
+          ? variant.inventory_quantity
+          : null,
+      manage_inventory: !!variant.manage_inventory,
+      allow_backorder: !!variant.allow_backorder,
+      prices,
+      price: prioritized ? prioritized.amount : 0,
+      currency_code: prioritized ? prioritized.currency_code : currency,
+      options: mapVariantOptions(variant),
+      metadata: variant.metadata || null,
+      created_at: variant.created_at,
+      updated_at: variant.updated_at,
+    }
+  })
 }
 
 const serializeProduct = (product, currency) => {
