@@ -333,8 +333,9 @@ export async function POST(req: NextRequest) {
   if (!accessToken) {
     const tokenResult = createAdminLiteToken(user)
     if (!tokenResult.ok) {
-      console.error('[admin-lite] Unable to issue Admin Lite token', tokenResult.message)
-      return NextResponse.json({ message: tokenResult.message }, { status: 500 })
+      const message = 'message' in tokenResult ? tokenResult.message : 'Unable to issue Admin Lite token'
+      console.error('[admin-lite] Unable to issue Admin Lite token', message)
+      return NextResponse.json({ message }, { status: 500 })
     }
     accessToken = tokenResult.token
     user = tokenResult.user
@@ -368,8 +369,10 @@ export async function GET(req: NextRequest) {
   if (verification.ok) {
     return NextResponse.json({ authenticated: true, user: verification.user })
   }
-  if (verification.expired) {
-    return unauthorized('Session expired')
+  if (!verification.ok) {
+    if ('expired' in verification && verification.expired) {
+      return unauthorized('Session expired')
+    }
   }
 
   const result = await fetchCurrentUser(token)
