@@ -39,6 +39,15 @@ describe('buildAdminUrl', () => {
     expect(buildAdminUrl('lite/products')).toBe('https://medusa.example/admin/lite/products')
   })
 
+  it('normalizes backends that point at the store API', () => {
+    setBackend('https://medusa.example/store')
+    expect(buildAdminUrl('lite/products')).toBe('https://medusa.example/admin/lite/products')
+    setBackend('https://medusa.example/store/')
+    expect(buildAdminUrl('lite/products')).toBe('https://medusa.example/admin/lite/products')
+    setBackend('https://medusa.example/api/store')
+    expect(buildAdminUrl('lite/products')).toBe('https://medusa.example/api/admin/lite/products')
+  })
+
   it('normalizes paths that include an admin prefix', () => {
     setBackend('https://medusa.example')
     expect(buildAdminUrl('admin/auth')).toBe('https://medusa.example/admin/auth')
