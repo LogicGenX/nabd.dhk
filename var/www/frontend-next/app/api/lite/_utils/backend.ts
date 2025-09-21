@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+import {
+  DEFAULT_DEVELOPMENT_MEDUSA_BACKEND_URL,
+  DEFAULT_PRODUCTION_MEDUSA_BACKEND_URL,
+} from '../../../../lib/constants'
+
 export const ADMIN_COOKIE = 'admin_lite_token'
 
 const hopByHopHeaders = new Set([
@@ -12,10 +17,29 @@ const hopByHopHeaders = new Set([
   'trailer',
   'content-length',
   'accept-encoding',
+  'host',
 ])
 
+const normalizeEnvUrl = (value?: string | null) => {
+  if (!value) return undefined
+  const trimmed = value.trim()
+  return trimmed ? trimmed : undefined
+}
+
+const resolveDefaultBackend = () => {
+  const env = process.env.NODE_ENV
+  if (env === 'development' || env === 'test') {
+    return DEFAULT_DEVELOPMENT_MEDUSA_BACKEND_URL
+  }
+  return DEFAULT_PRODUCTION_MEDUSA_BACKEND_URL
+}
+
 export const getBackendBase = () => {
-  return process.env.MEDUSA_BACKEND_URL || process.env.NEXT_PUBLIC_MEDUSA_URL
+  return (
+    normalizeEnvUrl(process.env.MEDUSA_BACKEND_URL) ||
+    normalizeEnvUrl(process.env.NEXT_PUBLIC_MEDUSA_URL) ||
+    resolveDefaultBackend()
+  )
 }
 
 const ADMIN_SUFFIX_PATTERN = /\/admin(?:\/lite)?$/i
