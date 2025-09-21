@@ -88,7 +88,13 @@ export const POST = async (req: NextRequest) => {
         }
       }
 
-      return NextResponse.json(data, { status: upstream.status })
+      const normalized = normalizeCollection(data)
+      if (!normalized) {
+        console.error('[admin-lite] create collection missing payload shape', data)
+        throw NextResponse.json({ message: 'Invalid collection response' }, { status: 502 })
+      }
+
+      return NextResponse.json({ collection: normalized }, { status: upstream.status })
     }
 
     if (lastResponse) {
@@ -102,4 +108,14 @@ export const POST = async (req: NextRequest) => {
     console.error('[admin-lite] create collection handler failed', error)
     return NextResponse.json({ message: 'Create collection failed' }, { status: 502 })
   }
+}
+
+const normalizeCollection = (payload: any) => {
+  if (!payload) return null
+  const source = payload.collection || payload.product_collection || payload
+  const id = source?.id
+  const title = source?.title || source?.name
+  const handle = source?.handle || source?.slug
+  if (!id || !title) return null
+  return { id, title, handle }
 }

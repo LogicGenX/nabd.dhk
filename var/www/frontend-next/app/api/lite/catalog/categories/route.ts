@@ -88,7 +88,13 @@ export const POST = async (req: NextRequest) => {
         }
       }
 
-      return NextResponse.json(data, { status: upstream.status })
+      const normalized = normalizeCategory(data)
+      if (!normalized) {
+        console.error('[admin-lite] create category missing payload shape', data)
+        throw NextResponse.json({ message: 'Invalid category response' }, { status: 502 })
+      }
+
+      return NextResponse.json({ category: normalized }, { status: upstream.status })
     }
 
     if (lastResponse) {
@@ -102,4 +108,14 @@ export const POST = async (req: NextRequest) => {
     console.error('[admin-lite] create category handler failed', error)
     return NextResponse.json({ message: 'Create category failed' }, { status: 502 })
   }
+}
+
+const normalizeCategory = (payload: any) => {
+  if (!payload) return null
+  const source = payload.category || payload.product_category || payload
+  const id = source?.id
+  const name = source?.name || source?.title
+  const handle = source?.handle || source?.slug
+  if (!id || !name) return null
+  return { id, name, handle }
 }
