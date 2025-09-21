@@ -24,18 +24,22 @@ export default function CreateProductPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const refreshCatalog = useCallback(async () => {
+    const data = await liteFetch<CatalogData>('catalog')
+    setCatalog(data)
+  }, [])
+
   const loadCatalog = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const data = await liteFetch<CatalogData>('catalog')
-      setCatalog(data)
+      await refreshCatalog()
     } catch (err: any) {
       setError(err?.message || 'Failed to load catalog data')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [refreshCatalog])
 
   useEffect(() => {
     loadCatalog()
@@ -78,6 +82,7 @@ export default function CreateProductPage() {
         submitting={submitting}
         error={error}
         onSubmit={handleSubmit}
+        onRefreshCatalog={refreshCatalog}
       />
     </section>
   )

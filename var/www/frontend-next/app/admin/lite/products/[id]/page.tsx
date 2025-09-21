@@ -54,16 +54,20 @@ export default function ProductDetailPage() {
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  const refreshCatalog = useCallback(async () => {
+    const data = await liteFetch<CatalogData>('catalog')
+    setCatalog(data)
+  }, [])
+
   const load = useCallback(async () => {
     if (!productId) return
     setLoading(true)
     setError(null)
     try {
-      const [catalogData, productData] = await Promise.all([
-        liteFetch<CatalogData>('catalog'),
+      const [, productData] = await Promise.all([
+        refreshCatalog(),
         liteFetch<{ product: LiteProductDetail }>('products/' + productId),
       ])
-      setCatalog(catalogData)
       setProduct(productData.product)
       setVariantDrafts(
         Array.isArray(productData.product.variants)
@@ -82,7 +86,7 @@ export default function ProductDetailPage() {
     } finally {
       setLoading(false)
     }
-  }, [productId])
+  }, [productId, refreshCatalog])
 
   useEffect(() => {
     load()
@@ -272,6 +276,7 @@ export default function ProductDetailPage() {
         message={message}
         error={error}
         onSubmit={handleSubmit}
+        onRefreshCatalog={refreshCatalog}
       />
 
       <div className='space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm'>

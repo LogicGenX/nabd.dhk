@@ -31,6 +31,7 @@ Day-to-day tasks
 
 **Manage products**
 - Open Products to review titles, status, pricing, and stock; collection and size filters hydrate from /api/lite/catalog.
+- Use “+ New collection” / “+ New category” in the product form to create Medusa collections and categories on the fly.
 - Use Add product to upload media, assign collections/categories, and set BDT pricing (values are stored in minor units).
 - Variant inventory controls persist Medusa manage_inventory, inventory_quantity, and allow_backorder for each variant.
 - The In stock / Out of stock toggle calls /api/lite/products/:id/inventory to zero quantities and disable backorders when off, restoring a minimum quantity of 1 (and the original backorder flag) when re-enabled.
@@ -55,6 +56,7 @@ Operational guardrails
 API Notes
 ---------
 - /api/lite/catalog responds with { collections, categories, sizes } and omits tags.
+- POST /api/lite/catalog/collections and /api/lite/catalog/categories create catalogue metadata and return the newly created resource for immediate selection.
 - Proxy handlers force accept-encoding: identity and drop hop-by-hop headers to match Vercel expectations.
 
 Support playbook

@@ -1,16 +1,19 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { liteFetch } from '../../lib/admin-lite'
 import ProductImageManager from './ProductImageManager'
 
 interface CatalogCollection {
   id: string
   title: string
+  handle?: string
 }
 
 interface CatalogCategory {
   id: string
   name: string
+  handle?: string
 }
 
 export interface CatalogData {
@@ -52,6 +55,7 @@ interface ProductFormProps {
   message?: string | null
   error?: string | null
   onSubmit: (payload: ProductFormSubmit) => Promise<void>
+  onRefreshCatalog?: () => Promise<void>
 }
 
 const statusOptions = [
@@ -68,6 +72,7 @@ export default function ProductForm({
   message,
   error,
   onSubmit,
+  onRefreshCatalog,
 }: ProductFormProps) {
   const [title, setTitle] = useState(initial?.title || '')
   const [description, setDescription] = useState(initial?.description || '')
@@ -82,6 +87,14 @@ export default function ProductForm({
   const [images, setImages] = useState<string[]>(initial?.images || [])
   const [thumbnail, setThumbnail] = useState<string | undefined | null>(initial?.thumbnail || (initial?.images && initial.images[0]) || '')
   const [localError, setLocalError] = useState<string | null>(null)
+  const [collections, setCollections] = useState<CatalogCollection[]>(catalog.collections)
+  const [categoriesList, setCategoriesList] = useState<CatalogCategory[]>(catalog.categories)
+  const [showCollectionForm, setShowCollectionForm] = useState(false)
+  const [showCategoryForm, setShowCategoryForm] = useState(false)
+  const [newCollectionTitle, setNewCollectionTitle] = useState('')
+  const [newCategoryName, setNewCategoryName] = useState('')
+  const [creatingCollection, setCreatingCollection] = useState(false)
+  const [creatingCategory, setCreatingCategory] = useState(false)
 
   useEffect(() => {
     if (!initial) return
@@ -97,10 +110,24 @@ export default function ProductForm({
   }, [initial?.id])
 
   useEffect(() => {
-    if (!collectionId && catalog.collections.length) {
-      setCollectionId(catalog.collections[0].id)
+    setCollections(catalog.collections)
+  }, [catalog.collections])
+
+  useEffect(() => {
+    setCategoriesList(catalog.categories)
+  }, [catalog.categories])
+
+  useEffect(() => {
+    if (!collectionId && collections.length) {
+      setCollectionId(collections[0].id)
     }
-  }, [catalog.collections, collectionId])
+  }, [collections, collectionId])
+
+  useEffect(() => {
+    if (collectionId && !collections.some((collection) => collection.id === collectionId)) {
+      setCollectionId(collections[0]?.id || '')
+    }
+  }, [collectionId, collections])
 
   const toggleCategory = (id: string) => {
     setCategoryIds((prev) => {
@@ -151,8 +178,68 @@ export default function ProductForm({
   const thumbnailValue = thumbnail || (images[0] || '')
 
   const selectedCollectionLabel = useMemo(() => {
-    return catalog.collections.find((collection) => collection.id === collectionId)?.title || 'Unassigned'
-  }, [catalog.collections, collectionId])
+    return collections.find((collection) => collection.id === collectionId)?.title || 'Unassigned'
+  }, [collections, collectionId])
+
+  const handleCreateCollection = async () => {
+    const trimmed = newCollectionTitle.trim()
+    if (!trimmed) {
+      setLocalError('Collection title is required')
+      return
+    }
+    setCreatingCollection(true)
+    setLocalError(null)
+    try {
+      const response = await liteFetch<{ collection: CatalogCollection }>('catalog/collections', {
+        method: 'POST',
+        json: { title: trimmed },
+      })
+      setCollections((prev) => {
+        if (prev.some((entry) => entry.id === response.collection.id)) {
+          return prev
+        }
+        return [...prev, response.collection]
+      })
+      setCollectionId(response.collection.id)
+      setNewCollectionTitle('')
+      setShowCollectionForm(false)
+      onRefreshCatalog?.().catch(() => {})
+    } catch (err: any) {
+      setLocalError(err?.message || 'Failed to create collection')
+    } finally {
+      setCreatingCollection(false)
+    }
+  }
+
+  const handleCreateCategory = async () => {
+    const trimmed = newCategoryName.trim()
+    if (!trimmed) {
+      setLocalError('Category name is required')
+      return
+    }
+    setCreatingCategory(true)
+    setLocalError(null)
+    try {
+      const response = await liteFetch<{ category: CatalogCategory }>('catalog/categories', {
+        method: 'POST',
+        json: { name: trimmed },
+      })
+      setCategoriesList((prev) => {
+        if (prev.some((entry) => entry.id === response.category.id)) {
+          return prev
+        }
+        return [...prev, response.category]
+      })
+      setCategoryIds((prev) => (prev.includes(response.category.id) ? prev : [...prev, response.category.id]))
+      setNewCategoryName('')
+      setShowCategoryForm(false)
+      onRefreshCatalog?.().catch(() => {})
+    } catch (err: any) {
+      setLocalError(err?.message || 'Failed to create category')
+    } finally {
+      setCreatingCategory(false)
+    }
+  }
 
   return (
     <form onSubmit={handleSubmit} className='space-y-6'>
@@ -203,20 +290,71 @@ export default function ProductForm({
             ))}
           </select>
         </label>
-        <label className='flex flex-col text-xs font-semibold uppercase tracking-wide text-slate-500'>
-          Collection
+        <div className='flex flex-col text-xs font-semibold uppercase tracking-wide text-slate-500'>
+          <span>Collection</span>
           <select
             value={collectionId}
             onChange={(event) => setCollectionId(event.target.value)}
             className='mt-1 rounded-lg border border-slate-300 px-3 py-2 text-sm'
           >
-            {catalog.collections.map((collection) => (
-              <option key={collection.id} value={collection.id}>
-                {collection.title}
-              </option>
-            ))}
+            {collections.length ? (
+              collections.map((collection) => (
+                <option key={collection.id} value={collection.id}>
+                  {collection.title}
+                </option>
+              ))
+            ) : (
+              <option value=''>No collections available</option>
+            )}
           </select>
-        </label>
+          {showCollectionForm ? (
+            <div className='mt-2 flex flex-col gap-2 text-[11px] font-normal normal-case text-slate-600'>
+              <input
+                value={newCollectionTitle}
+                onChange={(event) => setNewCollectionTitle(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    handleCreateCollection()
+                  }
+                }}
+                className='rounded-lg border border-slate-300 px-2 py-1 text-sm'
+                placeholder='Collection title'
+              />
+              <div className='flex gap-2'>
+                <button
+                  type='button'
+                  onClick={handleCreateCollection}
+                  className='rounded bg-slate-900 px-3 py-1 text-xs font-medium text-white hover:bg-slate-800 disabled:bg-slate-500'
+                  disabled={creatingCollection}
+                >
+                  {creatingCollection ? 'Creating…' : 'Save collection'}
+                </button>
+                <button
+                  type='button'
+                  onClick={() => {
+                    setShowCollectionForm(false)
+                    setNewCollectionTitle('')
+                  }}
+                  className='rounded border border-slate-300 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100'
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type='button'
+              onClick={() => {
+                setShowCollectionForm(true)
+                setLocalError(null)
+              }}
+              className='mt-2 self-start text-xs font-normal normal-case text-slate-600 hover:underline'
+            >
+              + New collection
+            </button>
+          )}
+        </div>
         <label className='flex flex-col text-xs font-semibold uppercase tracking-wide text-slate-500'>
           Price (BDT)
           <input
@@ -230,10 +368,62 @@ export default function ProductForm({
       </div>
 
       <div className='rounded-lg border border-slate-200 bg-white p-4 shadow-sm'>
-        <h3 className='text-sm font-semibold text-slate-700'>Categories</h3>
-        <p className='text-xs text-slate-500'>Select at least one category to satisfy storefront filters.</p>
+        <div className='flex flex-col gap-2 md:flex-row md:items-center md:justify-between'>
+          <div>
+            <h3 className='text-sm font-semibold text-slate-700'>Categories</h3>
+            <p className='text-xs text-slate-500'>Select at least one category to satisfy storefront filters.</p>
+          </div>
+          {!showCategoryForm && (
+            <button
+              type='button'
+              onClick={() => {
+                setShowCategoryForm(true)
+                setLocalError(null)
+              }}
+              className='self-start text-xs font-normal normal-case text-slate-600 hover:underline'
+            >
+              + New category
+            </button>
+          )}
+        </div>
+        {showCategoryForm && (
+          <div className='mt-3 flex flex-col gap-2 md:flex-row md:items-center'>
+            <input
+              value={newCategoryName}
+              onChange={(event) => setNewCategoryName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  handleCreateCategory()
+                }
+              }}
+              className='rounded-lg border border-slate-300 px-3 py-1 text-sm'
+              placeholder='Category name'
+            />
+            <div className='flex gap-2'>
+              <button
+                type='button'
+                onClick={handleCreateCategory}
+                className='rounded bg-slate-900 px-3 py-1 text-xs font-medium text-white hover:bg-slate-800 disabled:bg-slate-500'
+                disabled={creatingCategory}
+              >
+                {creatingCategory ? 'Creating…' : 'Save category'}
+              </button>
+              <button
+                type='button'
+                onClick={() => {
+                  setShowCategoryForm(false)
+                  setNewCategoryName('')
+                }}
+                className='rounded border border-slate-300 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100'
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
         <div className='mt-3 flex flex-wrap gap-3'>
-          {catalog.categories.map((category) => {
+          {categoriesList.map((category) => {
             const checked = categoryIds.includes(category.id)
             return (
               <label key={category.id} className='flex items-center gap-2 rounded-full border border-slate-300 px-3 py-1 text-sm'>
@@ -247,7 +437,7 @@ export default function ProductForm({
               </label>
             )
           })}
-          {!catalog.categories.length && <span className='text-sm text-slate-500'>No categories available.</span>}
+          {!categoriesList.length && <span className='text-sm text-slate-500'>No categories available.</span>}
         </div>
       </div>
 
@@ -282,4 +472,3 @@ export default function ProductForm({
     </form>
   )
 }
-

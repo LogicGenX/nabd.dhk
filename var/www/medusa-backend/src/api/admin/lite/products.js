@@ -1,5 +1,18 @@
 const DEFAULT_RELATIONS = [\n  'variants',\n  'variants.prices',\n  'variants.options',\n  'options',\n  'images',\n  'categories',\n  'collection',\n]
 
+const slugify = (value, fallbackPrefix) => {
+  if (!value || typeof value !== 'string') {
+    return fallbackPrefix + '-' + Date.now()
+  }
+  const base = value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  if (base) return base
+  return fallbackPrefix + '-' + Date.now()
+}
+
 const mapPrice = (product, currency) => {
   const variants = product.variants || []
   const variant = variants[0]
@@ -278,7 +291,63 @@ exports.catalog = async (req, res) => {
       handle: category.handle,
     })),
   })
-}exports.updateInventory = async (req, res) => {
+}
+
+exports.createCollection = async (req, res) => {
+  const { title, handle } = req.body || {}
+  if (!title || !title.trim()) {
+    return res.status(400).json({ message: 'Collection title is required' })
+  }
+
+  const collectionService = req.scope.resolve('productCollectionService')
+  const payload = {
+    title: title.trim(),
+    handle: typeof handle === 'string' && handle.trim()
+      ? handle.trim().toLowerCase()
+      : slugify(title, 'collection'),
+  }
+
+  const created = await collectionService.create(payload)
+  res.status(201).json({
+    collection: {
+      id: created.id,
+      title: created.title,
+      handle: created.handle,
+    },
+  })
+}
+
+exports.createCategory = async (req, res) => {
+  const { name, handle, parent_category_id: parentCategoryId } = req.body || {}
+  if (!name || !name.trim()) {
+    return res.status(400).json({ message: 'Category name is required' })
+  }
+
+  const categoryService = req.scope.resolve('productCategoryService')
+  const payload = {
+    name: name.trim(),
+    handle: typeof handle === 'string' && handle.trim()
+      ? handle.trim().toLowerCase()
+      : slugify(name, 'category'),
+    is_active: true,
+    is_internal: false,
+  }
+
+  if (parentCategoryId) {
+    payload.parent_category_id = parentCategoryId
+  }
+
+  const created = await categoryService.create(payload)
+  res.status(201).json({
+    category: {
+      id: created.id,
+      name: created.name,
+      handle: created.handle,
+    },
+  })
+}
+
+exports.updateInventory = async (req, res) => {
   const productId = req.params.id
   const { in_stock, variant_ids: variantIds } = req.body || {}
   if (typeof in_stock !== 'boolean') {
