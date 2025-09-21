@@ -26,6 +26,10 @@ const cleanEnv = (value?: string | null) => {
   return trimmed ? trimmed : undefined
 }
 
+const resolveAdminLiteSecret = () => {
+  return cleanEnv(process.env.ADMIN_LITE_JWT_SECRET) || cleanEnv(process.env.JWT_SECRET)
+}
+
 const buildStaffName = (firstName: string | null, lastName: string | null, fallbackEmail: string) => {
   const parts = [firstName, lastName].filter((part) => typeof part === 'string' && part.trim()) as string[]
   if (parts.length) {
@@ -49,7 +53,7 @@ const extractPermissions = (user: any) => {
 }
 
 const createAdminLiteToken = (user: any): TokenCreationResult => {
-  const secret = cleanEnv(process.env.ADMIN_LITE_JWT_SECRET)
+  const secret = resolveAdminLiteSecret()
   if (!secret) {
     return { ok: false, message: 'Admin Lite token not configured' }
   }
@@ -109,7 +113,7 @@ const createAdminLiteToken = (user: any): TokenCreationResult => {
 }
 
 const verifyAdminLiteToken = (token: string): TokenVerificationResult => {
-  const secret = cleanEnv(process.env.ADMIN_LITE_JWT_SECRET)
+  const secret = resolveAdminLiteSecret()
   if (!secret) {
     return { ok: false, reason: 'secret-missing' }
   }
