@@ -102,7 +102,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ collections, categories, sizes })
   } catch (error) {
-    if (error instanceof NextResponse) {
+    if (error instanceof Response) {
       return error
     }
     console.error('[admin-lite] catalog handler failed', error)
