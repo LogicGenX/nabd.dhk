@@ -22,13 +22,13 @@ const readJson = async (req: NextRequest) => {
   }
 }
 
-const forward = async (req: NextRequest, token: string, body: any) => {
+const forward = async (req: NextRequest, token: string, path: string, body: any) => {
   const headers = buildUpstreamHeaders(req, token)
   headers.set('content-type', 'application/json')
 
   let response: Response
   try {
-    response = await fetch(buildAdminUrl('lite/catalog/categories'), {
+    response = await fetch(buildAdminUrl(path), {
       method: 'POST',
       headers,
       body: JSON.stringify(body),
@@ -55,7 +55,11 @@ export const POST = async (req: NextRequest) => {
 
   try {
     const payload = await readJson(req)
-    const upstream = await forward(req, token, payload)
+    let upstream = await forward(req, token, 'lite/catalog/categories', payload)
+    if (upstream.status === 404) {
+      console.warn('[admin-lite] create category lite endpoint missing, falling back to admin/product-categories')
+      upstream = await forward(req, token, 'product-categories', payload)
+    }
     const text = await upstream.text()
     if (!upstream.ok) {
       console.error('[admin-lite] create category upstream error', upstream.status, text)

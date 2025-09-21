@@ -33,7 +33,7 @@ describe('catalog create routes', () => {
     vi.restoreAllMocks()
   })
 
-  it('creates a collection and returns upstream payload', async () => {
+  it('creates a collection via lite endpoint', async () => {
     const payload = { collection: { id: 'col_1', title: 'Summer', handle: 'summer' } }
     const jsonResponse = new Response(JSON.stringify(payload), {
       status: 201,
@@ -68,7 +68,32 @@ describe('catalog create routes', () => {
     expect(setCookie).toContain(`${ADMIN_COOKIE}=`)
   })
 
-  it('creates a category and returns upstream payload', async () => {
+  it('falls back to admin collections when lite endpoint missing', async () => {
+    const payload = { collection: { id: 'col_2', title: 'Fallback', handle: 'fallback' } }
+    const responses = [
+      new Response('Not Found', { status: 404 }),
+      new Response(JSON.stringify(payload), {
+        status: 201,
+        headers: { 'content-type': 'application/json' },
+      }),
+    ]
+
+    const fetchMock = vi
+      .fn<Parameters<typeof fetch>, ReturnType<typeof fetch>>()
+      .mockImplementation(() => Promise.resolve(responses.shift()!))
+    global.fetch = fetchMock as unknown as typeof fetch
+
+    const response = await createCollection(buildRequest('/api/lite/catalog/collections', { title: 'Fallback' }))
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls[0][0]).toBe(BACKEND_URL + '/admin/lite/catalog/collections')
+    expect(fetchMock.mock.calls[1][0]).toBe(BACKEND_URL + '/admin/collections')
+
+    expect(response.status).toBe(201)
+    const data = await response.json()
+    expect(data).toEqual(payload)
+  })
+
+  it('creates a category via lite endpoint', async () => {
     const payload = { category: { id: 'cat_1', name: 'Dresses', handle: 'dresses' } }
     const jsonResponse = new Response(JSON.stringify(payload), {
       status: 201,
@@ -82,6 +107,31 @@ describe('catalog create routes', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
     const url = fetchMock.mock.calls[0][0] as string
     expect(url).toBe(BACKEND_URL + '/admin/lite/catalog/categories')
+    expect(response.status).toBe(201)
+    const data = await response.json()
+    expect(data).toEqual(payload)
+  })
+
+  it('falls back to admin product categories when lite endpoint missing', async () => {
+    const payload = { category: { id: 'cat_2', name: 'Tops', handle: 'tops' } }
+    const responses = [
+      new Response('Not Found', { status: 404 }),
+      new Response(JSON.stringify(payload), {
+        status: 201,
+        headers: { 'content-type': 'application/json' },
+      }),
+    ]
+
+    const fetchMock = vi
+      .fn<Parameters<typeof fetch>, ReturnType<typeof fetch>>()
+      .mockImplementation(() => Promise.resolve(responses.shift()!))
+    global.fetch = fetchMock as unknown as typeof fetch
+
+    const response = await createCategory(buildRequest('/api/lite/catalog/categories', { name: 'Tops' }))
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls[0][0]).toBe(BACKEND_URL + '/admin/lite/catalog/categories')
+    expect(fetchMock.mock.calls[1][0]).toBe(BACKEND_URL + '/admin/product-categories')
+
     expect(response.status).toBe(201)
     const data = await response.json()
     expect(data).toEqual(payload)
