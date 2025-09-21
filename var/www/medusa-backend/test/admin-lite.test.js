@@ -9,7 +9,7 @@ const clone = (value) => JSON.parse(JSON.stringify(value))
 module.exports = async () => {
   process.env.ADMIN_LITE_JWT_SECRET = 'test-secret'
   process.env.ADMIN_LITE_RATE_LIMIT = '0'
-  process.env.ADMIN_LITE_ALLOWED_ORIGINS = ''
+  process.env.ADMIN_LITE_ALLOWED_ORIGINS = 'https://admin-lite.example.com,https://*.vercel.app'
   process.env.ADMIN_LITE_CURRENCY_CODE = 'bdt'
 
   const now = () => new Date().toISOString()
@@ -402,17 +402,52 @@ module.exports = async () => {
     },
   }
 
-  const app = express()
-  const rootRouter = express.Router()
-  adminLite(rootRouter)
-  app.use((req, res, next) => {
-    req.scope = scope
-    next()
-  })
-  app.use(rootRouter)
+  const buildApp = () => {
+    const app = express()
+    const rootRouter = express.Router()
+    adminLite(rootRouter)
+    app.use((req, res, next) => {
+      req.scope = scope
+      next()
+    })
+    app.use(rootRouter)
+    return app
+  }
 
   const token = jwt.sign({ sub: 'staff_1', email: 'staff@nabd.dhk', name: 'Staff User' }, process.env.ADMIN_LITE_JWT_SECRET)
   const authHeader = 'Bearer ' + token
+
+  const originApp = buildApp()
+
+  await request(originApp)
+    .get('/admin/lite/orders')
+    .set('Authorization', authHeader)
+    .set('Origin', 'https://admin-lite.example.com')
+    .expect(200)
+
+  await request(originApp)
+    .get('/admin/lite/orders')
+    .set('Authorization', authHeader)
+    .set('Origin', 'https://ops-dashboard.vercel.app')
+    .expect(200)
+
+  await request(originApp)
+    .get('/admin/lite/orders')
+    .set('Authorization', authHeader)
+    .set('X-Forwarded-Host', 'ops-dashboard.vercel.app')
+    .expect(200)
+
+  const forbiddenRes = await request(originApp)
+    .get('/admin/lite/orders')
+    .set('Authorization', authHeader)
+    .set('Origin', 'https://malicious.example.com')
+    .expect(403)
+
+  assert.strictEqual(forbiddenRes.body.message, 'Origin not allowed')
+
+  process.env.ADMIN_LITE_ALLOWED_ORIGINS = ''
+
+  const app = buildApp()
 
   const listRes = await request(app)
     .get('/admin/lite/orders')
