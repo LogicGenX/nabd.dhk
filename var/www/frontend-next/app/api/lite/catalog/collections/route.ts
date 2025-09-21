@@ -55,10 +55,10 @@ export const POST = async (req: NextRequest) => {
 
   try {
     const payload = await readJson(req)
-    let upstream = await forward(req, token, 'lite/catalog/collections', payload)
+    let upstream = await forward(req, token, 'collections', payload)
     if (upstream.status === 404) {
-      console.warn('[admin-lite] create collection lite endpoint missing, falling back to admin/collections')
-      upstream = await forward(req, token, 'collections', payload)
+      console.warn('[admin-lite] admin collections endpoint missing, trying lite/catalog/collections')
+      upstream = await forward(req, token, 'lite/catalog/collections', payload)
     }
     const text = await upstream.text()
     if (!upstream.ok) {

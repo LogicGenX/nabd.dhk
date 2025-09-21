@@ -55,10 +55,10 @@ export const POST = async (req: NextRequest) => {
 
   try {
     const payload = await readJson(req)
-    let upstream = await forward(req, token, 'lite/catalog/categories', payload)
+    let upstream = await forward(req, token, 'product-categories', payload)
     if (upstream.status === 404) {
-      console.warn('[admin-lite] create category lite endpoint missing, falling back to admin/product-categories')
-      upstream = await forward(req, token, 'product-categories', payload)
+      console.warn('[admin-lite] admin product-categories endpoint missing, trying lite/catalog/categories')
+      upstream = await forward(req, token, 'lite/catalog/categories', payload)
     }
     const text = await upstream.text()
     if (!upstream.ok) {
