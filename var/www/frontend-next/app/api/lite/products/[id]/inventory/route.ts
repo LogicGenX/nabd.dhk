@@ -288,7 +288,7 @@ export const PATCH = async (
     const normalized = transformProduct(updated)
     return NextResponse.json({ product: normalized })
   } catch (error) {
-    if (error instanceof Response) {
+    if (error instanceof NextResponse) {
       return error
     }
     console.error('[admin-lite] inventory handler failed', error)

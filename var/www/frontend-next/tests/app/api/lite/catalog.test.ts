@@ -110,6 +110,30 @@ describe('catalog route', () => {
     expect(headers.get('accept-encoding')).toBe('identity')
   })
 
+  it('treats missing product categories as optional', async () => {
+    const collectionsPayload = { collections: [] }
+    const productsPayload = { products: [] }
+
+    const jsonResponse = (body: unknown, status = 200) =>
+      new Response(JSON.stringify(body), {
+        status,
+        headers: { 'content-type': 'application/json' },
+      })
+
+    const fetchMock = vi
+      .fn<Parameters<typeof fetch>, ReturnType<typeof fetch>>()
+      .mockResolvedValueOnce(jsonResponse(collectionsPayload))
+      .mockResolvedValueOnce(new Response('Not Found', { status: 404 }))
+      .mockResolvedValueOnce(jsonResponse(productsPayload))
+
+    global.fetch = fetchMock as unknown as typeof fetch
+
+    const response = await GET(buildRequest('token_123'))
+    expect(response.status).toBe(200)
+    const data = await response.json()
+    expect(data.categories).toEqual([])
+  })
+
   it('clears cookie and returns 401 when upstream is unauthorized', async () => {
     const unauthorizedResponse = new Response('Unauthorized', { status: 401 })
     const okResponse = new Response(JSON.stringify({}), {

@@ -14,7 +14,16 @@ const unauthorized = () => {
   return res
 }
 
-const fetchJson = async (req: NextRequest, token: string, path: string) => {
+interface FetchJsonOptions {
+  optional?: boolean
+}
+
+const fetchJson = async (
+  req: NextRequest,
+  token: string,
+  path: string,
+  options: FetchJsonOptions = {}
+) => {
   const url = buildAdminUrl(path)
   let response: Response
   try {
@@ -30,6 +39,11 @@ const fetchJson = async (req: NextRequest, token: string, path: string) => {
 
   if (response.status === 401) {
     throw unauthorized()
+  }
+
+  if (response.status === 404 && options.optional) {
+    console.warn('[admin-lite] catalog upstream optional resource missing', path)
+    return null
   }
 
   if (!response.ok) {
@@ -82,7 +96,7 @@ export async function GET(req: NextRequest) {
   try {
     const [collectionsPayload, categoriesPayload, productsPayload] = await Promise.all([
       fetchJson(req, token, 'collections?limit=1000'),
-      fetchJson(req, token, 'product-categories?limit=1000'),
+      fetchJson(req, token, 'product-categories?limit=1000', { optional: true }),
       fetchJson(req, token, 'products?limit=1000&expand=options,variants,variants.options'),
     ])
 
@@ -102,7 +116,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ collections, categories, sizes })
   } catch (error) {
-    if (error instanceof Response) {
+    if (error instanceof NextResponse) {
       return error
     }
     console.error('[admin-lite] catalog handler failed', error)
