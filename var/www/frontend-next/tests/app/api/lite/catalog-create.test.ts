@@ -69,10 +69,10 @@ describe('catalog create routes', () => {
   })
 
   it('falls back to admin collections when lite endpoint missing', async () => {
-    const payload = { collection: { id: 'col_2', title: 'Fallback', handle: 'fallback' } }
+    const backendPayload = { product_collection: { id: 'col_2', title: 'Fallback', handle: 'fallback' } }
     const responses = [
       new Response('Not Found', { status: 404 }),
-      new Response(JSON.stringify(payload), {
+      new Response(JSON.stringify(backendPayload), {
         status: 201,
         headers: { 'content-type': 'application/json' },
       }),
@@ -90,7 +90,7 @@ describe('catalog create routes', () => {
 
     expect(response.status).toBe(201)
     const data = await response.json()
-    expect(data).toEqual(payload)
+    expect(data).toEqual({ collection: backendPayload.product_collection })
   })
 
   it('creates a category via lite endpoint', async () => {
@@ -113,10 +113,10 @@ describe('catalog create routes', () => {
   })
 
   it('falls back to admin product categories when lite endpoint missing', async () => {
-    const payload = { category: { id: 'cat_2', name: 'Tops', handle: 'tops' } }
+    const backendPayload = { product_category: { id: 'cat_2', name: 'Tops', handle: 'tops' } }
     const responses = [
       new Response('Not Found', { status: 404 }),
-      new Response(JSON.stringify(payload), {
+      new Response(JSON.stringify(backendPayload), {
         status: 201,
         headers: { 'content-type': 'application/json' },
       }),
@@ -134,6 +134,6 @@ describe('catalog create routes', () => {
 
     expect(response.status).toBe(201)
     const data = await response.json()
-    expect(data).toEqual(payload)
+    expect(data).toEqual({ category: backendPayload.product_category })
   })
 })

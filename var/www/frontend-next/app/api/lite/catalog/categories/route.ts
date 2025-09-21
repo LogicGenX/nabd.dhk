@@ -14,6 +14,16 @@ const unauthorized = () => {
   return res
 }
 
+const normalizeCategory = (payload: any) => {
+  if (!payload) return null
+  const source = payload.category || payload.product_category || payload
+  const id = source?.id
+  const name = source?.name || source?.title
+  const handle = source?.handle || source?.slug
+  if (!id || !name) return null
+  return { id, name, handle }
+}
+
 const readJson = async (req: NextRequest) => {
   try {
     return await req.json()
@@ -108,14 +118,4 @@ export const POST = async (req: NextRequest) => {
     console.error('[admin-lite] create category handler failed', error)
     return NextResponse.json({ message: 'Create category failed' }, { status: 502 })
   }
-}
-
-const normalizeCategory = (payload: any) => {
-  if (!payload) return null
-  const source = payload.category || payload.product_category || payload
-  const id = source?.id
-  const name = source?.name || source?.title
-  const handle = source?.handle || source?.slug
-  if (!id || !name) return null
-  return { id, name, handle }
 }
