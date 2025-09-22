@@ -4,6 +4,7 @@ const os = require('os')
 const asyncHandler = require('./utils/async-handler')
 const authenticateLite = require('./middlewares/auth')
 const rateLimit = require('./middlewares/rate-limit')
+const auth = require('./auth')
 const orders = require('./orders')
 const customers = require('./customers')
 const products = require('./products')
@@ -16,8 +17,10 @@ const uploadMiddleware = fileUpload({ dest: os.tmpdir() })
 module.exports = (rootRouter) => {
   rootRouter.use('/admin/lite', route)
   route.use(rateLimit)
+  route.post('/session', jsonBody, asyncHandler(auth.createSession))
   route.use(authenticateLite)
 
+  route.get('/session', asyncHandler(auth.getSession))
   route.get('/ping', (req, res) => res.json({ ok: true }))
 
   route.get('/orders', asyncHandler(orders.list))

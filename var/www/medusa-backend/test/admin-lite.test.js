@@ -9,7 +9,7 @@ const clone = (value) => JSON.parse(JSON.stringify(value))
 module.exports = async () => {
   process.env.ADMIN_LITE_JWT_SECRET = 'test-secret'
   process.env.ADMIN_LITE_RATE_LIMIT = '0'
-  process.env.ADMIN_LITE_ALLOWED_ORIGINS = ''
+  process.env.ADMIN_LITE_ALLOWED_ORIGINS = 'https://admin-lite.example.com,https://*.vercel.app'
   process.env.ADMIN_LITE_CURRENCY_CODE = 'bdt'
 
   const now = () => new Date().toISOString()
@@ -368,6 +368,28 @@ module.exports = async () => {
     upload: async (file) => ({ url: 'https://cdn.example.com/' + file.originalname }),
   }
 
+  const adminUser = {
+    id: 'staff_1',
+    email: 'staff@nabd.dhk',
+    first_name: 'Staff',
+    last_name: 'User',
+    role: 'admin',
+  }
+
+  const authService = {
+    withTransaction: () => authService,
+    authenticate: async (email, password) => {
+      if (email === adminUser.email && password === 'supersecret') {
+        return { success: true, user: clone(adminUser) }
+      }
+      return { success: false }
+    },
+  }
+
+  const manager = {
+    transaction: async (handler) => handler({}),
+  }
+
   const logger = {
     warn: () => {},
     error: () => {},
@@ -396,23 +418,84 @@ module.exports = async () => {
           return fileService
         case 'logger':
           return logger
+        case 'authService':
+          return authService
+        case 'manager':
+          return manager
         default:
           throw new Error('Unexpected scope key ' + key)
       }
     },
   }
 
-  const app = express()
-  const rootRouter = express.Router()
-  adminLite(rootRouter)
-  app.use((req, res, next) => {
-    req.scope = scope
-    next()
-  })
-  app.use(rootRouter)
+  const buildApp = () => {
+    const app = express()
+    const rootRouter = express.Router()
+    adminLite(rootRouter)
+    app.use((req, res, next) => {
+      req.scope = scope
+      next()
+    })
+    app.use(rootRouter)
+    return app
+  }
 
   const token = jwt.sign({ sub: 'staff_1', email: 'staff@nabd.dhk', name: 'Staff User' }, process.env.ADMIN_LITE_JWT_SECRET)
   const authHeader = 'Bearer ' + token
+
+  const originApp = buildApp()
+
+  await request(originApp)
+    .get('/admin/lite/orders')
+    .set('Authorization', authHeader)
+    .set('Origin', 'https://admin-lite.example.com')
+    .expect(200)
+
+  await request(originApp)
+    .get('/admin/lite/orders')
+    .set('Authorization', authHeader)
+    .set('Origin', 'https://ops-dashboard.vercel.app')
+    .expect(200)
+
+  await request(originApp)
+    .get('/admin/lite/orders')
+    .set('Authorization', authHeader)
+    .set('X-Forwarded-Host', 'ops-dashboard.vercel.app')
+    .expect(200)
+
+  const forbiddenRes = await request(originApp)
+    .get('/admin/lite/orders')
+    .set('Authorization', authHeader)
+    .set('Origin', 'https://malicious.example.com')
+    .expect(403)
+
+  assert.strictEqual(forbiddenRes.body.message, 'Origin not allowed')
+
+  process.env.ADMIN_LITE_ALLOWED_ORIGINS = ''
+
+  const app = buildApp()
+
+  const loginRes = await request(app)
+    .post('/admin/lite/session')
+    .send({ email: adminUser.email, password: 'supersecret' })
+    .expect(200)
+
+  assert.strictEqual(typeof loginRes.body.token, 'string')
+  assert.strictEqual(loginRes.body.user.email, adminUser.email)
+  assert.strictEqual(loginRes.body.user.first_name, adminUser.first_name)
+
+  const sessionRes = await request(app)
+    .get('/admin/lite/session')
+    .set('Authorization', 'Bearer ' + loginRes.body.token)
+    .expect(200)
+
+  assert.strictEqual(sessionRes.body.authenticated, true)
+  assert.strictEqual(sessionRes.body.user.email, adminUser.email)
+
+  await request(app)
+    .post('/admin/lite/session')
+    .send({ email: adminUser.email, password: 'wrong-password' })
+    .expect(401)
 
   const listRes = await request(app)
     .get('/admin/lite/orders')
@@ -541,4 +624,18 @@ module.exports = async () => {
     .set('Authorization', authHeader)
     .send({ action: 'unsupported' })
     .expect(400)
+
+  process.env.ADMIN_LITE_JWT_SECRET = ''
+  process.env.JWT_SECRET = 'fallback-secret'
+
+  const fallbackApp = buildApp()
+  const fallbackToken = jwt.sign(
+    { sub: 'staff_fallback', email: 'fallback@nabd.dhk', name: 'Fallback Staff' },
+    process.env.JWT_SECRET
+  )
+
+  await request(fallbackApp)
+    .get('/admin/lite/orders')
+    .set('Authorization', 'Bearer ' + fallbackToken)
+    .expect(200)
 }

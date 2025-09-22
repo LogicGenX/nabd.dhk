@@ -5,6 +5,36 @@ export const runtime = 'nodejs'
 
 const DAY_IN_SECONDS = 60 * 60 * 24
 
+const isSecureRequest = (req?: NextRequest) => {
+  if (!req) {
+    return process.env.NODE_ENV !== 'development'
+  }
+
+  const protocol = req.nextUrl?.protocol
+  if (protocol === 'https:') {
+    return true
+  }
+  if (protocol === 'http:') {
+    return false
+  }
+
+  const forwardedProto = req.headers.get('x-forwarded-proto')
+  if (forwardedProto) {
+    const first = forwardedProto.split(',')[0]?.trim().toLowerCase()
+    if (first === 'https') return true
+    if (first === 'http') return false
+  }
+
+  return process.env.NODE_ENV !== 'development'
+}
+
+const getCookieOptions = (req?: NextRequest) => ({
+  httpOnly: true,
+  secure: isSecureRequest(req),
+  sameSite: 'lax' as const,
+  path: '/',
+})
+
 const readJson = async (response: Response) => {
   const text = await response.text()
   if (!text) return {}
@@ -16,30 +46,29 @@ const readJson = async (response: Response) => {
   }
 }
 
-const cookieOptions = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV !== 'development',
-  sameSite: 'lax' as const,
-  path: '/',
-}
-
-const unauthorized = (message = 'Not authenticated') => {
+const unauthorized = (req: NextRequest, message = 'Not authenticated') => {
   const res = NextResponse.json({ message }, { status: 401 })
   res.cookies.set({
     name: ADMIN_COOKIE,
     value: '',
     maxAge: 0,
-    ...cookieOptions,
+    ...getCookieOptions(req),
   })
   return res
 }
 
-const fetchCurrentUser = async (token: string) => {
-  let url: string
+const buildLiteSessionUrl = (req?: NextRequest) => {
   try {
-    url = buildAdminUrl('auth')
+    return buildAdminUrl('lite/session', req)
   } catch (error) {
-    console.error('[admin-lite] Missing Medusa backend url', error)
+    console.error('[admin-lite] Backend not configured', error)
+    return null
+  }
+}
+
+const fetchBackendSession = async (req: NextRequest | null, token: string) => {
+  const url = buildLiteSessionUrl(req || undefined)
+  if (!url) {
     return { status: 500, body: { message: 'MEDUSA_BACKEND_URL not configured' } }
   }
 
@@ -49,26 +78,19 @@ const fetchCurrentUser = async (token: string) => {
       method: 'GET',
       headers: {
         authorization: 'Bearer ' + token,
+        'x-admin-lite-token': token,
         accept: 'application/json',
         'accept-encoding': 'identity',
       },
       cache: 'no-store',
     })
   } catch (error) {
-    console.error('[admin-lite] Unable to reach /admin/auth', error)
+    console.error('[admin-lite] Unable to reach /admin/lite/session', error)
     return { status: 502, body: { message: 'Unable to reach backend' } }
   }
 
-  if (response.status === 401) {
-    return { status: 401, body: await readJson(response) }
-  }
-
-  if (!response.ok) {
-    console.error('[admin-lite] /admin/auth failed', response.status)
-    return { status: response.status, body: await readJson(response) }
-  }
-
-  return { status: 200, body: await readJson(response) }
+  const body = await readJson(response)
+  return { status: response.status, body }
 }
 
 export async function POST(req: NextRequest) {
@@ -80,22 +102,19 @@ export async function POST(req: NextRequest) {
   }
 
   const email = (payload.email || '').trim()
-  const password = payload.password || ''
+  const password = typeof payload.password === 'string' ? payload.password : ''
   if (!email || !password) {
     return NextResponse.json({ message: 'Email and password are required' }, { status: 400 })
   }
 
-  let authUrl: string
-  try {
-    authUrl = buildAdminUrl('auth')
-  } catch (error) {
-    console.error('[admin-lite] Backend not configured', error)
+  const url = buildLiteSessionUrl(req)
+  if (!url) {
     return NextResponse.json({ message: 'MEDUSA_BACKEND_URL not configured' }, { status: 500 })
   }
 
-  let authResponse: Response
+  let upstream: Response
   try {
-    authResponse = await fetch(authUrl, {
+    upstream = await fetch(url, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -106,41 +125,38 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({ email, password }),
     })
   } catch (error) {
-    console.error('[admin-lite] Failed to reach /admin/auth', error)
+    console.error('[admin-lite] Failed to reach /admin/lite/session', error)
     return NextResponse.json({ message: 'Unable to reach backend' }, { status: 502 })
   }
 
-  const authBody = await readJson(authResponse)
-  if (authResponse.status === 401) {
+  const body = await readJson(upstream)
+  if (upstream.status === 401) {
     return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 })
   }
-  if (!authResponse.ok) {
-    console.error('[admin-lite] /admin/auth login failed', authResponse.status, authBody)
+
+  if (!upstream.ok) {
+    const message = body?.message || 'Authentication failed'
+    const status = upstream.status >= 400 && upstream.status <= 599 ? upstream.status : 502
+    console.error('[admin-lite] /admin/lite/session login failed', upstream.status, body)
+    const payload: Record<string, unknown> = { message }
+    if (body && typeof body === 'object') {
+      payload.details = body
+    }
+    return NextResponse.json(payload, { status })
+  }
+
+  const token = typeof body?.token === 'string' ? body.token : ''
+  if (!token) {
+    console.error('[admin-lite] /admin/lite/session response missing token', body)
     return NextResponse.json({ message: 'Authentication failed' }, { status: 502 })
   }
 
-  const accessToken = authBody?.access_token || authBody?.token || authBody?.user?.token
-  if (!accessToken) {
-    console.error('[admin-lite] Missing access token from /admin/auth response', authBody)
-    return NextResponse.json({ message: 'Authentication response malformed' }, { status: 502 })
-  }
-
-  let user = authBody?.user || null
-  if (!user) {
-    const who = await fetchCurrentUser(accessToken)
-    if (who.status === 200) {
-      user = who.body.user || null
-    } else if (who.status !== 401) {
-      console.warn('[admin-lite] Unable to fetch admin profile after login', who.status)
-    }
-  }
-
-  const res = NextResponse.json({ ok: true, user })
+  const res = NextResponse.json({ ok: true, user: body?.user || null })
   res.cookies.set({
     name: ADMIN_COOKIE,
-    value: accessToken,
+    value: token,
     maxAge: DAY_IN_SECONDS,
-    ...cookieOptions,
+    ...getCookieOptions(req),
   })
   return res
 }
@@ -148,28 +164,35 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const token = req.cookies.get(ADMIN_COOKIE)?.value
   if (!token) {
-    return unauthorized()
+    return unauthorized(req)
   }
 
-  const result = await fetchCurrentUser(token)
+  const result = await fetchBackendSession(req, token)
   if (result.status === 401) {
-    return unauthorized()
+    return unauthorized(req, 'Session expired')
   }
 
   if (result.status !== 200) {
-    return NextResponse.json({ message: 'Failed to inspect session', details: result.body }, { status: 502 })
+    const status = result.status >= 400 ? result.status : 502
+    return NextResponse.json(
+      { message: result.body?.message || 'Failed to inspect session', details: result.body },
+      { status }
+    )
   }
 
-  return NextResponse.json({ authenticated: true, user: result.body.user || null })
+  return NextResponse.json({
+    authenticated: Boolean(result.body?.authenticated),
+    user: result.body?.user || null,
+  })
 }
 
-export async function DELETE() {
+export async function DELETE(req: NextRequest) {
   const res = NextResponse.json({ ok: true })
   res.cookies.set({
     name: ADMIN_COOKIE,
     value: '',
     maxAge: 0,
-    ...cookieOptions,
+    ...getCookieOptions(req),
   })
   return res
 }

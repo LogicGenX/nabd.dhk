@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useState, type ChangeEvent } from 'react'
 import { redirectToLogin } from '../../lib/admin-lite'
 
@@ -78,8 +79,8 @@ export default function ProductImageManager({ images, thumbnail, onChange, onSel
       </div>
       <div className='grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4'>
         {images.map((url) => (
-          <div key={url} className='relative overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm'>
-            <img src={url} alt='' className='h-40 w-full object-cover' />
+          <div key={url} className='relative h-40 w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm'>
+            <Image src={url} alt='Product image' fill className='object-cover' sizes='(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw' />
             <div className='absolute inset-x-0 bottom-0 flex justify-between bg-black/60 px-2 py-1 text-xs text-white'>
               <button type='button' onClick={() => onSelectThumbnail(url)} className={thumbnail === url ? 'font-semibold uppercase' : ''}>
                 {thumbnail === url ? 'Thumbnail' : 'Set thumbnail'}

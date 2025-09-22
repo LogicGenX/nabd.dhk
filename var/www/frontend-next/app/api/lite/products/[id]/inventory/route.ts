@@ -53,7 +53,7 @@ const buildUpstreamRequest = async (
   path: string,
   init: RequestInit = {}
 ) => {
-  const url = buildAdminUrl(path)
+  const url = buildAdminUrl(path, req)
   const headers = buildUpstreamHeaders(req, token, init.headers)
   if (init.body && !headers.has('content-type')) {
     headers.set('content-type', 'application/json')

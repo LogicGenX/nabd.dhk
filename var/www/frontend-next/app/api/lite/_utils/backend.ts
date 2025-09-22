@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+import {
+  DEFAULT_DEVELOPMENT_MEDUSA_BACKEND_URL,
+  DEFAULT_PRODUCTION_MEDUSA_BACKEND_URL,
+} from '../../../../lib/constants'
+
 export const ADMIN_COOKIE = 'admin_lite_token'
 
 const hopByHopHeaders = new Set([
@@ -12,10 +17,61 @@ const hopByHopHeaders = new Set([
   'trailer',
   'content-length',
   'accept-encoding',
+  'host',
 ])
 
-export const getBackendBase = () => {
-  return process.env.MEDUSA_BACKEND_URL || process.env.NEXT_PUBLIC_MEDUSA_URL
+const normalizeEnvUrl = (value?: string | null) => {
+  if (!value) return undefined
+  const trimmed = value.trim()
+  return trimmed ? trimmed : undefined
+}
+
+const firstHeaderValue = (value?: string | null) => {
+  if (!value) return undefined
+  const first = value.split(',')[0]?.trim()
+  return first || undefined
+}
+
+const cleanProtocol = (value?: string | null) => {
+  if (!value) return undefined
+  const trimmed = value.trim()
+  if (!trimmed) return undefined
+  return trimmed.replace(/:$/, '')
+}
+
+const deriveRequestBase = (req?: NextRequest) => {
+  if (!req) return undefined
+
+  const host =
+    firstHeaderValue(req.headers.get('x-forwarded-host')) ||
+    firstHeaderValue(req.headers.get('host')) ||
+    req.nextUrl?.host
+
+  if (!host) return undefined
+
+  const protocol =
+    cleanProtocol(firstHeaderValue(req.headers.get('x-forwarded-proto'))) ||
+    cleanProtocol(req.nextUrl?.protocol) ||
+    'https'
+
+  return `${protocol}://${host}`.replace(/\/+$/, '')
+}
+
+const resolveDefaultBackend = () => {
+  const env = process.env.NODE_ENV
+  if (env === 'development' || env === 'test') {
+    return DEFAULT_DEVELOPMENT_MEDUSA_BACKEND_URL
+  }
+  return DEFAULT_PRODUCTION_MEDUSA_BACKEND_URL
+}
+
+export const getBackendBase = (req?: NextRequest) => {
+  return (
+    normalizeEnvUrl(process.env.MEDUSA_BACKEND_URL) ||
+    normalizeEnvUrl(process.env.NEXT_PUBLIC_MEDUSA_URL) ||
+    deriveRequestBase(req) ||
+    resolveDefaultBackend()
+  )
 }
 
 const ADMIN_SUFFIX_PATTERN = /\/admin(?:\/lite)?$/i
@@ -42,8 +98,8 @@ const normalizeAdminPath = (path: string) => {
   return withoutAdminPrefix ? '/' + withoutAdminPrefix : ''
 }
 
-export const buildAdminUrl = (path: string) => {
-  const base = getBackendBase()
+export const buildAdminUrl = (path: string, req?: NextRequest) => {
+  const base = getBackendBase(req)
   if (!base) {
     throw new Error('MEDUSA_BACKEND_URL not configured')
   }
