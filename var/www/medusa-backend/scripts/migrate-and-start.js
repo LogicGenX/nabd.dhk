@@ -2,6 +2,7 @@
 const { spawn } = require('child_process')
 const path = require('path')
 const pg = require('pg')
+const bcrypt = require('bcryptjs')
 
 const logDbFingerprint = async () => {
   try {
@@ -15,6 +16,22 @@ const logDbFingerprint = async () => {
     await c.end()
   } catch (e) {
     console.warn('[admin-lite] DB fingerprint failed:', e?.message || e)
+  }
+}
+
+const logPasswordMatch = async () => {
+  try {
+    const c = new pg.Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } })
+    await c.connect()
+    const email = (process.env.MEDUSA_ADMIN_EMAIL || '').toLowerCase()
+    const r = await c.query('SELECT password_hash FROM "user" WHERE email=$1', [email])
+    const ok = r.rows.length
+      ? await bcrypt.compare(process.env.MEDUSA_ADMIN_PASSWORD || '', r.rows[0].password_hash)
+      : false
+    console.log('[admin-lite] Admin bcrypt match:', ok)
+    await c.end()
+  } catch (e) {
+    console.warn('[admin-lite] Password match check failed:', e.message)
   }
 }
 
@@ -53,6 +70,7 @@ const start = async () => {
     }
 
     await logDbFingerprint()
+    await logPasswordMatch()
 
     console.log('[admin-lite] Ensuring admin user exists...')
     try {

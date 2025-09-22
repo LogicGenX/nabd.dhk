@@ -2,6 +2,7 @@ const pg = require('pg')
 const bcrypt = require('bcryptjs')
 
 module.exports = async function sessionDebug(req, res) {
+  res.setHeader('x-admin-lite-debug', 'hit')
   try {
     const { email, password } = req.body || {}
     const c = new pg.Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } })
