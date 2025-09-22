@@ -5,12 +5,35 @@ export const runtime = 'nodejs'
 
 const DAY_IN_SECONDS = 60 * 60 * 24
 
-const cookieOptions = {
+const isSecureRequest = (req?: NextRequest) => {
+  if (!req) {
+    return process.env.NODE_ENV !== 'development'
+  }
+
+  const protocol = req.nextUrl?.protocol
+  if (protocol === 'https:') {
+    return true
+  }
+  if (protocol === 'http:') {
+    return false
+  }
+
+  const forwardedProto = req.headers.get('x-forwarded-proto')
+  if (forwardedProto) {
+    const first = forwardedProto.split(',')[0]?.trim().toLowerCase()
+    if (first === 'https') return true
+    if (first === 'http') return false
+  }
+
+  return process.env.NODE_ENV !== 'development'
+}
+
+const getCookieOptions = (req?: NextRequest) => ({
   httpOnly: true,
-  secure: process.env.NODE_ENV !== 'development',
+  secure: isSecureRequest(req),
   sameSite: 'lax' as const,
   path: '/',
-}
+})
 
 const readJson = async (response: Response) => {
   const text = await response.text()
@@ -23,13 +46,13 @@ const readJson = async (response: Response) => {
   }
 }
 
-const unauthorized = (message = 'Not authenticated') => {
+const unauthorized = (req: NextRequest, message = 'Not authenticated') => {
   const res = NextResponse.json({ message }, { status: 401 })
   res.cookies.set({
     name: ADMIN_COOKIE,
     value: '',
     maxAge: 0,
-    ...cookieOptions,
+    ...getCookieOptions(req),
   })
   return res
 }
@@ -133,7 +156,7 @@ export async function POST(req: NextRequest) {
     name: ADMIN_COOKIE,
     value: token,
     maxAge: DAY_IN_SECONDS,
-    ...cookieOptions,
+    ...getCookieOptions(req),
   })
   return res
 }
@@ -141,12 +164,12 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const token = req.cookies.get(ADMIN_COOKIE)?.value
   if (!token) {
-    return unauthorized()
+    return unauthorized(req)
   }
 
   const result = await fetchBackendSession(token)
   if (result.status === 401) {
-    return unauthorized('Session expired')
+    return unauthorized(req, 'Session expired')
   }
 
   if (result.status !== 200) {
@@ -163,13 +186,13 @@ export async function GET(req: NextRequest) {
   })
 }
 
-export async function DELETE() {
+export async function DELETE(req: NextRequest) {
   const res = NextResponse.json({ ok: true })
   res.cookies.set({
     name: ADMIN_COOKIE,
     value: '',
     maxAge: 0,
-    ...cookieOptions,
+    ...getCookieOptions(req),
   })
   return res
 }
