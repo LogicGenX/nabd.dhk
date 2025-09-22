@@ -43,7 +43,7 @@ const extractPermissions = (user) => {
   return []
 }
 
-const createAdminLiteToken = (user) => {
+const generateAdminLiteToken = (user) => {
   const secret = resolveSecret()
   if (!secret) {
     return { ok: false, message: 'Admin Lite token not configured' }
@@ -102,5 +102,6 @@ const createAdminLiteToken = (user) => {
 module.exports = {
   cleanEnv,
   resolveSecret,
-  createAdminLiteToken,
+  generateAdminLiteToken,
+  createAdminLiteToken: generateAdminLiteToken,
 }
