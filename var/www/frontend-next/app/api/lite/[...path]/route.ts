@@ -15,9 +15,9 @@ const unauthorized = () => {
   return res
 }
 
-const buildTargetUrl = (segments: string[] | undefined, search: string) => {
+const buildTargetUrl = (req: NextRequest, segments: string[] | undefined, search: string) => {
   const parts = segments && segments.length ? segments.join('/') : ''
-  const url = buildAdminUrl(parts)
+  const url = buildAdminUrl(parts, req)
   return url + search
 }
 
@@ -38,7 +38,7 @@ const proxy = async (req: NextRequest, context: { params: { path?: string[] } })
 
   let targetUrl: string
   try {
-    targetUrl = buildTargetUrl(context.params.path, req.nextUrl.search)
+    targetUrl = buildTargetUrl(req, context.params.path, req.nextUrl.search)
   } catch (error) {
     console.error('[admin-lite] Backend URL not configured', error)
     return NextResponse.json({ message: 'MEDUSA_BACKEND_URL not configured' }, { status: 500 })

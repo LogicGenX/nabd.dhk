@@ -24,7 +24,7 @@ const fetchJson = async (
   path: string,
   options: FetchJsonOptions = {}
 ) => {
-  const url = buildAdminUrl(path)
+  const url = buildAdminUrl(path, req)
   let response: Response
   try {
     response = await fetch(url, {

@@ -38,7 +38,7 @@ const forward = async (req: NextRequest, token: string, path: string, body: any)
 
   let response: Response
   try {
-    response = await fetch(buildAdminUrl(path), {
+    response = await fetch(buildAdminUrl(path, req), {
       method: 'POST',
       headers,
       body: JSON.stringify(body),
