@@ -37,7 +37,11 @@ const start = async () => {
     }
 
     console.log('[admin-lite] Ensuring admin user exists...')
-    await run('yarn', ['ensure:admin'])
+    try {
+      await run('yarn', ['ensure:admin'])
+    } catch (err) {
+      console.warn('[admin-lite] ensure:admin failed (non-fatal):', err?.message || err)
+    }
 
     const extraArgs = process.argv.slice(2)
     const host = process.env.MEDUSA_HOST || '0.0.0.0'

@@ -5,7 +5,7 @@
     "start": "node ./scripts/migrate-and-start.js",
     "seed": "npx medusa seed -f ./data/seed.json",
     "migrate": "npx medusa migrations run",
-    "ensure:admin": "node ./scripts/ensure-admin.js || npx medusa user -e ${MEDUSA_ADMIN_EMAIL:-admin@nabd.dhk} -p ${MEDUSA_ADMIN_PASSWORD:-supersecret12345678}",
+    "ensure:admin": "node ./scripts/ensure-admin.js || node -e \"process.exit(0)\"",
     "postdeploy": "yarn migrate && yarn ensure:admin",
     "test": "node test/test.js"
   },
