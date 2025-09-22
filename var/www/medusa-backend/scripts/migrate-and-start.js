@@ -1,6 +1,22 @@
 #!/usr/bin/env node
 const { spawn } = require('child_process')
 const path = require('path')
+const pg = require('pg')
+
+const logDbFingerprint = async () => {
+  try {
+    const c = new pg.Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } })
+    await c.connect()
+    const db = await c.query('SELECT current_database() db, current_user usr')
+    const email = (process.env.MEDUSA_ADMIN_EMAIL || '').toLowerCase()
+    const u = await c.query('SELECT email, role, deleted_at IS NOT NULL AS soft_deleted FROM "user" WHERE email=$1', [email])
+    console.log('[admin-lite] DB:', db.rows[0])
+    console.log('[admin-lite] Admin row:', u.rows[0] || { email, missing: true })
+    await c.end()
+  } catch (e) {
+    console.warn('[admin-lite] DB fingerprint failed:', e?.message || e)
+  }
+}
 
 const resolveBin = (name) => {
   const suffix = process.platform === 'win32' ? '.cmd' : ''
@@ -35,6 +51,8 @@ const start = async () => {
     } else {
       console.log('[admin-lite] Skipping migrations (MEDUSA_SKIP_MIGRATIONS=true)')
     }
+
+    await logDbFingerprint()
 
     console.log('[admin-lite] Ensuring admin user exists...')
     try {
