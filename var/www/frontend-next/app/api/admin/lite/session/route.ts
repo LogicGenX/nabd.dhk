@@ -113,8 +113,13 @@ export async function POST(req: NextRequest) {
 
   if (!upstream.ok) {
     const message = body?.message || 'Authentication failed'
+    const status = upstream.status >= 400 && upstream.status <= 599 ? upstream.status : 502
     console.error('[admin-lite] /admin/lite/session login failed', upstream.status, body)
-    return NextResponse.json({ message }, { status: 502 })
+    const payload: Record<string, unknown> = { message }
+    if (body && typeof body === 'object') {
+      payload.details = body
+    }
+    return NextResponse.json(payload, { status })
   }
 
   const token = typeof body?.token === 'string' ? body.token : ''
