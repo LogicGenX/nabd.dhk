@@ -1,77 +1,74 @@
 /*
- * Ensures an admin user exists in the Medusa database.
- * Uses direct SQL with bcryptjs for hashing to avoid CLI flakiness.
+ * Ensures an admin user exists using bcrypt hashes stored in varchar columns.
+ * This script is idempotent and skips execution when required environment
+ * variables are missing so boot remains resilient.
  */
 const { Client } = require('pg')
 const bcrypt = require('bcryptjs')
 const { randomUUID } = require('crypto')
 
-if (!process.env.DATABASE_URL) {
-  require('dotenv').config()
+if (!process.env.DATABASE_URL || !process.env.MEDUSA_ADMIN_EMAIL || !process.env.MEDUSA_ADMIN_PASSWORD) {
+  try {
+    require('dotenv').config()
+  } catch (err) {
+    // ignore missing dotenv in production environments
+  }
 }
 
-async function ensureAdmin() {
-  const email = process.env.MEDUSA_ADMIN_EMAIL || 'admin@nabd.dhk'
-  const password = process.env.MEDUSA_ADMIN_PASSWORD || 'supersecret12345678'
-  const first = process.env.MEDUSA_ADMIN_FIRST || 'Admin'
-  const last = process.env.MEDUSA_ADMIN_LAST || 'User'
-  const dbUrl = process.env.DATABASE_URL
+const { DATABASE_URL, MEDUSA_ADMIN_EMAIL, MEDUSA_ADMIN_PASSWORD } = process.env
 
-  if (!dbUrl) {
-    throw new Error('DATABASE_URL is not set')
-  }
+if (!DATABASE_URL || !MEDUSA_ADMIN_EMAIL || !MEDUSA_ADMIN_PASSWORD) {
+  console.error('Missing env: DATABASE_URL, MEDUSA_ADMIN_EMAIL, MEDUSA_ADMIN_PASSWORD')
+  process.exit(0)
+}
 
-  const client = new Client({ connectionString: dbUrl })
+const run = async () => {
+  const client = new Client({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false } })
   await client.connect()
+
+  const email = MEDUSA_ADMIN_EMAIL.trim().toLowerCase()
+  const now = new Date().toISOString()
+  const hash = await bcrypt.hash(MEDUSA_ADMIN_PASSWORD, 10)
+
   try {
-    const active = await client.query('SELECT id FROM "user" WHERE email=$1 AND deleted_at IS NULL LIMIT 1', [email])
-    const password_hash = await bcrypt.hash(password, 10)
+    await client.query('BEGIN')
+    const { rows } = await client.query('SELECT id FROM "user" WHERE email = $1', [email])
 
-    if (active.rows.length) {
+    if (rows.length === 0) {
+      const rawId =
+        typeof randomUUID === 'function'
+          ? randomUUID()
+          : Math.random().toString(36).slice(2, 34)
+      const id = `usr_${rawId.replace(/-/g, '')}`
+
       await client.query(
-        'UPDATE "user" SET first_name=$1, last_name=$2, password_hash=$3, role=$4, deleted_at=NULL, updated_at=NOW() WHERE email=$5',
-        [first, last, password_hash, 'admin', email]
+        'INSERT INTO "user"(id,email,role,password_hash,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$5)',
+        [id, email, 'admin', hash, now]
       )
-      console.log(`Updated admin user ${email}`)
-      const v = await client.query('SELECT password_hash FROM "user" WHERE email=$1', [email])
-      const ok = await bcrypt.compare(password, v.rows[0].password_hash)
-      console.log('Password verify against DB hash:', ok)
-      return
+      console.log(`Created admin ${email}`)
+    } else {
+      const id = rows[0].id
+      await client.query(
+        'UPDATE "user" SET role=$2, password_hash=$3, updated_at=$4 WHERE id=$1',
+        [id, 'admin', hash, now]
+      )
+      console.log(`Updated admin ${email}`)
     }
 
-    const deleted = await client.query('SELECT id FROM "user" WHERE email=$1 AND deleted_at IS NOT NULL LIMIT 1', [email])
-    if (deleted.rows.length) {
-      await client.query(
-        'UPDATE "user" SET first_name=$1, last_name=$2, password_hash=$3, role=$4, deleted_at=NULL, updated_at=NOW() WHERE email=$5',
-        [first, last, password_hash, 'admin', email]
-      )
-      console.log(`Restored and updated admin user ${email}`)
-      const v = await client.query('SELECT password_hash FROM "user" WHERE email=$1', [email])
-      const ok = await bcrypt.compare(password, v.rows[0].password_hash)
-      console.log('Password verify against DB hash:', ok)
-      return
+    await client.query('COMMIT')
+  } catch (error) {
+    try {
+      await client.query('ROLLBACK')
+    } catch (rollbackError) {
+      console.warn('ensure-admin rollback failed:', rollbackError?.message || rollbackError)
     }
-
-    const id = 'usr_' + (randomUUID ? randomUUID() : Math.random().toString(36).slice(2))
-      .replace(/-/g, '')
-      .slice(0, 24)
-
-    // Insert minimal required fields; other columns use defaults
-    await client.query(
-      'INSERT INTO "user" (id, email, first_name, last_name, password_hash, role) VALUES ($1,$2,$3,$4,$5,$6)',
-      [id, email, first, last, password_hash, 'admin']
-    )
-    console.log(`Created admin user ${email}`)
-
-    const check = await client.query('SELECT email, role, password_hash FROM "user" WHERE email=$1', [email])
-    const ok = await bcrypt.compare(password, check.rows[0].password_hash)
-    console.log('Password verify against DB hash:', ok)
+    throw error
   } finally {
     await client.end()
   }
 }
 
-ensureAdmin().catch((e) => {
-  console.error('Failed to ensure admin:', e?.message || e)
-  process.exit(1)
+run().catch((e) => {
+  console.error('ensure-admin error:', e?.message || e)
+  process.exit(0)
 })
