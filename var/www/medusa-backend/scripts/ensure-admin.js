@@ -3,7 +3,7 @@
  * Uses direct SQL with bcryptjs for hashing to avoid CLI flakiness.
  */
 const { Client } = require('pg')
-const Scrypt = require('scrypt-kdf')
+const bcrypt = require('bcryptjs')
 const { randomUUID } = require('crypto')
 
 if (!process.env.DATABASE_URL) {
@@ -25,10 +25,7 @@ async function ensureAdmin() {
   await client.connect()
   try {
     const active = await client.query('SELECT id FROM "user" WHERE email=$1 AND deleted_at IS NULL LIMIT 1', [email])
-    // Medusa v1.x uses scrypt-kdf with low params in userService.hashPassword_
-    const password_hash = (
-      await Scrypt.kdf(password, { logN: 1, r: 1, p: 1 })
-    ).toString('base64')
+    const password_hash = await bcrypt.hash(password, 10)
 
     if (active.rows.length) {
       await client.query(
@@ -37,7 +34,7 @@ async function ensureAdmin() {
       )
       console.log(`Updated admin user ${email}`)
       const v = await client.query('SELECT password_hash FROM "user" WHERE email=$1', [email])
-      const ok = await Scrypt.verify(Buffer.from(v.rows[0].password_hash, 'base64'), password)
+      const ok = await bcrypt.compare(password, v.rows[0].password_hash)
       console.log('Password verify against DB hash:', ok)
       return
     }
@@ -50,7 +47,7 @@ async function ensureAdmin() {
       )
       console.log(`Restored and updated admin user ${email}`)
       const v = await client.query('SELECT password_hash FROM "user" WHERE email=$1', [email])
-      const ok = await Scrypt.verify(Buffer.from(v.rows[0].password_hash, 'base64'), password)
+      const ok = await bcrypt.compare(password, v.rows[0].password_hash)
       console.log('Password verify against DB hash:', ok)
       return
     }
@@ -67,7 +64,7 @@ async function ensureAdmin() {
     console.log(`Created admin user ${email}`)
 
     const check = await client.query('SELECT email, role, password_hash FROM "user" WHERE email=$1', [email])
-    const ok = await Scrypt.verify(Buffer.from(check.rows[0].password_hash, 'base64'), password)
+    const ok = await bcrypt.compare(password, check.rows[0].password_hash)
     console.log('Password verify against DB hash:', ok)
   } finally {
     await client.end()
