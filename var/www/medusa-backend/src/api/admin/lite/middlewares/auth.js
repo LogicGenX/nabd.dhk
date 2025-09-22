@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken')
+const { resolveSecret } = require('../utils/token')
 
 const normalizeOrigin = (value) => value.toLowerCase().replace(/\/+$/, '')
 const escapeRegex = (value) => value.replace(/[|\\{}()[\]^$+*?.-]/g, '\\$&')
@@ -25,17 +26,6 @@ const buildAllowedOriginMatchers = (raw) => {
 
 let cachedAllowedOrigins = buildAllowedOriginMatchers(process.env.ADMIN_LITE_ALLOWED_ORIGINS || '')
 let cachedAllowedOriginsRaw = process.env.ADMIN_LITE_ALLOWED_ORIGINS || ''
-
-const resolveSecret = () => {
-  const candidates = [process.env.ADMIN_LITE_JWT_SECRET, process.env.JWT_SECRET]
-  for (const candidate of candidates) {
-    if (typeof candidate === 'string') {
-      const trimmed = candidate.trim()
-      if (trimmed) return trimmed
-    }
-  }
-  return null
-}
 
 const getAllowedOrigins = () => {
   const raw = process.env.ADMIN_LITE_ALLOWED_ORIGINS || ''
@@ -110,6 +100,8 @@ module.exports = (req, res, next) => {
     req.liteStaff = {
       id: payload.sub || payload.id || null,
       email: payload.email,
+      first_name: typeof payload.first_name === 'string' ? payload.first_name : null,
+      last_name: typeof payload.last_name === 'string' ? payload.last_name : null,
       name: payload.name,
       role: payload.role || 'staff',
       permissions: Array.isArray(payload.permissions) ? payload.permissions : [],

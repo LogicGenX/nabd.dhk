@@ -368,6 +368,28 @@ module.exports = async () => {
     upload: async (file) => ({ url: 'https://cdn.example.com/' + file.originalname }),
   }
 
+  const adminUser = {
+    id: 'staff_1',
+    email: 'staff@nabd.dhk',
+    first_name: 'Staff',
+    last_name: 'User',
+    role: 'admin',
+  }
+
+  const authService = {
+    withTransaction: () => authService,
+    authenticate: async (email, password) => {
+      if (email === adminUser.email && password === 'supersecret') {
+        return { success: true, user: clone(adminUser) }
+      }
+      return { success: false }
+    },
+  }
+
+  const manager = {
+    transaction: async (handler) => handler({}),
+  }
+
   const logger = {
     warn: () => {},
     error: () => {},
@@ -396,6 +418,10 @@ module.exports = async () => {
           return fileService
         case 'logger':
           return logger
+        case 'authService':
+          return authService
+        case 'manager':
+          return manager
         default:
           throw new Error('Unexpected scope key ' + key)
       }
@@ -448,6 +474,28 @@ module.exports = async () => {
   process.env.ADMIN_LITE_ALLOWED_ORIGINS = ''
 
   const app = buildApp()
+
+  const loginRes = await request(app)
+    .post('/admin/lite/session')
+    .send({ email: adminUser.email, password: 'supersecret' })
+    .expect(200)
+
+  assert.strictEqual(typeof loginRes.body.token, 'string')
+  assert.strictEqual(loginRes.body.user.email, adminUser.email)
+  assert.strictEqual(loginRes.body.user.first_name, adminUser.first_name)
+
+  const sessionRes = await request(app)
+    .get('/admin/lite/session')
+    .set('Authorization', 'Bearer ' + loginRes.body.token)
+    .expect(200)
+
+  assert.strictEqual(sessionRes.body.authenticated, true)
+  assert.strictEqual(sessionRes.body.user.email, adminUser.email)
+
+  await request(app)
+    .post('/admin/lite/session')
+    .send({ email: adminUser.email, password: 'wrong-password' })
+    .expect(401)
 
   const listRes = await request(app)
     .get('/admin/lite/orders')
