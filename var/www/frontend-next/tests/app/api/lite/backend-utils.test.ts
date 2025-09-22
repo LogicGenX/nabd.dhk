@@ -1,4 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach } from 'vitest'
+import { NextRequest } from 'next/server'
 import { buildAdminUrl } from '../../../../app/api/lite/_utils/backend'
 
 const ORIGINAL_BACKEND = process.env.MEDUSA_BACKEND_URL
@@ -74,5 +75,21 @@ describe('buildAdminUrl', () => {
     )
 
     process.env.NODE_ENV = originalEnv
+  })
+
+  it('auto-detects same-origin backend when env is missing', () => {
+    delete process.env.MEDUSA_BACKEND_URL
+    delete process.env.NEXT_PUBLIC_MEDUSA_URL
+
+    const request = new NextRequest('https://frontend.nabd.dhk/api/admin/lite/session', {
+      headers: {
+        host: 'frontend.nabd.dhk',
+        'x-forwarded-proto': 'https',
+      },
+    })
+
+    expect(buildAdminUrl('lite/products', request)).toBe(
+      'https://frontend.nabd.dhk/admin/lite/products'
+    )
   })
 })

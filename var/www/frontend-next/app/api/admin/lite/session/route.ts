@@ -57,17 +57,17 @@ const unauthorized = (req: NextRequest, message = 'Not authenticated') => {
   return res
 }
 
-const buildLiteSessionUrl = () => {
+const buildLiteSessionUrl = (req?: NextRequest) => {
   try {
-    return buildAdminUrl('lite/session')
+    return buildAdminUrl('lite/session', req)
   } catch (error) {
     console.error('[admin-lite] Backend not configured', error)
     return null
   }
 }
 
-const fetchBackendSession = async (token: string) => {
-  const url = buildLiteSessionUrl()
+const fetchBackendSession = async (req: NextRequest | null, token: string) => {
+  const url = buildLiteSessionUrl(req || undefined)
   if (!url) {
     return { status: 500, body: { message: 'MEDUSA_BACKEND_URL not configured' } }
   }
@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'Email and password are required' }, { status: 400 })
   }
 
-  const url = buildLiteSessionUrl()
+  const url = buildLiteSessionUrl(req)
   if (!url) {
     return NextResponse.json({ message: 'MEDUSA_BACKEND_URL not configured' }, { status: 500 })
   }
@@ -167,7 +167,7 @@ export async function GET(req: NextRequest) {
     return unauthorized(req)
   }
 
-  const result = await fetchBackendSession(token)
+  const result = await fetchBackendSession(req, token)
   if (result.status === 401) {
     return unauthorized(req, 'Session expired')
   }

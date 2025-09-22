@@ -22,7 +22,7 @@ const forward = async (req: NextRequest, token: string, method: string, body?: a
     requestBody = JSON.stringify(body)
   }
 
-  const url = buildAdminUrl('lite/products' + req.nextUrl.search)
+  const url = buildAdminUrl('lite/products' + req.nextUrl.search, req)
 
   let response: Response
   try {

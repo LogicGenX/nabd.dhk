@@ -68,6 +68,18 @@ Support playbook
 - Unexpected 5xx: check Medusa logs, ensure JWT_SECRET is present, and restart the service if config changed.
 - For feature requests, document UX, payload, and backend surface first; keep scope lean.
 
+Admin Lite login fix runbook
+----------------------------
+1. **Align the frontend env vars** – set `MEDUSA_BACKEND_URL` and `NEXT_PUBLIC_MEDUSA_URL` on the Next.js deployment to the same origin that serves Admin Lite (root or `/admin` both work).
+2. **Verify the proxy route** – `app/api/admin/lite/session/route.ts` now builds the Medusa target URL from those env vars and, when they are absent, auto-detects the request origin (falling back to `/admin/...`). Redeploy the frontend after editing envs or code.
+3. **Reset the admin credentials** – export `MEDUSA_ADMIN_EMAIL` / `MEDUSA_ADMIN_PASSWORD` and run `node scripts/ensure-admin.js` inside `var/www/medusa-backend` so the Medusa DB has the expected login.
+4. **Harden backend auth envs** – configure `ADMIN_LITE_JWT_SECRET` and whitelist the frontend origin(s) in `ADMIN_LITE_ALLOWED_ORIGINS`, then restart the Medusa service.
+5. **Smoke test with curl** – `curl -i -X POST "https://your-domain.example/admin/lite/session" -H "Content-Type: application/json" -d '{"email":"admin@nabd.dhk","password":"YourNewStrongPassword123!"}'`.
+   - `200` returns tokens and confirms the flow works.
+   - `401` means credentials or database mismatch – rerun the seed script and confirm the proxy origin.
+   - `403` signals the frontend origin is missing from `ADMIN_LITE_ALLOWED_ORIGINS`.
+   - `5xx` typically points to a missing/invalid `ADMIN_LITE_JWT_SECRET` or another backend error.
+
 Smoke checklist after deploy
 ---------------------------
 - Login works.
