@@ -66,6 +66,12 @@ const buildLiteSessionUrl = (req?: NextRequest) => {
   }
 }
 
+const setProxyTargetHeader = (res: NextResponse, target: string | null) => {
+  if (target) {
+    res.headers.set('x-admin-proxy-target', target)
+  }
+}
+
 const fetchBackendSession = async (req: NextRequest | null, token: string) => {
   const url = buildLiteSessionUrl(req || undefined)
   if (!url) {
@@ -152,6 +158,7 @@ export async function POST(req: NextRequest) {
   }
 
   const res = NextResponse.json({ ok: true, user: body?.user || null })
+  setProxyTargetHeader(res, url)
   res.cookies.set({
     name: ADMIN_COOKIE,
     value: token,
