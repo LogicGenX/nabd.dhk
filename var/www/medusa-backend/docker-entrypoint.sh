@@ -68,12 +68,10 @@ if ! node ./scripts/ensure-admin.js; then
   echo "Node ensure-admin failed; falling back to Medusa CLI"
   ADMIN_EMAIL=${MEDUSA_ADMIN_EMAIL:-admin@nabd.dhk}
   ADMIN_PASSWORD=${MEDUSA_ADMIN_PASSWORD:-supersecret12345678}
-  ADMIN_FIRST=${MEDUSA_ADMIN_FIRST:-Admin}
-  ADMIN_LAST=${MEDUSA_ADMIN_LAST:-User}
   if command -v medusa >/dev/null 2>&1; then
-    medusa user -e "$ADMIN_EMAIL" -p "$ADMIN_PASSWORD" -f "$ADMIN_FIRST" -l "$ADMIN_LAST" || true
+    medusa user -e "$ADMIN_EMAIL" -p "$ADMIN_PASSWORD" || true
   else
-    npx medusa user -e "$ADMIN_EMAIL" -p "$ADMIN_PASSWORD" -f "$ADMIN_FIRST" -l "$ADMIN_LAST" || true
+    npx medusa user -e "$ADMIN_EMAIL" -p "$ADMIN_PASSWORD" || true
   fi
 fi
 
