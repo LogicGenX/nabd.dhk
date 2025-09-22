@@ -27,6 +27,7 @@ const run = (command, args, options = {}) =>
 const start = async () => {
   const skipMigrations = String(process.env.MEDUSA_SKIP_MIGRATIONS || '').toLowerCase() === 'true'
   const medusaBin = resolveBin('medusa')
+  const ensureAdminScript = path.join(__dirname, 'ensure-admin.js')
 
   try {
     if (!skipMigrations) {
@@ -35,6 +36,9 @@ const start = async () => {
     } else {
       console.log('[admin-lite] Skipping migrations (MEDUSA_SKIP_MIGRATIONS=true)')
     }
+
+    console.log('[admin-lite] Ensuring admin user exists...')
+    await run(process.execPath, [ensureAdminScript])
 
     const extraArgs = process.argv.slice(2)
     const host = process.env.MEDUSA_HOST || '0.0.0.0'
