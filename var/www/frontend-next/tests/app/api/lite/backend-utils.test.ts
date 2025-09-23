@@ -64,6 +64,17 @@ describe('buildAdminUrl', () => {
     expect(buildAdminUrl('/admin/auth')).toBe('https://medusa.example/admin/auth')
   })
 
+  it('allows targeting the public admin-lite namespace', () => {
+    setBackend('https://medusa.example')
+    expect(buildAdminUrl('admin-lite/session')).toBe('https://medusa.example/admin-lite/session')
+
+    setBackend('https://medusa.example/admin')
+    expect(buildAdminUrl('admin-lite/session')).toBe('https://medusa.example/admin-lite/session')
+
+    setBackend('https://medusa.example/admin/lite')
+    expect(buildAdminUrl('admin-lite/session')).toBe('https://medusa.example/admin-lite/session')
+  })
+
   it('falls back to default production backend when env is missing', () => {
     const originalEnv = process.env.NODE_ENV
     process.env.NODE_ENV = 'production'
