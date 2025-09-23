@@ -24,6 +24,8 @@ module.exports = (rootRouter) => {
   publicRoute.use(rateLimit)
   publicRoute.post('/session-debug', sessionDebug)
   publicRoute.post('/session', asyncHandler(auth.createSession))
+  publicRoute.get('/session', authenticateLite, asyncHandler(auth.getSession))
+  publicRoute.get('/ping', authenticateLite, (req, res) => res.json({ ok: true }))
 
   route.use(jsonBody)
   route.use(urlencodedBody)
