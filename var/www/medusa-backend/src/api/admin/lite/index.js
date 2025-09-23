@@ -12,14 +12,18 @@ const products = require('./products')
 const uploads = require('./uploads')
 
 const route = express.Router()
-const jsonBody = express.json({ limit: process.env.ADMIN_LITE_BODY_LIMIT || '1mb' })
+const bodyLimit = process.env.ADMIN_LITE_BODY_LIMIT || '1mb'
+const jsonBody = express.json({ limit: bodyLimit })
+const urlencodedBody = express.urlencoded({ extended: false })
 const uploadMiddleware = fileUpload({ dest: os.tmpdir() })
 
 module.exports = (rootRouter) => {
   rootRouter.use('/admin/lite', route)
+  route.use(jsonBody)
+  route.use(urlencodedBody)
   route.use(rateLimit)
-  route.post('/session-debug', jsonBody, sessionDebug)
-  route.post('/session', jsonBody, asyncHandler(auth.createSession))
+  route.post('/session-debug', sessionDebug)
+  route.post('/session', asyncHandler(auth.createSession))
   route.use(authenticateLite)
 
   route.get('/session', asyncHandler(auth.getSession))
