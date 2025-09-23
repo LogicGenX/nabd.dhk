@@ -76,15 +76,20 @@ export const getBackendBase = (req?: NextRequest) => {
 
 const ADMIN_SUFFIX_PATTERN = /\/admin(?:\/lite)?$/i
 const STORE_SUFFIX_PATTERN = /\/store$/i
+const ADMIN_LITE_PUBLIC_PREFIX = /^admin-lite(?:[/?]|$)/
 
-const ensureAdminBase = (base: string) => {
+const normalizeBackendRoot = (base: string) => {
   const trimmed = base.trim()
   if (!trimmed) {
     throw new Error('MEDUSA_BACKEND_URL not configured')
   }
   const withoutTrailingSlash = trimmed.replace(/\/+$/, '')
   const withoutStoreSuffix = withoutTrailingSlash.replace(STORE_SUFFIX_PATTERN, '')
-  const normalizedRoot = withoutStoreSuffix.replace(ADMIN_SUFFIX_PATTERN, '')
+  return withoutStoreSuffix.replace(ADMIN_SUFFIX_PATTERN, '')
+}
+
+const ensureAdminBase = (base: string) => {
+  const normalizedRoot = normalizeBackendRoot(base)
   return normalizedRoot + '/admin'
 }
 
@@ -103,6 +108,17 @@ export const buildAdminUrl = (path: string, req?: NextRequest) => {
   if (!base) {
     throw new Error('MEDUSA_BACKEND_URL not configured')
   }
+  const trimmedPath = (path || '').trim()
+  if (!trimmedPath) {
+    return ensureAdminBase(base)
+  }
+
+  const withoutLeadingSlash = trimmedPath.replace(/^\/+/, '')
+  if (ADMIN_LITE_PUBLIC_PREFIX.test(withoutLeadingSlash)) {
+    const rootBase = normalizeBackendRoot(base)
+    return rootBase + '/' + withoutLeadingSlash
+  }
+
   const adminBase = ensureAdminBase(base)
   const suffix = normalizeAdminPath(path)
   return adminBase + suffix
