@@ -83,30 +83,37 @@ exports.createSession = async (req, res) => {
       return
     }
   } catch (error) {
-    if (logger && logger.error) logger.error('Admin Lite login failed: ' + error.message)
-    res.status(500).json({ message: 'Authentication failed' })
-    return
+    if (logger?.error) {
+      const message = error?.message || error
+      logger.error('[admin-lite] authService.authenticate error: ' + message)
+    }
   }
 
   try {
     const manager = req.scope && req.scope.resolve ? req.scope.resolve('manager') : null
     if (!manager || typeof manager.getRepository !== 'function') {
-      if (logger && logger.warn) {
-        logger.warn('Admin Lite fallback skipped: entity manager unavailable')
-      }
-      res.status(401).send('Invalid credentials')
+      if (logger?.warn) logger.warn('[admin-lite] fallback: no entity manager on req.scope')
+      res.status(500).json({ message: 'Internal auth setup error (no manager)' })
       return
     }
 
     const repo = manager.getRepository(User)
     const user = await repo.findOne({ where: { email } })
-    if (!user || user.deleted_at) {
+    if (!user) {
+      if (logger?.warn) logger.warn(`[admin-lite] fallback: user not found for ${email}`)
+      res.status(401).send('Invalid credentials')
+      return
+    }
+
+    if (user.deleted_at) {
+      if (logger?.warn) logger.warn(`[admin-lite] fallback: user soft-deleted ${email}`)
       res.status(401).send('Invalid credentials')
       return
     }
 
     const ok = await bcrypt.compare(password, user.password_hash || '')
     if (!ok) {
+      if (logger?.warn) logger.warn('[admin-lite] fallback: bcrypt mismatch for ' + email)
       res.status(401).send('Invalid credentials')
       return
     }
