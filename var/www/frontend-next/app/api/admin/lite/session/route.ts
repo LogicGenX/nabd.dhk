@@ -59,7 +59,7 @@ const unauthorized = (req: NextRequest, message = 'Not authenticated') => {
 
 const buildLiteSessionUrl = (req?: NextRequest) => {
   try {
-    return buildAdminUrl('admin-lite/session', req)
+    return buildAdminUrl('lite/session', req)
   } catch (error) {
     console.error('[admin-lite] Backend not configured', error)
     return null
@@ -91,7 +91,7 @@ const fetchBackendSession = async (req: NextRequest | null, token: string) => {
       cache: 'no-store',
     })
   } catch (error) {
-    console.error('[admin-lite] Unable to reach /admin-lite/session', error)
+    console.error('[admin-lite] Unable to reach /admin/lite/session', error)
     return { status: 502, body: { message: 'Unable to reach backend' } }
   }
 
@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({ email, password }),
     })
   } catch (error) {
-    console.error('[admin-lite] Failed to reach /admin-lite/session', error)
+    console.error('[admin-lite] Failed to reach /admin/lite/session', error)
     return NextResponse.json({ message: 'Unable to reach backend' }, { status: 502 })
   }
 
@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
   if (!upstream.ok) {
     const message = body?.message || 'Authentication failed'
     const status = upstream.status >= 400 && upstream.status <= 599 ? upstream.status : 502
-    console.error('[admin-lite] /admin-lite/session login failed', upstream.status, body)
+    console.error('[admin-lite] /admin/lite/session login failed', upstream.status, body)
     const payload: Record<string, unknown> = { message }
     if (body && typeof body === 'object') {
       payload.details = body
@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
 
   const token = typeof body?.token === 'string' ? body.token : ''
   if (!token) {
-    console.error('[admin-lite] /admin-lite/session response missing token', body)
+    console.error('[admin-lite] /admin/lite/session response missing token', body)
     return NextResponse.json({ message: 'Authentication failed' }, { status: 502 })
   }
 
