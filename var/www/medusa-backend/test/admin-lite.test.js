@@ -2,6 +2,7 @@ const assert = require('assert')
 const express = require('express')
 const request = require('supertest')
 const jwt = require('jsonwebtoken')
+const bcrypt = require('bcryptjs')
 const adminLite = require('../src/api/admin/lite')
 
 const clone = (value) => JSON.parse(JSON.stringify(value))
@@ -374,6 +375,12 @@ module.exports = async () => {
     first_name: 'Staff',
     last_name: 'User',
     role: 'admin',
+    metadata: {},
+  }
+
+  const adminUserRecord = {
+    ...clone(adminUser),
+    password_hash: bcrypt.hashSync('supersecret', 8),
   }
 
   const authService = {
@@ -386,8 +393,20 @@ module.exports = async () => {
     },
   }
 
+  const adminRepository = {
+    findOne: async ({ where }) => {
+      const email = typeof where?.email === 'string' ? where.email.trim().toLowerCase() : ''
+      if (!email) return null
+      if (email === adminUserRecord.email) {
+        return clone(adminUserRecord)
+      }
+      return null
+    },
+  }
+
   const manager = {
     transaction: async (handler) => handler({}),
+    getRepository: () => adminRepository,
   }
 
   const logger = {

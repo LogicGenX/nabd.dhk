@@ -130,7 +130,7 @@ export default function SearchOverlay({ open, onClose }: Props) {
           <button
             onClick={onClose}
             aria-label="Close search"
-            className="absolute top-1/2 -translate-y-1/2 right-4 w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100"
+            className="absolute top-1/2 -translate-y-1/2 right-4 rtl:right-auto rtl:left-4 w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100"
           >
             <FaTimes />
           </button>
