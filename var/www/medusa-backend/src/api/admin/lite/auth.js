@@ -113,6 +113,10 @@ exports.createSession = async (req, res) => {
 
     const ok = await verifyAdminPassword(password, user.password_hash || '')
     if (!ok) {
+      if (logger?.warn) logger.warn(`[admin-lite] fallback: password mismatch for ${email}`)
+      res.status(401).send('Invalid credentials')
+      return
+    }
       if (logger?.warn) logger.warn('[admin-lite] fallback: password mismatch for ' + email)
       res.status(401).send('Invalid credentials')
       return

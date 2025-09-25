@@ -16,6 +16,7 @@ const run = async () => {
   const email = MEDUSA_ADMIN_EMAIL.trim().toLowerCase()
   const now = new Date().toISOString()
   const hash = await hashAdminPassword(MEDUSA_ADMIN_PASSWORD)
+  console.log('hash generated', hash)
 
   await c.query('BEGIN')
   const { rows } = await c.query('SELECT id FROM "user" WHERE email=$1', [email])
