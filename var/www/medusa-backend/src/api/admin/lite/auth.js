@@ -3,29 +3,18 @@ const { generateAdminLiteToken } = require('./utils/token')
 const { verifyAdminPassword } = require('./utils/password')
 
 const findUserCaseInsensitive = async (repo, email) => {
-  if (!repo || typeof repo.findOne !== 'function') return null
+  if (!repo || typeof repo.createQueryBuilder !== 'function') return null
   const normalized = (email || '').trim().toLowerCase()
   if (!normalized) return null
 
   try {
-    const direct = await repo.findOne({ where: { email: normalized } })
-    if (direct) return direct
+    const qb = repo.createQueryBuilder('u')
+    qb.where('LOWER(u.email) = :email', { email: normalized })
+    qb.addSelect('u.password_hash')
+    return await qb.getOne()
   } catch (error) {
-    // ignore lookup errors and fallback to case-insensitive search
+    return null
   }
-
-  if (typeof repo.createQueryBuilder === 'function') {
-    try {
-      const qb = repo.createQueryBuilder('u')
-      qb.where('LOWER(u.email) = :email', { email: normalized })
-      const user = await qb.getOne()
-      if (user) return user
-    } catch (error) {
-      // ignore query builder errors and fallback to null
-    }
-  }
-
-  return null
 }
 
 const authenticateAdmin = async (scope, email, password) => {
