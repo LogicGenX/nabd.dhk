@@ -1,14 +1,11 @@
 const { Client } = require('pg')
-const scrypt = require('scrypt-kdf')
+const bcrypt = require('bcryptjs')
 const { v4: uuid } = require('uuid')
 
 const { DATABASE_URL, MEDUSA_ADMIN_EMAIL, MEDUSA_ADMIN_PASSWORD } = process.env
 if (!DATABASE_URL || !MEDUSA_ADMIN_EMAIL || !MEDUSA_ADMIN_PASSWORD) process.exit(0)
 
-const hashAdminPassword = async (password) => {
-  const buffer = await scrypt.kdf(password, { logN: 1, r: 1, p: 1 })
-  return buffer.toString('base64')
-}
+const hashAdminPassword = async (password) => bcrypt.hash(password, 10)
 
 const run = async () => {
   const c = new Client({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false } })
