@@ -57,8 +57,10 @@ const unauthorized = (req: NextRequest, message = 'Not authenticated') => {
   return res
 }
 
-const buildLiteSessionUrl = (req?: NextRequest, scope: 'public' | 'private' = 'private') => {
-  const target = scope === 'public' ? 'admin-lite/session' : 'lite/session'
+const buildLiteSessionUrl = (
+  req: NextRequest | undefined,
+  target: 'lite/session' | 'admin-lite/session' = 'lite/session'
+) => {
   try {
     return buildAdminUrl(target, req)
   } catch (error) {
@@ -74,30 +76,48 @@ const setProxyTargetHeader = (res: NextResponse, target: string | null) => {
 }
 
 const fetchBackendSession = async (req: NextRequest | null, token: string) => {
-  const url = buildLiteSessionUrl(req || undefined)
-  if (!url) {
-    return { status: 500, body: { message: 'MEDUSA_BACKEND_URL not configured' } }
+  const targets: Array<'lite/session' | 'admin-lite/session'> = ['lite/session', 'admin-lite/session']
+  let last404: { target: string; body?: unknown } | null = null
+
+  for (const target of targets) {
+    const url = buildLiteSessionUrl(req || undefined, target)
+    if (!url) {
+      continue
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          authorization: 'Bearer ' + token,
+          'x-admin-lite-token': token,
+          accept: 'application/json',
+          'accept-encoding': 'identity',
+        },
+        cache: 'no-store',
+      })
+
+      if (response.status === 404) {
+        const body = await readJson(response)
+        last404 = { target, body }
+        continue
+      }
+
+      const body = await readJson(response)
+      return { status: response.status, body }
+    } catch (error) {
+      console.error('[admin-lite] Unable to reach /' + target, error)
+      return { status: 502, body: { message: 'Unable to reach backend' } }
+    }
   }
 
-  let response: Response
-  try {
-    response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        authorization: 'Bearer ' + token,
-        'x-admin-lite-token': token,
-        accept: 'application/json',
-        'accept-encoding': 'identity',
-      },
-      cache: 'no-store',
-    })
-  } catch (error) {
-    console.error('[admin-lite] Unable to reach /admin/lite/session', error)
-    return { status: 502, body: { message: 'Unable to reach backend' } }
+  return {
+    status: 404,
+    body: {
+      message: 'Admin Lite session endpoint not found',
+      details: last404?.body,
+    },
   }
-
-  const body = await readJson(response)
-  return { status: response.status, body }
 }
 
 export async function POST(req: NextRequest) {
@@ -114,26 +134,52 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'Email and password are required' }, { status: 400 })
   }
 
-  const url = buildLiteSessionUrl(req, 'public')
+  const targets: Array<'admin-lite/session' | 'lite/session'> = ['admin-lite/session', 'lite/session']
+  let url: string | null = null
+  let upstream: Response | null = null
+  let last404: { target: string; body?: unknown } | null = null
+
+  for (const target of targets) {
+    url = buildLiteSessionUrl(req, target)
+    if (!url) {
+      continue
+    }
+    try {
+      upstream = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          accept: 'application/json',
+          'accept-encoding': 'identity',
+        },
+        cache: 'no-store',
+        body: JSON.stringify({ email, password }),
+      })
+    } catch (error) {
+      console.error('[admin-lite] Failed to reach /' + target, error)
+      return NextResponse.json({ message: 'Unable to reach backend' }, { status: 502 })
+    }
+
+    if (upstream.status !== 404) {
+      break
+    }
+
+    const body = await readJson(upstream)
+    last404 = { target, body }
+    upstream = null
+  }
+
   if (!url) {
     return NextResponse.json({ message: 'MEDUSA_BACKEND_URL not configured' }, { status: 500 })
   }
 
-  let upstream: Response
-  try {
-    upstream = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        accept: 'application/json',
-        'accept-encoding': 'identity',
-      },
-      cache: 'no-store',
-      body: JSON.stringify({ email, password }),
-    })
-  } catch (error) {
-    console.error('[admin-lite] Failed to reach /admin/lite/session', error)
-    return NextResponse.json({ message: 'Unable to reach backend' }, { status: 502 })
+  if (!upstream) {
+    const details = last404?.body
+    const payload: Record<string, unknown> = {
+      message: 'Admin Lite session endpoint not found',
+      details,
+    }
+    return NextResponse.json(payload, { status: 404 })
   }
 
   const body = await readJson(upstream)
