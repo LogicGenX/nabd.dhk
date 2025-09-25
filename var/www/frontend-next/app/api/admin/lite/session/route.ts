@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ADMIN_COOKIE, buildAdminUrl } from '../../../lite/_utils/backend'
+import { createAdminLiteToken, verifyAdminLiteToken } from '../_utils/token'
 
 export const runtime = 'nodejs'
 
@@ -120,6 +121,131 @@ const fetchBackendSession = async (req: NextRequest | null, token: string) => {
   }
 }
 
+const loginViaMedusaAuth = async (
+  req: NextRequest,
+  email: string,
+  password: string
+): Promise<{ ok: boolean; response: NextResponse | null }> => {
+  let tokenUrl: string
+  try {
+    tokenUrl = buildAdminUrl('auth/token', req)
+  } catch (error) {
+    return {
+      ok: false,
+      response: NextResponse.json({ message: 'MEDUSA_BACKEND_URL not configured' }, { status: 500 }),
+    }
+  }
+
+  let tokenResponse: Response
+  try {
+    tokenResponse = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        accept: 'application/json',
+        'accept-encoding': 'identity',
+      },
+      cache: 'no-store',
+      body: JSON.stringify({ email, password }),
+    })
+  } catch (error) {
+    return {
+      ok: false,
+      response: NextResponse.json({ message: 'Unable to reach backend' }, { status: 502 }),
+    }
+  }
+
+  const tokenBody = await readJson(tokenResponse)
+  if (tokenResponse.status === 401) {
+    return {
+      ok: false,
+      response: NextResponse.json({ message: 'Invalid credentials' }, { status: 401 }),
+    }
+  }
+
+  if (!tokenResponse.ok) {
+    const message = tokenBody?.message || 'Authentication failed'
+    const status = tokenResponse.status >= 400 && tokenResponse.status <= 599 ? tokenResponse.status : 502
+    const details: Record<string, unknown> = { message }
+    if (tokenBody && typeof tokenBody === 'object') {
+      details.details = tokenBody
+    }
+    return {
+      ok: false,
+      response: NextResponse.json(details, { status }),
+    }
+  }
+
+  const adminToken = typeof tokenBody?.access_token === 'string' ? tokenBody.access_token.trim() : ''
+  if (!adminToken) {
+    return {
+      ok: false,
+      response: NextResponse.json({ message: 'Authentication failed' }, { status: 502 }),
+    }
+  }
+
+  let profileUrl: string
+  try {
+    profileUrl = buildAdminUrl('auth', req)
+  } catch (error) {
+    return {
+      ok: false,
+      response: NextResponse.json({ message: 'MEDUSA_BACKEND_URL not configured' }, { status: 500 }),
+    }
+  }
+
+  let profileResponse: Response
+  try {
+    profileResponse = await fetch(profileUrl, {
+      method: 'GET',
+      headers: {
+        authorization: 'Bearer ' + adminToken,
+        accept: 'application/json',
+        'accept-encoding': 'identity',
+      },
+      cache: 'no-store',
+    })
+  } catch (error) {
+    return {
+      ok: false,
+      response: NextResponse.json({ message: 'Unable to reach backend' }, { status: 502 }),
+    }
+  }
+
+  const profileBody = await readJson(profileResponse)
+  if (!profileResponse.ok || !profileBody?.user) {
+    const message = profileBody?.message || 'Authentication failed'
+    const status = profileResponse.status >= 400 && profileResponse.status <= 599 ? profileResponse.status : 502
+    const payload: Record<string, unknown> = { message }
+    if (profileBody && typeof profileBody === 'object') {
+      payload.details = profileBody
+    }
+    return {
+      ok: false,
+      response: NextResponse.json(payload, { status }),
+    }
+  }
+
+  const tokenResult = createAdminLiteToken(profileBody.user)
+  if (!tokenResult.ok) {
+    return {
+      ok: false,
+      response: NextResponse.json({ message: tokenResult.message }, { status: 500 }),
+    }
+  }
+
+  const res = NextResponse.json({ ok: true, user: tokenResult.user })
+  setProxyTargetHeader(res, profileUrl)
+  res.cookies.set({
+    name: ADMIN_COOKIE,
+    value: tokenResult.token,
+    maxAge: DAY_IN_SECONDS,
+    ...getCookieOptions(req),
+  })
+
+  return { ok: true, response: res }
+}
+
 export async function POST(req: NextRequest) {
   let payload: { email?: string; password?: string }
   try {
@@ -174,11 +300,21 @@ export async function POST(req: NextRequest) {
   }
 
   if (!upstream) {
+    const fallback = await loginViaMedusaAuth(req, email, password)
+    if (fallback.ok && fallback.response) {
+      return fallback.response
+    }
+
+    if (fallback.response) {
+      return fallback.response
+    }
+
     const details = last404?.body
     const payload: Record<string, unknown> = {
       message: 'Admin Lite session endpoint not found',
       details,
     }
+
     return NextResponse.json(payload, { status: 404 })
   }
 
@@ -224,6 +360,27 @@ export async function GET(req: NextRequest) {
   const result = await fetchBackendSession(req, token)
   if (result.status === 401) {
     return unauthorized(req, 'Session expired')
+  }
+
+  if (result.status === 404) {
+    const verified = verifyAdminLiteToken(token)
+    if (!verified.ok) {
+      return unauthorized(req, 'Session invalid')
+    }
+
+    const payload = verified.payload || {}
+    const user = {
+      id: typeof payload.sub === 'string' ? payload.sub : null,
+      email: typeof payload.email === 'string' ? payload.email : null,
+      first_name: typeof payload.first_name === 'string' ? payload.first_name : null,
+      last_name: typeof payload.last_name === 'string' ? payload.last_name : null,
+      role: typeof payload.role === 'string' ? payload.role : null,
+      permissions: Array.isArray(payload.permissions)
+        ? payload.permissions.map((entry: unknown) => (typeof entry === 'string' ? entry : '')).filter(Boolean)
+        : [],
+    }
+
+    return NextResponse.json({ authenticated: true, user })
   }
 
   if (result.status !== 200) {
