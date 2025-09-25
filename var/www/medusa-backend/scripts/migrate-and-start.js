@@ -3,6 +3,26 @@ const { spawn } = require('child_process')
 const path = require('path')
 const pg = require('pg')
 const bcrypt = require('bcryptjs')
+const scrypt = require('scrypt-kdf')
+
+const isBcryptHash = (hash) => typeof hash === 'string' && hash.startsWith('$2')
+const verifyAdminPassword = async (password, hash) => {
+  if (!hash || !password) return false
+  if (isBcryptHash(hash)) {
+    try {
+      return await bcrypt.compare(password, hash)
+    } catch (err) {
+      return false
+    }
+  }
+  try {
+    const buffer = Buffer.from(hash, 'base64')
+    if (!buffer.length) return false
+    return await scrypt.verify(buffer, password)
+  } catch (err) {
+    return false
+  }
+}
 
 const logDbFingerprint = async () => {
   try {
@@ -26,9 +46,9 @@ const logPasswordMatch = async () => {
     const email = (process.env.MEDUSA_ADMIN_EMAIL || '').toLowerCase()
     const r = await c.query('SELECT password_hash FROM "user" WHERE email=$1', [email])
     const ok = r.rows.length
-      ? await bcrypt.compare(process.env.MEDUSA_ADMIN_PASSWORD || '', r.rows[0].password_hash)
+      ? await verifyAdminPassword(process.env.MEDUSA_ADMIN_PASSWORD || '', r.rows[0].password_hash)
       : false
-    console.log('[admin-lite] Admin bcrypt match:', ok)
+    console.log('[admin-lite] Admin password match:', ok)
     await c.end()
   } catch (e) {
     console.warn('[admin-lite] Password match check failed:', e.message)

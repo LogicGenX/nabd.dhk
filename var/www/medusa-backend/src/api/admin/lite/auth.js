@@ -1,6 +1,6 @@
-const bcrypt = require('bcryptjs')
 const { User } = require('@medusajs/medusa')
 const { generateAdminLiteToken } = require('./utils/token')
+const { verifyAdminPassword } = require('./utils/password')
 
 const authenticateAdmin = async (scope, email, password) => {
   if (!scope || typeof scope.resolve !== 'function') return null
@@ -111,9 +111,9 @@ exports.createSession = async (req, res) => {
       return
     }
 
-    const ok = await bcrypt.compare(password, user.password_hash || '')
+    const ok = await verifyAdminPassword(password, user.password_hash || '')
     if (!ok) {
-      if (logger?.warn) logger.warn('[admin-lite] fallback: bcrypt mismatch for ' + email)
+      if (logger?.warn) logger.warn('[admin-lite] fallback: password mismatch for ' + email)
       res.status(401).send('Invalid credentials')
       return
     }
