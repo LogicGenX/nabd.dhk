@@ -1,5 +1,13 @@
 import jwt from 'jsonwebtoken'
 
+export type AdminLiteUserProjection =
+  | { ok: true; user: AdminLiteUserPayload }
+  | { ok: false; message: string }
+
+export type AdminLiteTokenResult =
+  | { ok: true; token: string; user: AdminLiteUserPayload; payload: jwt.JwtPayload; ttl: number }
+  | { ok: false; message: string }
+
 export type AdminLiteUserPayload = {
   id: string
   email: string
@@ -80,7 +88,7 @@ const buildLiteUserShape = (user: Record<string, unknown>): AdminLiteUserPayload
   }
 }
 
-export const projectAdminLiteUser = (user: Record<string, unknown>) => {
+export const projectAdminLiteUser = (user: Record<string, unknown>): AdminLiteUserProjection => {
   if (!user || typeof user !== 'object') {
     return { ok: false as const, message: 'Authentication response missing user profile' }
   }
@@ -91,15 +99,15 @@ export const projectAdminLiteUser = (user: Record<string, unknown>) => {
   return { ok: true as const, user: liteUser }
 }
 
-export const createAdminLiteToken = (user: Record<string, any>) => {
+export const createAdminLiteToken = (user: Record<string, any>): AdminLiteTokenResult => {
   const secret = cleanEnv(process.env.ADMIN_LITE_JWT_SECRET)
   if (!secret) {
     return { ok: false as const, message: 'Admin Lite token not configured' }
   }
 
   const projection = projectAdminLiteUser(user)
-  if (!projection.ok) {
-    return projection
+  if (projection.ok === false) {
+    return { ok: false as const, message: projection.message }
   }
 
   const liteUser = projection.user

@@ -245,7 +245,7 @@ const loginViaMedusaAuth = async (
   }
 
   const tokenResult = createAdminLiteToken(profileBody.user)
-  if (!tokenResult.ok) {
+  if (tokenResult.ok === false) {
     return {
       ok: false,
       response: NextResponse.json({ message: tokenResult.message }, { status: 500 }),
@@ -361,9 +361,10 @@ export async function POST(req: NextRequest) {
 
   const upstreamUser = body && typeof body === 'object' ? (body as any).user : undefined
   const projection = projectAdminLiteUser((upstreamUser || {}) as Record<string, unknown>)
-  if (!projection.ok) {
-    console.error('[admin-lite] /admin/lite/session response missing user profile', projection.message)
-    return NextResponse.json({ message: projection.message || 'Authentication failed' }, { status: 502 })
+  if (projection.ok === false) {
+    const message = projection.message || 'Authentication failed'
+    console.error('[admin-lite] /admin/lite/session response missing user profile', message)
+    return NextResponse.json({ message }, { status: 502 })
   }
 
   const upstreamTtl = body && typeof body === 'object' ? (body as any).ttl : undefined
