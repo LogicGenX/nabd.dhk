@@ -1,4 +1,5 @@
 const { generateAdminLiteToken, projectAdminLiteUser } = require('./utils/token')
+const { verifyAdminPassword } = require('./utils/password')
 
 const normalizeEmail = (value) => {
   if (!value) return ''
@@ -17,6 +18,50 @@ const resolveScopedDependency = (scope, key) => {
 const resolveLogger = (scope) => resolveScopedDependency(scope, 'logger')
 const resolveAuthService = (scope) => resolveScopedDependency(scope, 'authService')
 const resolveUserService = (scope) => resolveScopedDependency(scope, 'userService')
+
+const fallbackAuthenticateUser = async (email, password, userService, logger) => {
+  if (!userService) return null
+
+  let user
+  try {
+    user = await userService.retrieveByEmail(email, {
+      select: ['id', 'email', 'first_name', 'last_name', 'role', 'password_hash', 'metadata', 'deleted_at'],
+    })
+  } catch (error) {
+    const errorType = typeof error?.type === 'string' ? error.type.toLowerCase() : ''
+    if (errorType === 'not_found') {
+      return null
+    }
+    if (logger?.warn) {
+      logger.warn('[admin-lite] login: fallback lookup failed for ' + email + ': ' + (error?.message || error))
+    }
+    return null
+  }
+
+  if (!user || user.deleted_at || typeof user.password_hash !== 'string' || !user.password_hash) {
+    return null
+  }
+
+  let passwordsMatch = false
+  try {
+    passwordsMatch = await verifyAdminPassword(password, user.password_hash)
+  } catch (error) {
+    if (logger?.warn) {
+      logger.warn('[admin-lite] login: fallback verification failed for ' + email + ': ' + (error?.message || error))
+    }
+    return null
+  }
+
+  if (!passwordsMatch) {
+    return null
+  }
+
+  if (logger?.info) {
+    logger.info('[admin-lite] login: legacy admin hash accepted for ' + email)
+  }
+
+  return user
+}
 
 const buildResponseUser = (user, logger) => {
   const projection = projectAdminLiteUser(user)
@@ -62,15 +107,19 @@ exports.createSession = async (req, res) => {
     return
   }
 
-  if (!authResult || !authResult.success || !authResult.user) {
+  let baseUser = authResult && authResult.success ? authResult.user : null
+
+  if (!baseUser) {
+    baseUser = await fallbackAuthenticateUser(email, password, userService, logger)
+  }
+
+  if (!baseUser) {
     if (logger?.warn) {
       logger.warn('[admin-lite] login: invalid credentials for ' + email)
     }
     res.status(401).json({ message: 'Invalid credentials' })
     return
   }
-
-  const baseUser = authResult.user
   if (baseUser.deleted_at) {
     if (logger?.warn) {
       logger.warn('[admin-lite] login: user soft-deleted ' + email)
