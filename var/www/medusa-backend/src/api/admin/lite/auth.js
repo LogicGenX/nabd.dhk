@@ -111,7 +111,15 @@ exports.createSession = async (req, res) => {
       return
     }
 
+    console.log('[admin-lite] fallback verifying user', {
+      email,
+      hashPreview: (user.password_hash || '').slice(0, 16),
+      hashLength: (user.password_hash || '').length,
+    })
+
     const ok = await verifyAdminPassword(password, user.password_hash || '')
+
+    console.log('[admin-lite] fallback verify result', { email, ok })
     if (!ok) {
       if (logger?.warn) logger.warn(`[admin-lite] fallback: password mismatch for ${email}`)
       res.status(401).send('Invalid credentials')
