@@ -117,10 +117,6 @@ exports.createSession = async (req, res) => {
       res.status(401).send('Invalid credentials')
       return
     }
-      if (logger?.warn) logger.warn('[admin-lite] fallback: password mismatch for ' + email)
-      res.status(401).send('Invalid credentials')
-      return
-    }
 
     const fallbackName = `${user.first_name ?? 'Admin'} ${user.last_name ?? ''}`.trim()
     const tokenResult = generateAdminLiteToken({
