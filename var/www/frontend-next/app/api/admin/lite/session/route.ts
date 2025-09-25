@@ -57,9 +57,10 @@ const unauthorized = (req: NextRequest, message = 'Not authenticated') => {
   return res
 }
 
-const buildLiteSessionUrl = (req?: NextRequest) => {
+const buildLiteSessionUrl = (req?: NextRequest, scope: 'public' | 'private' = 'private') => {
+  const target = scope === 'public' ? 'admin-lite/session' : 'lite/session'
   try {
-    return buildAdminUrl('lite/session', req)
+    return buildAdminUrl(target, req)
   } catch (error) {
     console.error('[admin-lite] Backend not configured', error)
     return null
@@ -113,7 +114,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'Email and password are required' }, { status: 400 })
   }
 
-  const url = buildLiteSessionUrl(req)
+  const url = buildLiteSessionUrl(req, 'public')
   if (!url) {
     return NextResponse.json({ message: 'MEDUSA_BACKEND_URL not configured' }, { status: 500 })
   }
