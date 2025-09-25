@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const { spawn } = require('child_process')
+const fs = require('fs')
 const path = require('path')
 const pg = require('pg')
 const bcrypt = require('bcryptjs')
@@ -60,6 +61,27 @@ const resolveBin = (name) => {
   return path.join(__dirname, '..', 'node_modules', '.bin', name + suffix)
 }
 
+const syncSourceToDist = () => {
+  const rootDir = path.join(__dirname, '..')
+  const srcDir = path.join(rootDir, 'src')
+  const distDir = path.join(rootDir, 'dist')
+
+  try {
+    if (!fs.existsSync(srcDir)) {
+      return
+    }
+
+    if (fs.existsSync(distDir)) {
+      fs.rmSync(distDir, { recursive: true, force: true })
+    }
+
+    fs.cpSync(srcDir, distDir, { recursive: true })
+    console.log('[admin-lite] Synced src -> dist before start')
+  } catch (error) {
+    console.warn('[admin-lite] Failed to sync src to dist:', error?.message || error)
+  }
+}
+
 const run = (command, args, options = {}) =>
   new Promise((resolve, reject) => {
     const child = spawn(command, args, {
@@ -82,6 +104,8 @@ const start = async () => {
   const medusaBin = resolveBin('medusa')
 
   try {
+    syncSourceToDist()
+
     if (!skipMigrations) {
       console.log('[admin-lite] Running Medusa migrations...')
       await run(medusaBin, ['migrations', 'run'])
