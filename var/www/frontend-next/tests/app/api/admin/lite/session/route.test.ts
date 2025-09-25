@@ -71,6 +71,32 @@ describe('admin lite session route', () => {
     expect(setCookie.toLowerCase()).toContain('secure')
   })
 
+  it('honours a backend-provided ttl when issuing the session cookie', async () => {
+    const ttl = 3600
+    const fetchMock = vi
+      .fn<Parameters<typeof fetch>, ReturnType<typeof fetch>>()
+      .mockResolvedValue(
+        jsonResponse({
+          token: 'tok_789',
+          user: { id: 'usr_123', email: 'staff@nabd.dhk', first_name: 'Admin', last_name: 'Lite' },
+          ttl,
+        })
+      )
+
+    global.fetch = fetchMock as unknown as typeof fetch
+
+    const request = new NextRequest('https://admin.nabd.dhk/api/admin/lite/session', {
+      method: 'POST',
+      body: JSON.stringify({ email: 'admin@nabd.dhk', password: 'secret' }),
+      headers: { 'content-type': 'application/json' },
+    })
+
+    const response = await POST(request)
+    const setCookie = response.headers.get('set-cookie') || ''
+    expect(setCookie).toContain(ADMIN_COOKIE + '=')
+    expect(setCookie.toLowerCase()).toContain(`max-age=${ttl}`)
+  })
+
   it('clears a non-secure cookie when requests lack authentication over http', async () => {
     const request = new NextRequest('http://localhost/api/admin/lite/session')
     const response = await GET(request)

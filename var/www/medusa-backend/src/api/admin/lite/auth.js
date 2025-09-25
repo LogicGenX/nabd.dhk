@@ -1,55 +1,32 @@
-const { User } = require('@medusajs/medusa')
-const { generateAdminLiteToken } = require('./utils/token')
-const { verifyAdminPassword } = require('./utils/password')
+const { generateAdminLiteToken, projectAdminLiteUser } = require('./utils/token')
 
 const normalizeEmail = (value) => {
   if (!value) return ''
   return String(value).trim().toLowerCase()
 }
 
-const resolveManager = (scope) => {
+const resolveScopedDependency = (scope, key) => {
   if (!scope || typeof scope.resolve !== 'function') return null
   try {
-    return scope.resolve('manager')
+    return scope.resolve(key)
   } catch (error) {
     return null
   }
 }
 
-const resolveLogger = (scope) => {
-  if (!scope || typeof scope.resolve !== 'function') return null
-  try {
-    return scope.resolve('logger')
-  } catch (error) {
+const resolveLogger = (scope) => resolveScopedDependency(scope, 'logger')
+const resolveAuthService = (scope) => resolveScopedDependency(scope, 'authService')
+const resolveUserService = (scope) => resolveScopedDependency(scope, 'userService')
+
+const buildResponseUser = (user, logger) => {
+  const projection = projectAdminLiteUser(user)
+  if (!projection.ok) {
+    if (logger?.error) {
+      logger.error('[admin-lite] unable to project user profile: ' + projection.message)
+    }
     return null
   }
-}
-
-const loadAdminUser = async (manager, email) => {
-  if (!manager || typeof manager.getRepository !== 'function') {
-    throw new Error('Entity manager unavailable')
-  }
-  const repo = manager.getRepository(User)
-  if (!repo || typeof repo.createQueryBuilder !== 'function') {
-    throw new Error('User repository unavailable')
-  }
-
-  const qb = repo.createQueryBuilder('u')
-  qb.where('LOWER(u.email) = :email', { email })
-  qb.addSelect('u.password_hash')
-  return await qb.getOne()
-}
-
-const buildTokenPayloadSource = (user) => {
-  if (!user || typeof user !== 'object') return null
-  return {
-    id: user.id,
-    email: user.email,
-    first_name: user.first_name,
-    last_name: user.last_name,
-    role: user.role || 'admin',
-    metadata: user.metadata,
-  }
+  return projection.user
 }
 
 exports.createSession = async (req, res) => {
@@ -63,28 +40,38 @@ exports.createSession = async (req, res) => {
   }
 
   const logger = resolveLogger(req.scope)
-  const manager = resolveManager(req.scope)
+  const authService = resolveAuthService(req.scope)
+  const userService = resolveUserService(req.scope)
 
-  let user
+  if (!authService || !userService) {
+    if (logger?.error) {
+      logger.error('[admin-lite] login: required services missing from scope')
+    }
+    res.status(500).json({ message: 'Authentication not configured' })
+    return
+  }
+
+  let authResult
   try {
-    user = await loadAdminUser(manager, email)
+    authResult = await authService.authenticate(email, password)
   } catch (error) {
     if (logger?.error) {
-      logger.error('[admin-lite] login: admin lookup failed for ' + email + ': ' + (error?.message || error))
+      logger.error('[admin-lite] login: authentication threw for ' + email + ': ' + (error?.message || error))
     }
     res.status(500).json({ message: 'Authentication failed' })
     return
   }
 
-  if (!user) {
+  if (!authResult || !authResult.success || !authResult.user) {
     if (logger?.warn) {
-      logger.warn('[admin-lite] login: user not found for ' + email)
+      logger.warn('[admin-lite] login: invalid credentials for ' + email)
     }
     res.status(401).json({ message: 'Invalid credentials' })
     return
   }
 
-  if (user.deleted_at) {
+  const baseUser = authResult.user
+  if (baseUser.deleted_at) {
     if (logger?.warn) {
       logger.warn('[admin-lite] login: user soft-deleted ' + email)
     }
@@ -92,32 +79,32 @@ exports.createSession = async (req, res) => {
     return
   }
 
-  const hash = typeof user.password_hash === 'string' ? user.password_hash : ''
-  if (!hash) {
+  let user
+  try {
+    user = await userService.retrieve(baseUser.id)
+  } catch (error) {
     if (logger?.error) {
-      logger.error('[admin-lite] login: password hash missing for ' + email)
+      logger.error('[admin-lite] login: failed to load user profile for ' + email + ': ' + (error?.message || error))
     }
     res.status(500).json({ message: 'Authentication failed' })
     return
   }
 
-  let ok = false
-  try {
-    ok = await verifyAdminPassword(password, hash)
-  } catch (error) {
-    ok = false
-  }
-
-  if (!ok) {
+  if (!user || user.deleted_at) {
     if (logger?.warn) {
-      logger.warn('[admin-lite] login: password mismatch for ' + email)
+      logger.warn('[admin-lite] login: user unavailable for ' + email)
     }
     res.status(401).json({ message: 'Invalid credentials' })
     return
   }
 
-  const tokenSource = buildTokenPayloadSource(user)
-  const tokenResult = generateAdminLiteToken(tokenSource)
+  const responseUser = buildResponseUser(user, logger)
+  if (!responseUser) {
+    res.status(500).json({ message: 'Authentication failed' })
+    return
+  }
+
+  const tokenResult = generateAdminLiteToken(user)
   if (!tokenResult.ok) {
     if (logger?.error) {
       logger.error('[admin-lite] login: token creation failed for ' + email + ': ' + (tokenResult.message || 'unknown error'))
@@ -126,9 +113,48 @@ exports.createSession = async (req, res) => {
     return
   }
 
-  res.status(200).json({ token: tokenResult.token, user: tokenResult.user })
+  res.status(200).json({ token: tokenResult.token, user: responseUser, ttl: tokenResult.ttl })
 }
 
 exports.getSession = async (req, res) => {
-  res.json({ authenticated: true, user: req.liteStaff || null })
+  const logger = resolveLogger(req.scope)
+  const userService = resolveUserService(req.scope)
+
+  if (!userService) {
+    if (logger?.error) {
+      logger.error('[admin-lite] session: userService missing from scope')
+    }
+    res.status(500).json({ message: 'Admin Lite session unavailable' })
+    return
+  }
+
+  const userId =
+    req.liteStaff?.id || (typeof req.liteTokenPayload?.sub === 'string' ? req.liteTokenPayload.sub : null)
+
+  if (!userId) {
+    res.status(401).json({ message: 'Invalid Admin Lite token' })
+    return
+  }
+
+  try {
+    const user = await userService.retrieve(userId)
+
+    if (!user || user.deleted_at) {
+      res.status(401).json({ message: 'Session expired' })
+      return
+    }
+
+    const responseUser = buildResponseUser(user, logger)
+    if (!responseUser) {
+      res.status(500).json({ message: 'Failed to project session user' })
+      return
+    }
+
+    res.json({ authenticated: true, user: responseUser })
+  } catch (error) {
+    if (logger?.warn) {
+      logger.warn('[admin-lite] session: unable to load user ' + userId + ': ' + (error?.message || error))
+    }
+    res.status(401).json({ message: 'Session invalid' })
+  }
 }

@@ -376,6 +376,7 @@ module.exports = async () => {
     last_name: 'User',
     role: 'admin',
     metadata: {},
+    deleted_at: null,
   }
 
   const adminUserRecord = {
@@ -390,6 +391,16 @@ module.exports = async () => {
         return { success: true, user: clone(adminUser) }
       }
       return { success: false }
+    },
+  }
+
+  const userService = {
+    withTransaction: () => userService,
+    retrieve: async (id) => {
+      if (id === adminUserRecord.id) {
+        return clone(adminUserRecord)
+      }
+      throw new Error('User not found')
     },
   }
 
@@ -439,6 +450,8 @@ module.exports = async () => {
           return logger
         case 'authService':
           return authService
+        case 'userService':
+          return userService
         case 'manager':
           return manager
         default:

@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ADMIN_COOKIE, buildAdminUrl } from '../../../lite/_utils/backend'
-import { createAdminLiteToken, verifyAdminLiteToken } from '../_utils/token'
+import {
+  createAdminLiteToken,
+  verifyAdminLiteToken,
+  resolveSessionTtlSeconds,
+  projectAdminLiteUser,
+} from '../_utils/token'
 
 export const runtime = 'nodejs'
 
-const DAY_IN_SECONDS = 60 * 60 * 24
+const FALLBACK_SESSION_TTL = resolveSessionTtlSeconds()
 
 const isSecureRequest = (req?: NextRequest) => {
   if (!req) {
@@ -74,6 +79,19 @@ const setProxyTargetHeader = (res: NextResponse, target: string | null) => {
   if (target) {
     res.headers.set('x-admin-proxy-target', target)
   }
+}
+
+const parseTtlSeconds = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return Math.floor(value)
+  }
+  if (typeof value === 'string') {
+    const parsed = Number.parseInt(value, 10)
+    if (!Number.isNaN(parsed) && parsed > 0) {
+      return parsed
+    }
+  }
+  return null
 }
 
 const fetchBackendSession = async (req: NextRequest | null, token: string) => {
@@ -234,12 +252,13 @@ const loginViaMedusaAuth = async (
     }
   }
 
+  const ttl = tokenResult.ttl ?? FALLBACK_SESSION_TTL
   const res = NextResponse.json({ ok: true, user: tokenResult.user })
   setProxyTargetHeader(res, profileUrl)
   res.cookies.set({
     name: ADMIN_COOKIE,
     value: tokenResult.token,
-    maxAge: DAY_IN_SECONDS,
+    maxAge: ttl,
     ...getCookieOptions(req),
   })
 
@@ -340,12 +359,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'Authentication failed' }, { status: 502 })
   }
 
-  const res = NextResponse.json({ ok: true, user: body?.user || null })
+  const upstreamUser = body && typeof body === 'object' ? (body as any).user : undefined
+  const projection = projectAdminLiteUser((upstreamUser || {}) as Record<string, unknown>)
+  if (!projection.ok) {
+    console.error('[admin-lite] /admin/lite/session response missing user profile', projection.message)
+    return NextResponse.json({ message: projection.message || 'Authentication failed' }, { status: 502 })
+  }
+
+  const upstreamTtl = body && typeof body === 'object' ? (body as any).ttl : undefined
+  const ttl = parseTtlSeconds(upstreamTtl) ?? FALLBACK_SESSION_TTL
+  const res = NextResponse.json({ ok: true, user: projection.user })
   setProxyTargetHeader(res, url)
   res.cookies.set({
     name: ADMIN_COOKIE,
     value: token,
-    maxAge: DAY_IN_SECONDS,
+    maxAge: ttl,
     ...getCookieOptions(req),
   })
   return res

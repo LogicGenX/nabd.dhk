@@ -10,6 +10,7 @@ export type AdminLiteUserPayload = {
 }
 
 const DAY_IN_SECONDS = 60 * 60 * 24
+const DEFAULT_SESSION_TTL = DAY_IN_SECONDS
 
 const cleanEnv = (value?: string | null) => {
   if (!value) return undefined
@@ -28,11 +29,7 @@ const buildStaffName = (firstName: string | null, lastName: string | null, fallb
 const extractPermissions = (user: Record<string, unknown>) => {
   if (!user || typeof user !== 'object') return [] as string[]
   const metadata = (user as any).metadata || {}
-  const candidates = [
-    metadata.admin_lite_permissions,
-    metadata.adminLitePermissions,
-    metadata.permissions,
-  ]
+  const candidates = [metadata.admin_lite_permissions, metadata.adminLitePermissions, metadata.permissions]
 
   for (const candidate of candidates) {
     if (!Array.isArray(candidate)) continue
@@ -45,40 +42,82 @@ const extractPermissions = (user: Record<string, unknown>) => {
   return [] as string[]
 }
 
+export const resolveSessionTtlSeconds = () => {
+  const raw = cleanEnv(process.env.ADMIN_LITE_JWT_TTL_SECONDS)
+  if (!raw) return DEFAULT_SESSION_TTL
+  const parsed = Number.parseInt(raw, 10)
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return DEFAULT_SESSION_TTL
+  }
+  return parsed
+}
+
+const buildLiteUserShape = (user: Record<string, unknown>): AdminLiteUserPayload | null => {
+  if (!user || typeof user !== 'object') return null
+
+  const identifierCandidates: Array<string> = []
+  if (typeof (user as any).id === 'string') identifierCandidates.push((user as any).id.trim())
+  if (typeof (user as any)._id === 'string') identifierCandidates.push((user as any)._id.trim())
+  const id = identifierCandidates.find(Boolean)
+  const email = typeof (user as any).email === 'string' ? (user as any).email.trim() : ''
+
+  if (!id || !email) {
+    return null
+  }
+
+  const firstName = typeof (user as any).first_name === 'string' ? (user as any).first_name.trim() || null : null
+  const lastName = typeof (user as any).last_name === 'string' ? (user as any).last_name.trim() || null : null
+  const role = typeof (user as any).role === 'string' ? (user as any).role.trim() || null : null
+  const permissions = extractPermissions(user)
+
+  return {
+    id,
+    email,
+    first_name: firstName,
+    last_name: lastName,
+    role,
+    permissions,
+  }
+}
+
+export const projectAdminLiteUser = (user: Record<string, unknown>) => {
+  if (!user || typeof user !== 'object') {
+    return { ok: false as const, message: 'Authentication response missing user profile' }
+  }
+  const liteUser = buildLiteUserShape(user)
+  if (!liteUser) {
+    return { ok: false as const, message: 'Authentication response missing user details' }
+  }
+  return { ok: true as const, user: liteUser }
+}
+
 export const createAdminLiteToken = (user: Record<string, any>) => {
   const secret = cleanEnv(process.env.ADMIN_LITE_JWT_SECRET)
   if (!secret) {
     return { ok: false as const, message: 'Admin Lite token not configured' }
   }
 
-  if (!user || typeof user !== 'object') {
-    return { ok: false as const, message: 'Authentication response missing user profile' }
+  const projection = projectAdminLiteUser(user)
+  if (!projection.ok) {
+    return projection
   }
 
-  const id = typeof user.id === 'string' ? user.id.trim() : ''
-  const email = typeof user.email === 'string' ? user.email.trim() : ''
-  if (!id || !email) {
-    return { ok: false as const, message: 'Authentication response missing user details' }
-  }
-
-  const firstName = typeof user.first_name === 'string' ? user.first_name.trim() || null : null
-  const lastName = typeof user.last_name === 'string' ? user.last_name.trim() || null : null
-  const role = typeof user.role === 'string' ? user.role.trim() || null : null
-  const permissions = extractPermissions(user)
+  const liteUser = projection.user
   const now = Math.floor(Date.now() / 1000)
+  const ttl = resolveSessionTtlSeconds()
 
   const payload: jwt.JwtPayload = {
-    sub: id,
-    email,
-    name: buildStaffName(firstName, lastName, email),
+    sub: liteUser.id,
+    email: liteUser.email,
+    name: buildStaffName(liteUser.first_name, liteUser.last_name, liteUser.email),
     iat: now,
-    exp: now + DAY_IN_SECONDS,
+    exp: now + ttl,
   }
 
-  if (firstName !== null) payload.first_name = firstName
-  if (lastName !== null) payload.last_name = lastName
-  if (role) payload.role = role
-  if (permissions.length) payload.permissions = permissions
+  if (liteUser.first_name !== null) payload.first_name = liteUser.first_name
+  if (liteUser.last_name !== null) payload.last_name = liteUser.last_name
+  if (liteUser.role) payload.role = liteUser.role
+  if (liteUser.permissions.length) payload.permissions = liteUser.permissions
 
   const audience = cleanEnv(process.env.ADMIN_LITE_JWT_AUDIENCE)
   if (audience) payload.aud = audience
@@ -93,20 +132,12 @@ export const createAdminLiteToken = (user: Record<string, any>) => {
     return { ok: false as const, message: 'Failed to sign Admin Lite token' }
   }
 
-  const resultUser: AdminLiteUserPayload = {
-    id,
-    email,
-    first_name: firstName,
-    last_name: lastName,
-    role,
-    permissions,
-  }
-
   return {
     ok: true as const,
     token,
-    user: resultUser,
+    user: liteUser,
     payload,
+    ttl,
   }
 }
 
