@@ -2,7 +2,7 @@ const assert = require('assert')
 const express = require('express')
 const request = require('supertest')
 const jwt = require('jsonwebtoken')
-const bcrypt = require('bcryptjs')
+const scrypt = require('scrypt-kdf')
 const adminLite = require('../src/api/admin/lite')
 
 const clone = (value) => JSON.parse(JSON.stringify(value))
@@ -381,7 +381,7 @@ module.exports = async () => {
 
   const adminUserRecord = {
     ...clone(adminUser),
-    password_hash: bcrypt.hashSync('supersecret', 8),
+    password_hash: (await scrypt.kdf('supersecret', { logN: 1, r: 1, p: 1 })).toString('base64'),
   }
 
   const authService = {
