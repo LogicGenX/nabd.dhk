@@ -64,6 +64,7 @@ API Notes
 Support playbook
 ----------------
 - 401 or 403 responses: confirm the Medusa session token has not expired (users may need to log in again) and verify ADMIN_LITE_ALLOWED_ORIGINS.
+- 404 on /admin-lite routes: backend boot skipped the src -> dist sync. Ensure Render runs `var/www/medusa-backend/scripts/migrate-and-start.js` (set Root Directory or use `yarn --cwd var/www/medusa-backend start`).
 - 429 responses: review rate limit env vars or investigate automation loops.
 - Unexpected 5xx: check Medusa logs, ensure `ADMIN_LITE_JWT_SECRET` (and optionally `ADMIN_LITE_JWT_TTL_SECONDS`) are present, and restart the service if config changed.
 - For feature requests, document UX, payload, and backend surface first; keep scope lean.
