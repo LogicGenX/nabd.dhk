@@ -6,6 +6,7 @@ const pg = require('pg')
 const bcrypt = require('bcryptjs')
 const scrypt = require('scrypt-kdf')
 
+const backendRoot = path.join(__dirname, '..')
 const isBcryptHash = (hash) => typeof hash === 'string' && hash.startsWith('$2')
 const verifyAdminPassword = async (password, hash) => {
   if (!hash || !password) return false
@@ -58,13 +59,12 @@ const logPasswordMatch = async () => {
 
 const resolveBin = (name) => {
   const suffix = process.platform === 'win32' ? '.cmd' : ''
-  return path.join(__dirname, '..', 'node_modules', '.bin', name + suffix)
+  return path.join(backendRoot, 'node_modules', '.bin', name + suffix)
 }
 
 const syncSourceToDist = () => {
-  const rootDir = path.join(__dirname, '..')
-  const srcDir = path.join(rootDir, 'src')
-  const distDir = path.join(rootDir, 'dist')
+  const srcDir = path.join(backendRoot, 'src')
+  const distDir = path.join(backendRoot, 'dist')
 
   try {
     if (!fs.existsSync(srcDir)) {
@@ -87,6 +87,7 @@ const run = (command, args, options = {}) =>
     const child = spawn(command, args, {
       stdio: 'inherit',
       env: process.env,
+      cwd: backendRoot,
       ...options,
     })
 
@@ -135,3 +136,4 @@ const start = async () => {
 }
 
 start()
+
