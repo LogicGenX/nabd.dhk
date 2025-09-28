@@ -3,6 +3,20 @@
 # Fail fast if any command exits with a non-zero status. The -e flag is
 # supplied by the Dockerfile's ENTRYPOINT invocation.
 
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+BACKEND_ROOT="$SCRIPT_DIR"
+
+if [ -f "$BACKEND_ROOT/medusa-config.js" ]; then
+  :
+elif [ -f "$BACKEND_ROOT/var/www/medusa-backend/medusa-config.js" ]; then
+  BACKEND_ROOT="$BACKEND_ROOT/var/www/medusa-backend"
+else
+  echo "Unable to locate Medusa backend root from $SCRIPT_DIR"
+  exit 1
+fi
+
+cd "$BACKEND_ROOT"
+
 # Wait for Postgres to be ready
 PG_MAX_ATTEMPTS=${PG_MAX_ATTEMPTS:-60}
 PG_WAIT_ATTEMPTS=0
