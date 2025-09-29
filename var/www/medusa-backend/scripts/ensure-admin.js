@@ -14,8 +14,9 @@ const run = async () => {
   const c = new Client({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false } })
   await c.connect()
   const email = MEDUSA_ADMIN_EMAIL.trim().toLowerCase()
+  const pwd = String(MEDUSA_ADMIN_PASSWORD || '').trim()
   const now = new Date().toISOString()
-  const hash = await hashAdminPassword(MEDUSA_ADMIN_PASSWORD)
+  const hash = await hashAdminPassword(pwd)
   console.log('hash generated', hash)
 
   await c.query('BEGIN')

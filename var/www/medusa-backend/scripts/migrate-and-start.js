@@ -48,7 +48,7 @@ const logPasswordMatch = async () => {
     const email = (process.env.MEDUSA_ADMIN_EMAIL || '').toLowerCase()
     const r = await c.query('SELECT password_hash FROM "user" WHERE email=$1', [email])
     const ok = r.rows.length
-      ? await verifyAdminPassword(process.env.MEDUSA_ADMIN_PASSWORD || '', r.rows[0].password_hash)
+      ? await verifyAdminPassword(String(process.env.MEDUSA_ADMIN_PASSWORD || '').trim(), r.rows[0].password_hash)
       : false
     console.log('[admin-lite] Admin password match:', ok)
     await c.end()
