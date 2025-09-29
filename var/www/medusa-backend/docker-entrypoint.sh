@@ -61,6 +61,9 @@ if [ -d src ]; then
   echo "Syncing Medusa src to dist..."
   rm -rf dist
   cp -R src dist
+  if [ ! -e /app/dist ]; then
+    ln -s "$BACKEND_ROOT/dist" /app/dist
+  fi
 fi
 
 # Run migrations
