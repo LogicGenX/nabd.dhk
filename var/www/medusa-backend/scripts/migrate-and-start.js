@@ -7,6 +7,7 @@ const bcrypt = require('bcryptjs')
 const scrypt = require('scrypt-kdf')
 
 const backendRoot = path.join(__dirname, '..')
+process.chdir(backendRoot)
 const isBcryptHash = (hash) => typeof hash === 'string' && hash.startsWith('$2')
 const verifyAdminPassword = async (password, hash) => {
   if (!hash || !password) return false
