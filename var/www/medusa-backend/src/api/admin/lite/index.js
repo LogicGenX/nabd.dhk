@@ -19,6 +19,7 @@ const urlencodedBody = express.urlencoded({ extended: false })
 const uploadMiddleware = fileUpload({ dest: os.tmpdir() })
 
 module.exports = (rootRouter) => {
+  console.log('[admin-lite] routes ready')
   publicRoute.use(jsonBody)
   publicRoute.use(urlencodedBody)
   publicRoute.use(rateLimit)
