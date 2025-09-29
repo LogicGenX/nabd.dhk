@@ -11,6 +11,9 @@ fi
 
 cd "$BACKEND_ROOT"
 
+export MEDUSA_PROJECT_ROOT="$BACKEND_ROOT"
+export MEDUSA_BACKEND_ROOT="$BACKEND_ROOT"
+
 # Wait for Postgres to be ready
 PG_MAX_ATTEMPTS=${PG_MAX_ATTEMPTS:-60}
 PG_WAIT_ATTEMPTS=0
@@ -61,9 +64,10 @@ if [ -d src ]; then
   echo "Syncing Medusa src to dist..."
   rm -rf dist
   cp -R src dist
-  if [ ! -e /app/dist ]; then
-    ln -s "$BACKEND_ROOT/dist" /app/dist
+  if [ -L /app/dist ] || [ -d /app/dist ]; then
+    rm -rf /app/dist
   fi
+  ln -s "$BACKEND_ROOT/dist" /app/dist
 fi
 
 # Run migrations
