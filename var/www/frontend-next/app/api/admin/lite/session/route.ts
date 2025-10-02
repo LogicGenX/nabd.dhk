@@ -279,7 +279,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'Email and password are required' }, { status: 400 })
   }
 
-  const targets: Array<'admin-lite/session' | 'lite/session'> = ['admin-lite/session', 'lite/session']
+  const targets: Array<'lite/session' | 'admin-lite/session'> = ['lite/session', 'admin-lite/session']
   let url: string | null = null
   let upstream: Response | null = null
   let last404: { target: string; body?: unknown } | null = null
