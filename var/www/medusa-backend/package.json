@@ -7,6 +7,7 @@
     "migrate": "npx medusa migrations run",
     "ensure:admin": "node scripts/ensure-admin.js",
     "postdeploy": "yarn migrate && yarn ensure:admin",
+    "build:dist": "node scripts/prepare-dist.js",
     "test": "node test/test.js"
   },
   "dependencies": {

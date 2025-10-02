@@ -5,6 +5,7 @@ const path = require('path')
 const pg = require('pg')
 const bcrypt = require('bcryptjs')
 const scrypt = require('scrypt-kdf')
+const { prepareDist } = require('./prepare-dist')
 
 const backendRoot = path.join(__dirname, '..')
 process.chdir(backendRoot)
@@ -66,22 +67,15 @@ const resolveBin = (name) => {
 }
 
 const syncSourceToDist = () => {
-  const srcDir = path.join(backendRoot, 'src')
   const distDir = path.join(backendRoot, 'dist')
+  const marker = path.join(distDir, 'api', 'admin', 'lite', 'index.js')
 
-  try {
-    if (!fs.existsSync(srcDir)) {
-      return
-    }
+  if (fs.existsSync(marker)) {
+    return
+  }
 
-    if (fs.existsSync(distDir)) {
-      fs.rmSync(distDir, { recursive: true, force: true })
-    }
-
-    fs.cpSync(srcDir, distDir, { recursive: true })
-    console.log('[admin-lite] Synced src -> dist before start')
-  } catch (error) {
-    console.warn('[admin-lite] Failed to sync src to dist:', error?.message || error)
+  if (!prepareDist()) {
+    console.warn('[admin-lite] prepare-dist failed to ensure dist directory before start')
   }
 }
 
