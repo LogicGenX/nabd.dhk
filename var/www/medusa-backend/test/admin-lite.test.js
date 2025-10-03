@@ -274,6 +274,10 @@ module.exports = async () => {
       const paged = results.slice(skip, skip + take)
       return [clone(paged), results.length]
     },
+    list: async (selector = {}, config = {}) => {
+      const [products] = await productService.listAndCount(selector, config)
+      return products
+    },
     retrieve: async (id) => {
       const product = productState.find((entry) => entry.id === id)
       if (!product) throw new Error('not found')

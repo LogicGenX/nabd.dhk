@@ -136,6 +136,33 @@ const serializeProduct = (product, currency) => {
     updated_at: product.updated_at,
   }
 }
+const extractProductSizes = (products) => {
+  if (!Array.isArray(products)) return []
+
+  const sizes = new Map()
+
+  for (const product of products) {
+    const options = Array.isArray(product?.options) ? product.options : []
+    const sizeOption = options.find((option) => {
+      if (!option || typeof option?.title !== 'string') return false
+      return option.title.trim().toLowerCase() === 'size'
+    })
+    if (!sizeOption || !sizeOption.id) continue
+
+    const variants = Array.isArray(product?.variants) ? product.variants : []
+    for (const variant of variants) {
+      const variantOptions = Array.isArray(variant?.options) ? variant.options : []
+      const match = variantOptions.find((opt) => opt?.option_id === sizeOption.id)
+      const rawValue = typeof match?.value === 'string' ? match.value.trim() : ''
+      if (!rawValue) continue
+      const normalized = rawValue.toLowerCase()
+      if (!sizes.has(normalized)) sizes.set(normalized, rawValue)
+    }
+  }
+
+  return Array.from(sizes.values()).sort((a, b) => a.localeCompare(b))
+}
+
 const parseLimit = (value, fallback, max) => {
   const parsed = parseInt(value, 10)
   if (!Number.isFinite(parsed) || parsed <= 0) return fallback
@@ -340,10 +367,20 @@ exports.update = async (req, res) => {
 exports.catalog = async (req, res) => {
   const collectionService = req.scope.resolve('productCollectionService')
   const categoryService = req.scope.resolve('productCategoryService')
+  const productService = req.scope.resolve('productService')
 
-  const [collections, categories] = await Promise.all([
+  const [collections, categories, products] = await Promise.all([
     collectionService.list({}, { select: ['id', 'title', 'handle'] }),
     categoryService.list({}, { select: ['id', 'name', 'handle'] }),
+    productService.list(
+      {},
+      {
+        select: ['id'],
+        relations: ['options', 'variants', 'variants.options'],
+        skip: 0,
+        take: 1000,
+      }
+    ),
   ])
 
   res.json({
@@ -357,6 +394,7 @@ exports.catalog = async (req, res) => {
       name: category.name,
       handle: category.handle,
     })),
+    sizes: extractProductSizes(products),
   })
 }
 

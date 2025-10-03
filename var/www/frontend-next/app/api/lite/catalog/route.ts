@@ -94,25 +94,37 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const [collectionsPayload, categoriesPayload, productsPayload] = await Promise.all([
-      fetchJson(req, token, 'collections?limit=1000'),
-      fetchJson(req, token, 'product-categories?limit=1000', { optional: true }),
-      fetchJson(req, token, 'products?limit=1000&expand=options,variants,variants.options'),
-    ])
+    const catalogPayload = await fetchJson(req, token, 'lite/catalog')
 
-    const collections = Array.isArray(collectionsPayload?.collections)
-      ? collectionsPayload.collections
-          .map((entry: any) => ({ id: entry?.id, title: entry?.title }))
+    const collections = Array.isArray(catalogPayload?.collections)
+      ? catalogPayload.collections
+          .map((entry: any) => ({ id: entry?.id, title: entry?.title || entry?.name || entry?.handle }))
           .filter((entry: any) => entry.id && entry.title)
       : []
 
-    const categories = Array.isArray(categoriesPayload?.product_categories)
-      ? categoriesPayload.product_categories
+    const categories = Array.isArray(catalogPayload?.categories)
+      ? catalogPayload.categories
           .map((entry: any) => ({ id: entry?.id, name: entry?.name || entry?.title }))
           .filter((entry: any) => entry.id && entry.name)
       : []
 
-    const sizes = extractSizes(productsPayload)
+    let sizes: string[] = Array.isArray(catalogPayload?.sizes)
+      ? catalogPayload.sizes
+          .filter((value: unknown): value is string => typeof value === 'string' && Boolean(value.trim()))
+          .map((value: string) => value.trim())
+      : []
+
+    if (!sizes.length) {
+      const productsPayload = await fetchJson(
+        req,
+        token,
+        'lite/products?limit=1000&expand=options,variants,variants.options',
+        { optional: true }
+      )
+      if (productsPayload) {
+        sizes = extractSizes(productsPayload)
+      }
+    }
 
     return NextResponse.json({ collections, categories, sizes })
   } catch (error) {

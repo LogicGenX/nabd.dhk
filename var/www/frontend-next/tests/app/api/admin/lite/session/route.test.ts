@@ -34,7 +34,7 @@ describe('admin lite session route', () => {
   it('sets a non-secure cookie when authenticating over http', async () => {
     const fetchMock = vi
       .fn<Parameters<typeof fetch>, ReturnType<typeof fetch>>()
-      .mockResolvedValue(jsonResponse({ token: 'tok_123', user: { id: 'admin' } }))
+      .mockResolvedValue(jsonResponse({ token: 'tok_123', user: { id: 'admin', email: 'admin@nabd.dhk' } }))
 
     global.fetch = fetchMock as unknown as typeof fetch
 
@@ -54,7 +54,7 @@ describe('admin lite session route', () => {
   it('sets a secure cookie when authenticating over https', async () => {
     const fetchMock = vi
       .fn<Parameters<typeof fetch>, ReturnType<typeof fetch>>()
-      .mockResolvedValue(jsonResponse({ token: 'tok_456', user: { id: 'admin' } }))
+      .mockResolvedValue(jsonResponse({ token: 'tok_456', user: { id: 'admin', email: 'admin@nabd.dhk' } }))
 
     global.fetch = fetchMock as unknown as typeof fetch
 
