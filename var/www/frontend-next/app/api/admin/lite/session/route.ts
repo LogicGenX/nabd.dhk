@@ -81,6 +81,27 @@ const setProxyTargetHeader = (res: NextResponse, target: string | null) => {
   }
 }
 
+const responseIsGuardUnauthorized = async (response: Response) => {
+  try {
+    const contentType = response.headers.get('content-type')?.toLowerCase() || ''
+    if (contentType.includes('application/json')) {
+      return false
+    }
+    if (response.headers.has('www-authenticate')) {
+      return true
+    }
+    const text = await response.clone().text()
+    const normalized = text.trim().toLowerCase()
+    if (!normalized) {
+      return true
+    }
+    return normalized === 'unauthorized' || normalized === 'unauthorised'
+  } catch (error) {
+    console.warn('[admin-lite] unable to inspect unauthorized response', error)
+    return false
+  }
+}
+
 const parseTtlSeconds = (value: unknown): number | null => {
   if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
     return Math.floor(value)
@@ -95,8 +116,9 @@ const parseTtlSeconds = (value: unknown): number | null => {
 }
 
 const fetchBackendSession = async (req: NextRequest | null, token: string) => {
-  const targets: Array<'lite/session' | 'admin-lite/session'> = ['lite/session', 'admin-lite/session']
+  const targets: Array<'lite/session' | 'admin-lite/session'> = ['admin-lite/session', 'lite/session']
   let last404: { target: string; body?: unknown } | null = null
+  const guardedTargets: string[] = []
 
   for (const target of targets) {
     const url = buildLiteSessionUrl(req || undefined, target)
@@ -122,6 +144,11 @@ const fetchBackendSession = async (req: NextRequest | null, token: string) => {
         continue
       }
 
+      if (response.status === 401 && (await responseIsGuardUnauthorized(response))) {
+        guardedTargets.push(target)
+        continue
+      }
+
       const body = await readJson(response)
       return { status: response.status, body }
     } catch (error) {
@@ -135,6 +162,7 @@ const fetchBackendSession = async (req: NextRequest | null, token: string) => {
     body: {
       message: 'Admin Lite session endpoint not found',
       details: last404?.body,
+      guarded_targets: guardedTargets.length ? guardedTargets : undefined,
     },
   }
 }
@@ -279,10 +307,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'Email and password are required' }, { status: 400 })
   }
 
-  const targets: Array<'lite/session' | 'admin-lite/session'> = ['lite/session', 'admin-lite/session']
+  const targets: Array<'lite/session' | 'admin-lite/session'> = ['admin-lite/session', 'lite/session']
   let url: string | null = null
   let upstream: Response | null = null
   let last404: { target: string; body?: unknown } | null = null
+  const guardedTargets: string[] = []
 
   for (const target of targets) {
     url = buildLiteSessionUrl(req, target)
@@ -305,13 +334,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Unable to reach backend' }, { status: 502 })
     }
 
-    if (upstream.status !== 404) {
-      break
+    if (upstream.status === 404) {
+      const body = await readJson(upstream)
+      last404 = { target, body }
+      upstream = null
+      continue
     }
 
-    const body = await readJson(upstream)
-    last404 = { target, body }
-    upstream = null
+    if (upstream.status === 401 && (await responseIsGuardUnauthorized(upstream))) {
+      guardedTargets.push(target)
+      upstream = null
+      continue
+    }
+
+    break
   }
 
   if (!url) {
@@ -332,6 +368,9 @@ export async function POST(req: NextRequest) {
     const payload: Record<string, unknown> = {
       message: 'Admin Lite session endpoint not found',
       details,
+    }
+    if (guardedTargets.length) {
+      payload.guarded_targets = guardedTargets
     }
 
     return NextResponse.json(payload, { status: 404 })

@@ -45,6 +45,8 @@ describe('admin lite session route', () => {
     })
 
     const response = await POST(request)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock.mock.calls[0][0]).toBe(BACKEND_URL + '/admin-lite/session')
     expect(response.status).toBe(200)
     const setCookie = response.headers.get('set-cookie') || ''
     expect(setCookie).toContain(ADMIN_COOKIE + '=')
@@ -65,10 +67,35 @@ describe('admin lite session route', () => {
     })
 
     const response = await POST(request)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock.mock.calls[0][0]).toBe(BACKEND_URL + '/admin-lite/session')
     expect(response.status).toBe(200)
     const setCookie = response.headers.get('set-cookie') || ''
     expect(setCookie).toContain(ADMIN_COOKIE + '=')
     expect(setCookie.toLowerCase()).toContain('secure')
+  })
+
+  it('falls back to the legacy admin namespace when the public endpoint is guarded', async () => {
+    const guardResponse = new Response('Unauthorized', { status: 401 })
+    const successPayload = { token: 'tok_fallback', user: { id: 'admin', email: 'admin@nabd.dhk' } }
+    const fetchMock = vi
+      .fn<Parameters<typeof fetch>, ReturnType<typeof fetch>>()
+      .mockResolvedValueOnce(guardResponse)
+      .mockResolvedValueOnce(jsonResponse(successPayload))
+
+    global.fetch = fetchMock as unknown as typeof fetch
+
+    const request = new NextRequest('https://admin.nabd.dhk/api/admin/lite/session', {
+      method: 'POST',
+      body: JSON.stringify({ email: 'admin@nabd.dhk', password: 'secret' }),
+      headers: { 'content-type': 'application/json' },
+    })
+
+    const response = await POST(request)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls[0][0]).toBe(BACKEND_URL + '/admin-lite/session')
+    expect(fetchMock.mock.calls[1][0]).toBe(BACKEND_URL + '/admin/lite/session')
+    expect(response.status).toBe(200)
   })
 
   it('honours a backend-provided ttl when issuing the session cookie', async () => {
