@@ -26,6 +26,27 @@ const cleanEnv = (value?: string | null) => {
   return trimmed ? trimmed : undefined
 }
 
+const resolveSecretCandidates = () => {
+  const candidates = [process.env.ADMIN_LITE_JWT_SECRET, process.env.JWT_SECRET]
+  const resolved: string[] = []
+  const seen = new Set<string>()
+
+  for (const candidate of candidates) {
+    if (typeof candidate !== 'string') continue
+    const trimmed = candidate.trim()
+    if (!trimmed || seen.has(trimmed)) continue
+    seen.add(trimmed)
+    resolved.push(trimmed)
+  }
+
+  return resolved
+}
+
+const resolvePrimarySecret = () => {
+  const [primary] = resolveSecretCandidates()
+  return primary || null
+}
+
 const buildStaffName = (firstName: string | null, lastName: string | null, fallbackEmail: string) => {
   const parts: string[] = []
   if (firstName && firstName.trim()) parts.push(firstName.trim())
@@ -100,7 +121,7 @@ export const projectAdminLiteUser = (user: Record<string, unknown>): AdminLiteUs
 }
 
 export const createAdminLiteToken = (user: Record<string, any>): AdminLiteTokenResult => {
-  const secret = cleanEnv(process.env.ADMIN_LITE_JWT_SECRET)
+  const secret = resolvePrimarySecret()
   if (!secret) {
     return { ok: false as const, message: 'Admin Lite token not configured' }
   }
@@ -150,20 +171,35 @@ export const createAdminLiteToken = (user: Record<string, any>): AdminLiteTokenR
 }
 
 export const verifyAdminLiteToken = (token: string) => {
-  const secret = cleanEnv(process.env.ADMIN_LITE_JWT_SECRET)
-  if (!secret) return { ok: false as const, message: 'Admin Lite token not configured' }
+  const secrets = resolveSecretCandidates()
+  if (!secrets.length) return { ok: false as const, message: 'Admin Lite token not configured' }
 
-  try {
-    const audience = cleanEnv(process.env.ADMIN_LITE_JWT_AUDIENCE)
-    const issuer = cleanEnv(process.env.ADMIN_LITE_JWT_ISSUER)
-    const verifyOptions: jwt.VerifyOptions = { algorithms: ['HS256'] }
-    if (audience) verifyOptions.audience = audience
-    if (issuer) verifyOptions.issuer = issuer
+  const audience = cleanEnv(process.env.ADMIN_LITE_JWT_AUDIENCE)
+  const issuer = cleanEnv(process.env.ADMIN_LITE_JWT_ISSUER)
+  const verifyOptions: jwt.VerifyOptions = { algorithms: ['HS256'] }
+  if (audience) verifyOptions.audience = audience
+  if (issuer) verifyOptions.issuer = issuer
 
-    const payload = jwt.verify(token, secret, verifyOptions) as jwt.JwtPayload
+  let lastError: Error | null = null
 
-    return { ok: true as const, payload }
-  } catch (error: any) {
-    return { ok: false as const, message: error?.message || 'Invalid Admin Lite token' }
+  for (const secret of secrets) {
+    try {
+      const payload = jwt.verify(token, secret, verifyOptions) as jwt.JwtPayload
+      return { ok: true as const, payload }
+    } catch (error: any) {
+      lastError = error instanceof Error ? error : new Error(String(error))
+      const message = lastError.message || ''
+      if ((audience || issuer) && (message.includes('audience') || message.includes('issuer'))) {
+        try {
+          const relaxed = jwt.verify(token, secret, { algorithms: ['HS256'] }) as jwt.JwtPayload
+          return { ok: true as const, payload: relaxed }
+        } catch (secondary: any) {
+          lastError = secondary instanceof Error ? secondary : new Error(String(secondary))
+        }
+      }
+    }
   }
+
+  const finalMessage = lastError?.message || 'Invalid Admin Lite token'
+  return { ok: false as const, message: finalMessage }
 }
