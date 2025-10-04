@@ -376,10 +376,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(payload, { status: 404 })
   }
 
-  const body = await readJson(upstream)
+  let body: any = null
+
   if (upstream.status === 401) {
-    return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 })
+    const fallback = await loginViaMedusaAuth(req, email, password)
+    if (fallback.response) {
+      return fallback.response
+    }
+
+    body = await readJson(upstream)
+    const message =
+      body && typeof body === 'object' && typeof body.message === 'string' ? body.message : 'Invalid credentials'
+
+    const payload: Record<string, unknown> = { message }
+    if (guardedTargets.length) {
+      payload.guarded_targets = guardedTargets
+    }
+    if (body && typeof body === 'object') {
+      payload.details = body
+    }
+    return NextResponse.json(payload, { status: 401 })
   }
+
+  body = await readJson(upstream)
 
   if (!upstream.ok) {
     const message = body?.message || 'Authentication failed'
