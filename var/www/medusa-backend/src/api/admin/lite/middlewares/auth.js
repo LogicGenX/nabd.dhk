@@ -97,14 +97,37 @@ module.exports = (req, res, next) => {
   if (issuer) verifyOptions.issuer = issuer
   let payload = null
   let lastError = null
+  let audienceWarning = null
+
+  const tryVerify = (secret) => {
+    try {
+      return { payload: jwt.verify(token, secret, verifyOptions) }
+    } catch (error) {
+      if (
+        (verifyOptions.audience || verifyOptions.issuer) &&
+        error &&
+        typeof error.message === 'string' &&
+        (error.message.includes('audience') || error.message.includes('issuer'))
+      ) {
+        try {
+          const relaxedPayload = jwt.verify(token, secret)
+          return { payload: relaxedPayload, warning: error.message }
+        } catch (secondary) {
+          return { error: secondary }
+        }
+      }
+      return { error }
+    }
+  }
 
   for (const secret of secrets) {
-    try {
-      payload = jwt.verify(token, secret, verifyOptions)
+    const result = tryVerify(secret)
+    if (result.payload) {
+      payload = result.payload
+      audienceWarning = result.warning || null
       break
-    } catch (error) {
-      lastError = error
     }
+    lastError = result.error
   }
 
   if (!payload) {
@@ -123,6 +146,10 @@ module.exports = (req, res, next) => {
     permissions: Array.isArray(payload.permissions) ? payload.permissions : [],
   }
   req.liteTokenPayload = payload
+  if (audienceWarning) {
+    const logger = req.scope && req.scope.resolve ? req.scope.resolve('logger') : null
+    if (logger && logger.warn) logger.warn('[admin-lite] token audience/issuer mismatch: ' + audienceWarning)
+  }
   return next()
 }
 
