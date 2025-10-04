@@ -9,14 +9,25 @@ const cleanEnv = (value) => {
   return trimmed ? trimmed : undefined
 }
 
-const resolveSecret = () => {
+const resolveSecretCandidates = () => {
   const candidates = [process.env.ADMIN_LITE_JWT_SECRET, process.env.JWT_SECRET]
+  const resolved = []
+  const seen = new Set()
+
   for (const candidate of candidates) {
     if (typeof candidate !== 'string') continue
     const trimmed = candidate.trim()
-    if (trimmed) return trimmed
+    if (!trimmed || seen.has(trimmed)) continue
+    seen.add(trimmed)
+    resolved.push(trimmed)
   }
-  return null
+
+  return resolved
+}
+
+const resolveSecret = () => {
+  const [primary] = resolveSecretCandidates()
+  return primary || null
 }
 
 const buildStaffName = (firstName, lastName, fallbackEmail) => {
@@ -144,6 +155,7 @@ const generateAdminLiteToken = (user) => {
 module.exports = {
   cleanEnv,
   resolveSecret,
+  resolveSecretCandidates,
   generateAdminLiteToken,
   createAdminLiteToken: generateAdminLiteToken,
   projectAdminLiteUser,

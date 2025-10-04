@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken')
-const { resolveSecret } = require('../utils/token')
+const { resolveSecret, resolveSecretCandidates } = require('../utils/token')
 
 const normalizeOrigin = (value) => value.toLowerCase().replace(/\/+$/, '')
 const escapeRegex = (value) => value.replace(/[|\\{}()[\]^$+*?.-]/g, '\\$&')
@@ -56,8 +56,8 @@ const matchesAllowedOrigin = (allowedOrigins, value) => {
 }
 
 module.exports = (req, res, next) => {
-  const secret = resolveSecret()
-  if (!secret) {
+  const secrets = resolveSecretCandidates()
+  if (!secrets.length) {
     const logger = req.scope && req.scope.resolve ? req.scope.resolve('logger') : null
     if (logger && logger.error) logger.error('Admin Lite JWT secret missing')
     return res.status(500).json({ message: 'Admin Lite token not configured' })
@@ -95,24 +95,34 @@ module.exports = (req, res, next) => {
   if (audience) verifyOptions.audience = audience
   const issuer = process.env.ADMIN_LITE_JWT_ISSUER
   if (issuer) verifyOptions.issuer = issuer
-  try {
-    const payload = jwt.verify(token, secret, verifyOptions)
-    req.liteStaff = {
-      id: payload.sub || payload.id || null,
-      email: payload.email,
-      first_name: typeof payload.first_name === 'string' ? payload.first_name : null,
-      last_name: typeof payload.last_name === 'string' ? payload.last_name : null,
-      name: payload.name,
-      role: payload.role || 'staff',
-      permissions: Array.isArray(payload.permissions) ? payload.permissions : [],
-    }
-    req.liteTokenPayload = payload
-  } catch (error) {
-    const logger = req.scope && req.scope.resolve ? req.scope.resolve('logger') : null
+  let payload = null
+  let lastError = null
 
-    if (logger && logger.warn) logger.warn('Admin Lite auth failed: ' + error.message)
+  for (const secret of secrets) {
+    try {
+      payload = jwt.verify(token, secret, verifyOptions)
+      break
+    } catch (error) {
+      lastError = error
+    }
+  }
+
+  if (!payload) {
+    const logger = req.scope && req.scope.resolve ? req.scope.resolve('logger') : null
+    if (logger && logger.warn) logger.warn('Admin Lite auth failed: ' + (lastError?.message || 'invalid token'))
     return res.status(401).json({ message: 'Invalid Admin Lite token' })
   }
+
+  req.liteStaff = {
+    id: payload.sub || payload.id || null,
+    email: payload.email,
+    first_name: typeof payload.first_name === 'string' ? payload.first_name : null,
+    last_name: typeof payload.last_name === 'string' ? payload.last_name : null,
+    name: payload.name,
+    role: payload.role || 'staff',
+    permissions: Array.isArray(payload.permissions) ? payload.permissions : [],
+  }
+  req.liteTokenPayload = payload
   return next()
 }
 
