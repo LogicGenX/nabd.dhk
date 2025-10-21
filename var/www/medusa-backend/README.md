@@ -54,6 +54,7 @@ Default credentials: `admin@nabd.dhk` / `supersecret12345678`.
 | `ADMIN_LITE_RATE_LIMIT`, `ADMIN_LITE_RATE_WINDOW_MS` | Rate limiting for Admin Lite operations. |
 | `BKASH_*` | Credentials for the bKash payment integration. |
 | `MEDUSA_FF_PRODUCT_CATEGORIES` | Feature flag enabling product categories for Admin Lite catalog filters. |
+| `MEDUSA_ADMIN_RETRIES`, `MEDUSA_ADMIN_RETRY_DELAY_MS` | Optional knobs for `scripts/ensure-admin.js` to retry database connections while Postgres is booting (defaults are 10 attempts with 2s delay). |
 
 Remember to update the Render service environment with any changes so preview builds behave the same as production.
 
