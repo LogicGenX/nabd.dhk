@@ -41,21 +41,23 @@ Keep `.env` files in sync with these environments so staged changes match produc
 ## Local development
 
 1. **Bootstrap the Medusa stack**
-   ```bash
-   cd var/www/medusa-backend
-   cp template.env .env        # or copy your own secrets
-   docker compose up --build
-   ```
-   - Postgres, Redis, Medusa and an Nginx reverse proxy are launched. Nginx exposes port 80 and proxies `http://localhost` to Medusa on `http://localhost:7001`.
-   - Default admin credentials are seeded automatically (`admin@nabd.dhk` / `supersecret12345678`).
+```bash
+cd var/www/medusa-backend
+cp template.env .env        # or copy your own secrets
+docker compose up --build
+```
+- Postgres, Redis, Medusa and an Nginx reverse proxy are launched. Nginx exposes port 80 and proxies `http://localhost` to Medusa on `http://localhost:7001`.
+- Default admin credentials are seeded automatically (`admin@nabd.dhk` / `supersecret12345678`).
+- The generated `.env` ships with local Docker defaults (database on `db`, Redis on `redis`, Admin Lite origins including `http://localhost:3000`). Update any values before running Compose if you need different ports or secrets.
 
 2. **Run the storefront + Admin Lite frontend**
-   ```bash
-   cd var/www/frontend-next
-   yarn install
-   yarn dev
-   ```
-   - The app reads `MEDUSA_BACKEND_URL` / `NEXT_PUBLIC_MEDUSA_URL` to discover the API; when absent it falls back to the local proxy (`http://localhost` in development).
+```bash
+cd var/www/frontend-next
+yarn install
+yarn dev
+```
+- The app reads `MEDUSA_BACKEND_URL` / `NEXT_PUBLIC_MEDUSA_URL` to discover the API; when absent it falls back to the local proxy (`http://localhost` in development).
+- `.env.local` in the repo already points to `http://localhost:7001` so the Admin Lite proxy and storefront talk to the Dockerised Medusa instance out of the box. Adjust Sanity variables as needed.
 
 3. **Run Sanity Studio (optional)**
    ```bash

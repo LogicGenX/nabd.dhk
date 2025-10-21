@@ -45,10 +45,10 @@ Default credentials: `admin@nabd.dhk` / `supersecret12345678`.
 
 | Variable | Description |
 | --- | --- |
-| `DATABASE_URL` / `REDIS_URL` | External service URLs when not using the Docker defaults. |
+| `DATABASE_URL` / `REDIS_URL` | Defaults to the Docker network (`postgres://postgres:postgres@db:5432/medusa`, `redis://redis:6379`); override when pointing at external services. |
 | `MEDUSA_BACKEND_URL` / `MEDUSA_ADMIN_BACKEND_URL` | Public hostnames for the API and admin, used in outbound links and Admin Lite JWTs. |
 | `ADMIN_LITE_JWT_SECRET` | Secret used to sign Admin Lite tokens consumed by the Next.js proxy. |
-| `ADMIN_LITE_ALLOWED_ORIGINS` | Comma-separated list of origins allowed to hit the Admin Lite endpoints. Include the Vercel preview domain. |
+| `ADMIN_LITE_ALLOWED_ORIGINS` | Comma-separated list of origins allowed to hit the Admin Lite endpoints. `http://localhost:3000` is included for local dev alongside the Vercel previews. |
 | `ADMIN_LITE_RATE_LIMIT`, `ADMIN_LITE_RATE_WINDOW_MS` | Rate limiting for Admin Lite operations. |
 | `BKASH_*` | Credentials for the bKash payment integration. |
 | `MEDUSA_FF_PRODUCT_CATEGORIES` | Feature flag enabling product categories for Admin Lite catalog filters. |
