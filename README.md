@@ -49,6 +49,7 @@ docker compose up --build
 - Postgres, Redis, Medusa and an Nginx reverse proxy are launched. Nginx exposes port 80 and proxies `http://localhost` to Medusa on `http://localhost:7001`.
 - Default admin credentials are seeded automatically (`admin@nabd.dhk` / `supersecret12345678`).
 - The generated `.env` ships with local Docker defaults (database on `db`, Redis on `redis`, Admin Lite origins including `http://localhost:3000`). Update any values before running Compose if you need different ports or secrets.
+- Postgres now bootstraps a `medusa` database automatically (`POSTGRES_DB=medusa`), matching the `DATABASE_URL` in `.env`.
 
 2. **Run the storefront + Admin Lite frontend**
 ```bash

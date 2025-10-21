@@ -28,6 +28,7 @@ Medusa powers the nabd.dhk commerce API, Admin Lite services and background jobs
    ```
    - Medusa is available on `http://localhost:7001` and proxied to `http://localhost` through the bundled Nginx container.
    - Postgres data is persisted via the `postgres-data` volume, so restarts keep your database state.
+   - The Postgres container now seeds a `medusa` database automatically so migrations can run on first boot.
 3. Seed sample data (optional):
    ```bash
    yarn seed
