@@ -29,6 +29,7 @@ Medusa powers the nabd.dhk commerce API, Admin Lite services and background jobs
    - Medusa is available on `http://localhost:7001` and proxied to `http://localhost` through the bundled Nginx container.
    - Postgres data is persisted via the `postgres-data` volume, so restarts keep your database state.
    - The Postgres container now seeds a `medusa` database automatically so migrations can run on first boot.
+   - A SQL seed located in `docker/db-init/` inserts/updates the default admin account (`admin@nabd.dhk`) so Admin Lite logins work immediately. If you change the default password, update `docker/db-init/20_seed_admin.sql` to match.
 3. Seed sample data (optional):
    ```bash
    yarn seed

@@ -50,6 +50,7 @@ docker compose up --build
 - Default admin credentials are seeded automatically (`admin@nabd.dhk` / `supersecret12345678`).
 - The generated `.env` ships with local Docker defaults (database on `db`, Redis on `redis`, Admin Lite origins including `http://localhost:3000`). Update any values before running Compose if you need different ports or secrets.
 - Postgres now bootstraps a `medusa` database automatically (`POSTGRES_DB=medusa`), matching the `DATABASE_URL` in `.env`.
+- During initial database creation a seed script inserts the Admin Lite account (`admin@nabd.dhk`) using the default password (`supersecret12345678`); update `docker/db-init/20_seed_admin.sql` if you change the credential.
 
 2. **Run the storefront + Admin Lite frontend**
 ```bash
