@@ -15,9 +15,26 @@ const unauthorized = () => {
   return res
 }
 
+const ensureLitePath = (parts: string) => {
+  const trimmed = parts.trim().replace(/^\/+/, '')
+  if (!trimmed) return 'lite'
+
+  if (
+    trimmed.startsWith('lite/') ||
+    trimmed === 'lite' ||
+    trimmed.startsWith('admin-lite') ||
+    trimmed.startsWith('admin/')
+  ) {
+    return trimmed
+  }
+
+  return 'lite/' + trimmed
+}
+
 const buildTargetUrl = (req: NextRequest, segments: string[] | undefined, search: string) => {
   const parts = segments && segments.length ? segments.join('/') : ''
-  const url = buildAdminUrl(parts, req)
+  const path = ensureLitePath(parts)
+  const url = buildAdminUrl(path, req)
   return url + search
 }
 
