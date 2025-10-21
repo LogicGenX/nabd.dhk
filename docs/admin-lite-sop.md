@@ -71,10 +71,10 @@ Support playbook
 
 Admin Lite login fix runbook
 ----------------------------
-1. **Align the frontend env vars** – set `MEDUSA_BACKEND_URL` and `NEXT_PUBLIC_MEDUSA_URL` on the Next.js deployment to the same origin that serves Admin Lite (root or `/admin` both work) and ensure `ADMIN_LITE_JWT_SECRET` is identical between the Medusa backend (Render) and the Next.js site (Vercel).
+1. **Align the frontend env vars** – set `MEDUSA_BACKEND_URL` and `NEXT_PUBLIC_MEDUSA_URL` on the Next.js deployment to the same origin that serves Admin Lite (root or `/admin` both work) and ensure `ADMIN_LITE_JWT_SECRET` is identical between the Medusa backend (Render) and the Next.js site (Vercel). If you enable optional claims (`ADMIN_LITE_JWT_AUDIENCE` / `ADMIN_LITE_JWT_ISSUER`), copy those values to both services as well.
 2. **Verify the proxy route** – `app/api/admin/lite/session/route.ts` now builds the Medusa target URL from those env vars and, when they are absent, auto-detects the request origin (falling back to `/admin/...`). Redeploy the frontend after editing envs or code.
 3. **Reset the admin credentials** – export `MEDUSA_ADMIN_EMAIL` / `MEDUSA_ADMIN_PASSWORD` and run `node scripts/ensure-admin.js` inside `var/www/medusa-backend` so the Medusa DB has the expected login.
-4. **Harden backend auth envs** – configure `ADMIN_LITE_JWT_SECRET` (matching the frontend), whitelist the frontend origin(s) in `ADMIN_LITE_ALLOWED_ORIGINS`, and set `ADMIN_LITE_JWT_TTL_SECONDS` if you need a session length other than 24 hours; restart the Medusa service afterwards.
+4. **Harden backend auth envs** – configure `ADMIN_LITE_JWT_SECRET` (matching the frontend), whitelist the frontend origin(s) in `ADMIN_LITE_ALLOWED_ORIGINS`, and set `ADMIN_LITE_JWT_TTL_SECONDS` if you need a session length other than 24 hours. When present, `ADMIN_LITE_JWT_AUDIENCE` / `ADMIN_LITE_JWT_ISSUER` must mirror the frontend configuration so token verification succeeds; restart the Medusa service afterwards.
 5. **Smoke test with curl** – `curl -i -X POST "https://your-domain.example/admin/lite/session" -H "Content-Type: application/json" -d '{"email":"admin@nabd.dhk","password":"YourNewStrongPassword123!"}'`.
    - `200` returns tokens and confirms the flow works.
    - `401` means credentials or database mismatch – rerun the seed script and confirm the proxy origin.
