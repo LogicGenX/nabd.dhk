@@ -11,6 +11,40 @@ const backendRoot = path.join(__dirname, '..')
 process.chdir(backendRoot)
 process.env.MEDUSA_PROJECT_ROOT = backendRoot
 process.env.MEDUSA_BACKEND_ROOT = backendRoot
+
+const resolvePgSslConfig = () => {
+  const overrideRaw = process.env.MEDUSA_DB_SSL ?? process.env.MEDUSA_ADMIN_DB_SSL ?? ''
+  const override = overrideRaw.toLowerCase()
+  if (override === 'require' || override === 'true' || override === '1') {
+    return { rejectUnauthorized: false }
+  }
+  if (override === 'disable' || override === 'false' || override === '0') {
+    return false
+  }
+
+  const url = process.env.DATABASE_URL
+  if (!url) {
+    return false
+  }
+
+  try {
+    const parsed = new URL(url)
+    const sslMode = (parsed.searchParams.get('sslmode') || '').toLowerCase()
+    if (sslMode && sslMode !== 'disable' && sslMode !== 'allow' && sslMode !== 'prefer') {
+      return { rejectUnauthorized: false }
+    }
+    if (parsed.hostname && /\.neon\.tech$/i.test(parsed.hostname)) {
+      return { rejectUnauthorized: false }
+    }
+  } catch (error) {
+    console.warn('[admin-lite] unable to inspect DATABASE_URL for SSL requirements:', error?.message || error)
+  }
+
+  return false
+}
+
+const pgSslConfig = resolvePgSslConfig()
+
 const isBcryptHash = (hash) => typeof hash === 'string' && hash.startsWith('$2')
 const verifyAdminPassword = async (password, hash) => {
   if (!hash || !password) return false
@@ -32,7 +66,7 @@ const verifyAdminPassword = async (password, hash) => {
 
 const logDbFingerprint = async () => {
   try {
-    const c = new pg.Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } })
+    const c = new pg.Client({ connectionString: process.env.DATABASE_URL, ssl: pgSslConfig })
     await c.connect()
     const db = await c.query('SELECT current_database() db, current_user usr')
     const email = (process.env.MEDUSA_ADMIN_EMAIL || '').toLowerCase()
@@ -47,7 +81,7 @@ const logDbFingerprint = async () => {
 
 const logPasswordMatch = async () => {
   try {
-    const c = new pg.Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } })
+    const c = new pg.Client({ connectionString: process.env.DATABASE_URL, ssl: pgSslConfig })
     await c.connect()
     const email = (process.env.MEDUSA_ADMIN_EMAIL || '').toLowerCase()
     const r = await c.query('SELECT password_hash FROM "user" WHERE email=$1', [email])

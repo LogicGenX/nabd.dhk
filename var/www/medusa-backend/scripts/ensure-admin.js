@@ -13,7 +13,7 @@ const hashAdminPassword = async (password) => {
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
 const resolveSslConfig = (connectionString) => {
-  const override = String(process.env.MEDUSA_ADMIN_DB_SSL || '').toLowerCase()
+  const override = String(process.env.MEDUSA_DB_SSL ?? process.env.MEDUSA_ADMIN_DB_SSL ?? '').toLowerCase()
   if (override === 'require' || override === 'true' || override === '1') {
     return { rejectUnauthorized: false }
   }
