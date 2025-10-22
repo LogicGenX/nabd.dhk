@@ -42,8 +42,12 @@ const getCookieOptions = (req?: NextRequest) => ({
 })
 
 const readJson = async (response: Response) => {
+  const contentType = response.headers.get('content-type')?.toLowerCase() || ''
   const text = await response.text()
   if (!text) return {}
+  if (!contentType.includes('application/json')) {
+    return {}
+  }
   try {
     return JSON.parse(text)
   } catch (error) {
@@ -63,10 +67,9 @@ const unauthorized = (req: NextRequest, message = 'Not authenticated') => {
   return res
 }
 
-const buildLiteSessionUrl = (
-  req: NextRequest | undefined,
-  target: 'lite/session' | 'admin-lite/session' = 'lite/session'
-) => {
+type SessionTarget = 'lite/session' | 'admin-lite/session' | 'admin/lite/session'
+
+const buildLiteSessionUrl = (req: NextRequest | undefined, target: SessionTarget = 'lite/session') => {
   try {
     return buildAdminUrl(target, req)
   } catch (error) {
@@ -116,7 +119,7 @@ const parseTtlSeconds = (value: unknown): number | null => {
 }
 
 const fetchBackendSession = async (req: NextRequest | null, token: string) => {
-  const targets: Array<'lite/session' | 'admin-lite/session'> = ['admin-lite/session', 'lite/session']
+  const targets: SessionTarget[] = ['admin-lite/session', 'admin/lite/session', 'lite/session']
   let last404: { target: string; body?: unknown } | null = null
   const guardedTargets: string[] = []
 
@@ -307,7 +310,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'Email and password are required' }, { status: 400 })
   }
 
-  const targets: Array<'lite/session' | 'admin-lite/session'> = ['admin-lite/session', 'lite/session']
+  const targets: SessionTarget[] = ['admin-lite/session', 'admin/lite/session', 'lite/session']
   let url: string | null = null
   let upstream: Response | null = null
   let last404: { target: string; body?: unknown } | null = null
