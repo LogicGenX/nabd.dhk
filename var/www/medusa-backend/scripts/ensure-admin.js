@@ -12,13 +12,39 @@ const hashAdminPassword = async (password) => {
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
+const resolveSslConfig = (connectionString) => {
+  const override = String(process.env.MEDUSA_ADMIN_DB_SSL || '').toLowerCase()
+  if (override === 'require' || override === 'true' || override === '1') {
+    return { rejectUnauthorized: false }
+  }
+  if (override === 'disable' || override === 'false' || override === '0') {
+    return false
+  }
+
+  try {
+    const parsed = new URL(connectionString)
+    const sslMode = (parsed.searchParams.get('sslmode') || '').toLowerCase()
+    if (sslMode && sslMode !== 'disable' && sslMode !== 'allow' && sslMode !== 'prefer') {
+      return { rejectUnauthorized: false }
+    }
+    if (parsed.hostname && /\.neon\.tech$/i.test(parsed.hostname)) {
+      return { rejectUnauthorized: false }
+    }
+  } catch (error) {
+    console.warn('[ensure-admin] unable to inspect DATABASE_URL for SSL requirements:', error?.message || error)
+  }
+
+  return false
+}
+
 const connectWithRetry = async () => {
   const attempts = Number(process.env.MEDUSA_ADMIN_RETRIES || 10)
   const delayMs = Number(process.env.MEDUSA_ADMIN_RETRY_DELAY_MS || 2000)
+  const sslConfig = resolveSslConfig(DATABASE_URL)
 
   let lastError = null
   for (let attempt = 1; attempt <= attempts; attempt++) {
-    const client = new Client({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false } })
+    const client = new Client({ connectionString: DATABASE_URL, ssl: sslConfig })
     try {
       await client.connect()
       if (attempt > 1) {

@@ -55,6 +55,7 @@ Default credentials: `admin@nabd.dhk` / `supersecret12345678`.
 | `BKASH_*` | Credentials for the bKash payment integration. |
 | `MEDUSA_FF_PRODUCT_CATEGORIES` | Feature flag enabling product categories for Admin Lite catalog filters. |
 | `MEDUSA_ADMIN_RETRIES`, `MEDUSA_ADMIN_RETRY_DELAY_MS` | Optional knobs for `scripts/ensure-admin.js` to retry database connections while Postgres is booting (defaults are 10 attempts with 2s delay). |
+| `MEDUSA_ADMIN_DB_SSL` | Force the admin seeder to enable (`require/true`) or disable (`disable/false`) SSL when connecting to the database. When unset the script inspects `DATABASE_URL` and defaults to non-SSL for the Docker stack. |
 
 Remember to update the Render service environment with any changes so preview builds behave the same as production.
 
