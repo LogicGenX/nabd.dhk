@@ -55,10 +55,21 @@ const matchesAllowedOrigin = (allowedOrigins, value) => {
   return false
 }
 
+const resolveLogger = (req, fallback = null) => {
+  if (req.scope && typeof req.scope.resolve === 'function') {
+    try {
+      return req.scope.resolve('logger')
+    } catch (error) {
+      // ignore
+    }
+  }
+  return fallback
+}
+
 module.exports = (req, res, next) => {
   const secrets = resolveSecretCandidates()
   if (!secrets.length) {
-    const logger = req.scope && req.scope.resolve ? req.scope.resolve('logger') : null
+    const logger = resolveLogger(req)
     if (logger && logger.error) logger.error('Admin Lite JWT secret missing')
     return res.status(500).json({ message: 'Admin Lite token not configured' })
   }
@@ -72,6 +83,8 @@ module.exports = (req, res, next) => {
     if (alt) token = alt.trim()
   }
   if (!token) {
+    const logger = resolveLogger(req, console)
+    if (logger && logger.warn) logger.warn('[admin-lite] auth: missing bearer token for ' + (req.originalUrl || req.url))
     return res.status(401).json({ message: 'Missing Admin Lite token' })
   }
   const allowedOrigins = getAllowedOrigins()
@@ -87,6 +100,8 @@ module.exports = (req, res, next) => {
       originCandidates.length &&
       !originCandidates.some((candidate) => matchesAllowedOrigin(allowedOrigins, candidate))
     ) {
+      const logger = resolveLogger(req, console)
+      if (logger && logger.warn) logger.warn('[admin-lite] auth: origin not allowed', { candidates: originCandidates, allowed: allowedOrigins.map((o) => o.value) })
       return res.status(403).json({ message: 'Origin not allowed' })
     }
   }
@@ -131,8 +146,10 @@ module.exports = (req, res, next) => {
   }
 
   if (!payload) {
-    const logger = req.scope && req.scope.resolve ? req.scope.resolve('logger') : null
+    const logger = resolveLogger(req)
     if (logger && logger.warn) logger.warn('Admin Lite auth failed: ' + (lastError?.message || 'invalid token'))
+    const fallbackLogger = resolveLogger(req, console)
+    if (fallbackLogger && fallbackLogger.warn) fallbackLogger.warn('[admin-lite] auth failed: ' + (lastError?.message || 'invalid token'))
     return res.status(401).json({ message: 'Invalid Admin Lite token' })
   }
 
@@ -147,7 +164,7 @@ module.exports = (req, res, next) => {
   }
   req.liteTokenPayload = payload
   if (audienceWarning) {
-    const logger = req.scope && req.scope.resolve ? req.scope.resolve('logger') : null
+    const logger = resolveLogger(req)
     if (logger && logger.warn) logger.warn('[admin-lite] token audience/issuer mismatch: ' + audienceWarning)
   }
   return next()
