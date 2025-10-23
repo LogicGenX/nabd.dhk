@@ -55,6 +55,15 @@ const matchesAllowedOrigin = (allowedOrigins, value) => {
   return false
 }
 
+const isLocalOrigin = (value) => {
+  if (!value) return false
+  const normalized = normalizeOrigin(value)
+  if (!normalized) return false
+  if (/^(https?:\/\/)?(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalized)) return true
+  const withHttp = normalized.includes('://') ? normalized : 'http://' + normalized
+  return /^(https?:\/\/)?(localhost|127\.0\.0\.1)(:\d+)?$/.test(withHttp)
+}
+
 const resolveLogger = (req, fallback = null) => {
   if (req.scope && typeof req.scope.resolve === 'function') {
     try {
@@ -88,6 +97,7 @@ module.exports = (req, res, next) => {
     return res.status(401).json({ message: 'Missing Admin Lite token' })
   }
   const allowedOrigins = getAllowedOrigins()
+  const isDevEnvironment = (process.env.NODE_ENV || '').toLowerCase() !== 'production'
   if (allowedOrigins.length) {
     const originCandidates = [
       req.get('origin'),
@@ -100,6 +110,9 @@ module.exports = (req, res, next) => {
       originCandidates.length &&
       !originCandidates.some((candidate) => matchesAllowedOrigin(allowedOrigins, candidate))
     ) {
+      if (isDevEnvironment && originCandidates.some(isLocalOrigin)) {
+        return next()
+      }
       const logger = resolveLogger(req, console)
       if (logger && logger.warn) logger.warn('[admin-lite] auth: origin not allowed', { candidates: originCandidates, allowed: allowedOrigins.map((o) => o.value) })
       return res.status(403).json({ message: 'Origin not allowed' })

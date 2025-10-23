@@ -101,6 +101,22 @@ const toStringArray = (values) => {
     .filter((value) => value.length > 0)
 }
 
+const listCategories = async (categoryService, config = {}) => {
+  const selector = {}
+  const baseConfig = { skip: 0, take: 1000, ...config }
+
+  if (categoryService && typeof categoryService.list === 'function') {
+    return categoryService.list(selector, baseConfig)
+  }
+
+  if (categoryService && typeof categoryService.listAndCount === 'function') {
+    const [categories] = await categoryService.listAndCount(selector, baseConfig)
+    return categories
+  }
+
+  throw new Error('Product category service does not support listing categories')
+}
+
 const serializeProduct = (product, currency) => {
   const price = mapPrice(product, currency)
   const variants = mapVariants(product, currency)
@@ -402,9 +418,11 @@ exports.catalog = async (req, res) => {
   const categoryService = req.scope.resolve('productCategoryService')
   const productService = req.scope.resolve('productService')
 
+  const categoryConfig = { select: ['id', 'name', 'handle'] }
+
   const [collections, categories, products] = await Promise.all([
     collectionService.list({}, { select: ['id', 'title', 'handle'] }),
-    categoryService.list({}, { select: ['id', 'name', 'handle'] }),
+    listCategories(categoryService, categoryConfig),
     productService.list(
       {},
       {

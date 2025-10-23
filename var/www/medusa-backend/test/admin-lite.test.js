@@ -373,7 +373,7 @@ module.exports = async () => {
   }
 
   const productCategoryService = {
-    list: async () => clone(categories),
+    listAndCount: async () => [clone(categories), categories.length],
   }
 
   const fileService = {
