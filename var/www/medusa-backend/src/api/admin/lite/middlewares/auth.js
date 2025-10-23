@@ -106,16 +106,16 @@ module.exports = (req, res, next) => {
       req.get('host'),
     ].filter(Boolean)
 
-    if (
-      originCandidates.length &&
-      !originCandidates.some((candidate) => matchesAllowedOrigin(allowedOrigins, candidate))
-    ) {
-      if (isDevEnvironment && originCandidates.some(isLocalOrigin)) {
-        return next()
+    if (originCandidates.length) {
+      const originAllowed =
+        originCandidates.some((candidate) => matchesAllowedOrigin(allowedOrigins, candidate)) ||
+        (isDevEnvironment && originCandidates.some(isLocalOrigin))
+
+      if (!originAllowed) {
+        const logger = resolveLogger(req, console)
+        if (logger && logger.warn) logger.warn('[admin-lite] auth: origin not allowed', { candidates: originCandidates, allowed: allowedOrigins.map((o) => o.value) })
+        return res.status(403).json({ message: 'Origin not allowed' })
       }
-      const logger = resolveLogger(req, console)
-      if (logger && logger.warn) logger.warn('[admin-lite] auth: origin not allowed', { candidates: originCandidates, allowed: allowedOrigins.map((o) => o.value) })
-      return res.status(403).json({ message: 'Origin not allowed' })
     }
   }
   const verifyOptions = {}
