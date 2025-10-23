@@ -117,6 +117,17 @@ const listCategories = async (categoryService, config = {}) => {
   throw new Error('Product category service does not support listing categories')
 }
 
+const isDuplicateHandleError = (error) => {
+  if (!error || typeof error !== 'object') return false
+  if (typeof error.code === 'string' && error.code === '23505' && typeof error.detail === 'string') {
+    return error.detail.toLowerCase().includes('handle')
+  }
+  if (typeof error.message === 'string') {
+    return error.message.toLowerCase().includes('handle') && error.message.toLowerCase().includes('duplicate')
+  }
+  return false
+}
+
 const serializeProduct = (product, currency) => {
   const price = mapPrice(product, currency)
   const variants = mapVariants(product, currency)
@@ -270,6 +281,9 @@ const validateProductPayload = (body) => {
   if (!body.collection_id) {
     throw new Error('Collection is required')
   }
+  if (typeof body.collection_id === 'string' && !body.collection_id.trim()) {
+    throw new Error('Collection is required')
+  }
   if (
     !Array.isArray(body.category_ids) ||
     toStringArray(body.category_ids).length === 0
@@ -305,18 +319,23 @@ exports.create = async (req, res) => {
   const numericPrice = Math.round(Number(price))
   const imageUrls = toStringArray(images)
   const categoryRecords = toStringArray(category_ids).map((id) => ({ id }))
+  const collectionId = typeof collection_id === 'string' ? collection_id.trim() : collection_id
   const thumbnailUrl =
     typeof thumbnail === 'string' && thumbnail.trim()
       ? thumbnail.trim()
       : imageUrls[0] || undefined
   const metadataPayload = metadata && typeof metadata === 'object' ? metadata : undefined
+  const normalizedHandle =
+    typeof handle === 'string' && handle.trim()
+      ? handle.trim()
+      : slugify(title, 'product')
 
   const payload = {
     title,
     description,
-    handle,
+    handle: normalizedHandle,
     status,
-    collection_id,
+    collection_id: collectionId,
     categories: categoryRecords,
     images: imageUrls,
     thumbnail: thumbnailUrl,
@@ -336,7 +355,46 @@ exports.create = async (req, res) => {
     ],
   }
 
-  const created = await productService.create(payload)
+  let created
+  try {
+    created = await productService.create(payload)
+  } catch (error) {
+    if (isDuplicateHandleError(error)) {
+      const retryPayload = {
+        ...payload,
+        handle: slugify(title + '-' + Date.now(), 'product'),
+      }
+      try {
+        created = await productService.create(retryPayload)
+      } catch (retryError) {
+        const statusCode = typeof retryError?.statusCode === 'number' ? retryError.statusCode : 500
+        const message =
+          typeof retryError?.message === 'string' && retryError.message.trim()
+            ? retryError.message
+            : 'Failed to create product'
+        const logger = req.scope?.resolve?.('logger')
+        if (logger?.error) {
+          logger.error('[admin-lite] create product failed after retry', { message, error: retryError })
+        } else {
+          console.error('[admin-lite] create product failed after retry', retryError)
+        }
+        return res.status(statusCode).json({ message })
+      }
+    } else {
+      const statusCode = typeof error?.statusCode === 'number' ? error.statusCode : 500
+      const message =
+        typeof error?.message === 'string' && error.message.trim()
+          ? error.message
+          : 'Failed to create product'
+      const logger = req.scope?.resolve?.('logger')
+      if (logger?.error) {
+        logger.error('[admin-lite] create product failed', { message, error })
+      } else {
+        console.error('[admin-lite] create product failed', error)
+      }
+      return res.status(statusCode).json({ message })
+    }
+  }
   const product = await productService.retrieve(created.id, { relations: DEFAULT_RELATIONS })
   res.status(201).json({ product: serializeProduct(product, DEFAULT_CURRENCY) })
 }
@@ -372,9 +430,15 @@ exports.update = async (req, res) => {
   const updatePayload = {}
   if (title !== undefined) updatePayload.title = title
   if (description !== undefined) updatePayload.description = description
-  if (handle !== undefined) updatePayload.handle = handle
   if (status !== undefined) updatePayload.status = status
-  if (collection_id !== undefined) updatePayload.collection_id = collection_id
+  if (collection_id !== undefined) {
+    if (typeof collection_id === 'string') {
+      const trimmedCollection = collection_id.trim()
+      updatePayload.collection_id = trimmedCollection || null
+    } else {
+      updatePayload.collection_id = collection_id
+    }
+  }
   if (thumbnail !== undefined) {
     if (typeof thumbnail === 'string') {
       const trimmedThumbnail = thumbnail.trim()
@@ -386,9 +450,28 @@ exports.update = async (req, res) => {
   if (metadata && typeof metadata === 'object') updatePayload.metadata = metadata
   if (Array.isArray(images)) updatePayload.images = toStringArray(images)
   if (Array.isArray(category_ids)) updatePayload.categories = toStringArray(category_ids).map((id) => ({ id }))
+  if (handle !== undefined) {
+    if (typeof handle === 'string' && handle.trim()) {
+      updatePayload.handle = handle.trim()
+    } else if (typeof title === 'string' && title.trim()) {
+      updatePayload.handle = slugify(title, 'product')
+    }
+  }
 
   if (Object.keys(updatePayload).length > 0) {
-    await productService.update(productId, updatePayload)
+    try {
+      await productService.update(productId, updatePayload)
+    } catch (error) {
+      if (isDuplicateHandleError(error)) {
+        const fallbackHandle =
+          typeof updatePayload.handle === 'string' && updatePayload.handle.trim()
+            ? updatePayload.handle + '-' + Date.now()
+            : slugify((typeof title === 'string' && title.trim() ? title : 'product') + '-' + Date.now(), 'product')
+        await productService.update(productId, { ...updatePayload, handle: fallbackHandle })
+      } else {
+        throw error
+      }
+    }
   }
 
   if (price !== undefined && price !== null && !Number.isNaN(Number(price))) {
