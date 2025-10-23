@@ -91,6 +91,16 @@ const mapVariants = (product, currency) => {
   })
 }
 
+const toStringArray = (values) => {
+  if (!Array.isArray(values)) {
+    return []
+  }
+  return values
+    .filter((value) => typeof value === 'string')
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0)
+}
+
 const serializeProduct = (product, currency) => {
   const price = mapPrice(product, currency)
   const variants = mapVariants(product, currency)
@@ -244,7 +254,10 @@ const validateProductPayload = (body) => {
   if (!body.collection_id) {
     throw new Error('Collection is required')
   }
-  if (!Array.isArray(body.category_ids) || body.category_ids.length === 0) {
+  if (
+    !Array.isArray(body.category_ids) ||
+    toStringArray(body.category_ids).length === 0
+  ) {
     throw new Error('At least one category is required')
   }
   if (body.price === undefined || body.price === null || Number.isNaN(Number(body.price))) {
@@ -274,6 +287,13 @@ exports.create = async (req, res) => {
 
   const productService = req.scope.resolve('productService')
   const numericPrice = Math.round(Number(price))
+  const imageUrls = toStringArray(images)
+  const categoryRecords = toStringArray(category_ids).map((id) => ({ id }))
+  const thumbnailUrl =
+    typeof thumbnail === 'string' && thumbnail.trim()
+      ? thumbnail.trim()
+      : imageUrls[0] || undefined
+  const metadataPayload = metadata && typeof metadata === 'object' ? metadata : undefined
 
   const payload = {
     title,
@@ -281,10 +301,10 @@ exports.create = async (req, res) => {
     handle,
     status,
     collection_id,
-    categories: category_ids.map((id) => ({ id })),
-    images: images.map((url) => ({ url })),
-    thumbnail,
-    metadata: metadata && typeof metadata === 'object' ? metadata : undefined,
+    categories: categoryRecords,
+    images: imageUrls,
+    thumbnail: thumbnailUrl,
+    metadata: metadataPayload,
     options: [],
     variants: [
       {
@@ -320,7 +340,13 @@ exports.update = async (req, res) => {
     metadata,
   } = req.body || {}
 
-  if (category_ids && (!Array.isArray(category_ids) || category_ids.length === 0)) {
+  if (
+    category_ids !== undefined &&
+    (
+      !Array.isArray(category_ids) ||
+      toStringArray(category_ids).length === 0
+    )
+  ) {
     return res.status(400).json({ message: 'At least one category is required' })
   }
 
@@ -333,10 +359,17 @@ exports.update = async (req, res) => {
   if (handle !== undefined) updatePayload.handle = handle
   if (status !== undefined) updatePayload.status = status
   if (collection_id !== undefined) updatePayload.collection_id = collection_id
-  if (thumbnail !== undefined) updatePayload.thumbnail = thumbnail
+  if (thumbnail !== undefined) {
+    if (typeof thumbnail === 'string') {
+      const trimmedThumbnail = thumbnail.trim()
+      updatePayload.thumbnail = trimmedThumbnail || null
+    } else {
+      updatePayload.thumbnail = thumbnail
+    }
+  }
   if (metadata && typeof metadata === 'object') updatePayload.metadata = metadata
-  if (Array.isArray(images)) updatePayload.images = images.map((url) => ({ url }))
-  if (Array.isArray(category_ids)) updatePayload.categories = category_ids.map((id) => ({ id }))
+  if (Array.isArray(images)) updatePayload.images = toStringArray(images)
+  if (Array.isArray(category_ids)) updatePayload.categories = toStringArray(category_ids).map((id) => ({ id }))
 
   if (Object.keys(updatePayload).length > 0) {
     await productService.update(productId, updatePayload)

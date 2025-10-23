@@ -284,6 +284,10 @@ module.exports = async () => {
       return clone(product)
     },
     create: async (data) => {
+      assert.strictEqual(Array.isArray(data.images), true)
+      data.images.forEach((entry, index) => {
+        assert.strictEqual(typeof entry, 'string', 'image ' + index + ' must be a string URL')
+      })
       const id = 'prod_' + productCounter
       productCounter += 1
       const variantId = 'variant_' + id
@@ -339,6 +343,9 @@ module.exports = async () => {
         })
       }
       if (Array.isArray(data.images)) {
+        data.images.forEach((entry, index) => {
+          assert.strictEqual(typeof entry, 'string', 'updated image ' + index + ' must be a string URL')
+        })
         product.images = data.images.map((image, index) => ({ id: product.id + '_img_' + index, url: image.url || image }))
       }
       if (data.thumbnail !== undefined) product.thumbnail = data.thumbnail
