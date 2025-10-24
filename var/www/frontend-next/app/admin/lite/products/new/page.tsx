@@ -15,11 +15,19 @@ const emptyProduct = {
   price: 0,
   images: [] as string[],
   thumbnail: '',
+  available_sizes: [] as string[],
+  available_colors: [] as string[],
+  variant_defaults: {
+    manage_inventory: true,
+    allow_backorder: false,
+    inventory_quantity: 0,
+    sku: '',
+  },
 }
 
 export default function CreateProductPage() {
   const router = useRouter()
-  const [catalog, setCatalog] = useState<CatalogData>({ collections: [], categories: [], sizes: [] })
+  const [catalog, setCatalog] = useState<CatalogData>({ collections: [], categories: [], sizes: [], colors: [] })
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)

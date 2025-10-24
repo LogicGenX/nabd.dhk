@@ -20,6 +20,7 @@ export interface CatalogData {
   collections: CatalogCollection[]
   categories: CatalogCategory[]
   sizes: string[]
+  colors: string[]
 }
 
 export interface EditableProduct {
@@ -33,6 +34,14 @@ export interface EditableProduct {
   price: number
   images: string[]
   thumbnail?: string | null
+  available_sizes?: string[]
+  available_colors?: string[]
+  variant_defaults?: {
+    manage_inventory: boolean
+    allow_backorder: boolean
+    inventory_quantity: number
+    sku?: string | null
+  }
 }
 
 export interface ProductFormSubmit {
@@ -45,6 +54,14 @@ export interface ProductFormSubmit {
   price: number
   images: string[]
   thumbnail?: string | null
+  available_sizes?: string[]
+  available_colors?: string[]
+  variant?: {
+    manage_inventory: boolean
+    allow_backorder: boolean
+    inventory_quantity: number
+    sku?: string | null
+  }
 }
 
 interface ProductFormProps {
@@ -89,12 +106,48 @@ export default function ProductForm({
   const [localError, setLocalError] = useState<string | null>(null)
   const [collections, setCollections] = useState<CatalogCollection[]>(catalog.collections)
   const [categoriesList, setCategoriesList] = useState<CatalogCategory[]>(catalog.categories)
+  const [selectedSizes, setSelectedSizes] = useState<string[]>(initial?.available_sizes || [])
+  const [selectedColors, setSelectedColors] = useState<string[]>(initial?.available_colors || [])
+  const [newSizeValue, setNewSizeValue] = useState('')
+  const [newColorValue, setNewColorValue] = useState('')
+  const [manageInventory, setManageInventory] = useState(initial?.variant_defaults?.manage_inventory ?? true)
+  const [allowBackorder, setAllowBackorder] = useState(initial?.variant_defaults?.allow_backorder ?? false)
+  const [inventoryQuantityInput, setInventoryQuantityInput] = useState(() => {
+    const value = initial?.variant_defaults?.inventory_quantity ?? 0
+    return String(value)
+  })
+  const [skuInput, setSkuInput] = useState(initial?.variant_defaults?.sku || '')
   const [showCollectionForm, setShowCollectionForm] = useState(false)
   const [showCategoryForm, setShowCategoryForm] = useState(false)
   const [newCollectionTitle, setNewCollectionTitle] = useState('')
   const [newCategoryName, setNewCategoryName] = useState('')
   const [creatingCollection, setCreatingCollection] = useState(false)
   const [creatingCategory, setCreatingCategory] = useState(false)
+
+  const dedupeValues = (values: (string | null | undefined)[]) => {
+    const seen = new Set<string>()
+    const result: string[] = []
+    values.forEach((value) => {
+      if (typeof value !== 'string') return
+      const trimmed = value.trim()
+      if (!trimmed) return
+      const key = trimmed.toLowerCase()
+      if (seen.has(key)) return
+      seen.add(key)
+      result.push(trimmed)
+    })
+    return result
+  }
+
+  const sizesList = useMemo(() => {
+    const base = Array.isArray(catalog.sizes) ? catalog.sizes : []
+    return dedupeValues([...base, ...selectedSizes])
+  }, [catalog.sizes, selectedSizes])
+
+  const colorsList = useMemo(() => {
+    const base = Array.isArray(catalog.colors) ? catalog.colors : []
+    return dedupeValues([...base, ...selectedColors])
+  }, [catalog.colors, selectedColors])
 
   useEffect(() => {
     if (!initial) return
@@ -107,6 +160,15 @@ export default function ProductForm({
     setPriceInput(initial.price ? (initial.price / 100).toFixed(2) : '')
     setImages(initial.images || [])
     setThumbnail(initial.thumbnail || (initial.images && initial.images[0]) || '')
+    setSelectedSizes(dedupeValues(initial.available_sizes || []))
+    setSelectedColors(dedupeValues(initial.available_colors || []))
+    setManageInventory(initial.variant_defaults?.manage_inventory ?? true)
+    setAllowBackorder(initial.variant_defaults?.allow_backorder ?? false)
+    const inventory = initial.variant_defaults?.inventory_quantity ?? 0
+    setInventoryQuantityInput(String(inventory))
+    setSkuInput(initial.variant_defaults?.sku || '')
+    setNewSizeValue('')
+    setNewColorValue('')
   }, [initial?.id])
 
   useEffect(() => {
@@ -138,6 +200,50 @@ export default function ProductForm({
     })
   }
 
+  const toggleSize = (value: string) => {
+    const trimmed = typeof value === 'string' ? value.trim() : ''
+    if (!trimmed) return
+    setSelectedSizes((prev) => {
+      const exists = prev.some((entry) => entry.toLowerCase() === trimmed.toLowerCase())
+      if (exists) {
+        return prev.filter((entry) => entry.toLowerCase() !== trimmed.toLowerCase())
+      }
+      return [...prev, trimmed]
+    })
+  }
+
+  const toggleColor = (value: string) => {
+    const trimmed = typeof value === 'string' ? value.trim() : ''
+    if (!trimmed) return
+    setSelectedColors((prev) => {
+      const exists = prev.some((entry) => entry.toLowerCase() === trimmed.toLowerCase())
+      if (exists) {
+        return prev.filter((entry) => entry.toLowerCase() !== trimmed.toLowerCase())
+      }
+      return [...prev, trimmed]
+    })
+  }
+
+  const addSizeValue = () => {
+    const trimmed = newSizeValue.trim()
+    if (!trimmed) return
+    setSelectedSizes((prev) => {
+      if (prev.some((entry) => entry.toLowerCase() === trimmed.toLowerCase())) return prev
+      return [...prev, trimmed]
+    })
+    setNewSizeValue('')
+  }
+
+  const addColorValue = () => {
+    const trimmed = newColorValue.trim()
+    if (!trimmed) return
+    setSelectedColors((prev) => {
+      if (prev.some((entry) => entry.toLowerCase() === trimmed.toLowerCase())) return prev
+      return [...prev, trimmed]
+    })
+    setNewColorValue('')
+  }
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setLocalError(null)
@@ -158,6 +264,26 @@ export default function ProductForm({
       setLocalError('Enter a valid price')
       return
     }
+    const quantityNumber = Number(inventoryQuantityInput)
+    if (Number.isNaN(quantityNumber) || quantityNumber < 0) {
+      setLocalError('Enter a valid inventory quantity')
+      return
+    }
+
+    const roundedQuantity = Math.round(quantityNumber)
+    const sanitizedSizes = dedupeValues(selectedSizes)
+    const sanitizedColors = dedupeValues(selectedColors)
+    const trimmedImages = images
+      .map((value) => (typeof value === 'string' ? value.trim() : ''))
+      .filter((value) => Boolean(value))
+    const variantPayload: ProductFormSubmit['variant'] = {
+      manage_inventory: !!manageInventory,
+      allow_backorder: !!allowBackorder,
+      inventory_quantity: roundedQuantity,
+    }
+    const trimmedSku = skuInput.trim()
+    if (trimmedSku) variantPayload.sku = trimmedSku
+
     try {
       await onSubmit({
         title: title.trim(),
@@ -167,8 +293,11 @@ export default function ProductForm({
         collection_id: collectionId,
         category_ids: categoryIds,
         price: Math.round(numericPrice),
-        images,
-        thumbnail: thumbnail || (images[0] || undefined),
+        images: trimmedImages,
+        thumbnail: thumbnail || (trimmedImages[0] || undefined),
+        available_sizes: sanitizedSizes,
+        available_colors: sanitizedColors,
+        variant: variantPayload,
       })
     } catch (err: any) {
       setLocalError(err?.message || 'Unable to save product')
@@ -365,6 +494,153 @@ export default function ProductForm({
             inputMode='decimal'
           />
         </label>
+      </div>
+
+      <div className='rounded-lg border border-slate-200 bg-white p-4 shadow-sm'>
+        <div className='flex flex-col gap-1'>
+          <h3 className='text-sm font-semibold text-slate-700'>Inventory</h3>
+          <p className='text-xs text-slate-500'>Set default inventory settings for the primary variant.</p>
+        </div>
+        <div className='mt-3 flex flex-wrap gap-4'>
+          <label className='flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500'>
+            <input
+              type='checkbox'
+              checked={manageInventory}
+              onChange={(event) => setManageInventory(event.target.checked)}
+              className='h-4 w-4'
+            />
+            Manage inventory
+          </label>
+          <label className='flex items-center gap-2 text-xs text-slate-500'>
+            <input
+              type='checkbox'
+              checked={allowBackorder}
+              onChange={(event) => setAllowBackorder(event.target.checked)}
+              className='h-4 w-4'
+            />
+            Allow backorder
+          </label>
+        </div>
+        <div className='mt-4 grid gap-4 md:grid-cols-3'>
+          <label className='flex flex-col text-xs font-semibold uppercase tracking-wide text-slate-500'>
+            Quantity
+            <input
+              type='number'
+              min={0}
+              value={inventoryQuantityInput}
+              onChange={(event) => setInventoryQuantityInput(event.target.value)}
+              className='mt-1 rounded-lg border border-slate-300 px-3 py-2 text-sm'
+              disabled={!manageInventory}
+            />
+          </label>
+          <label className='flex flex-col text-xs font-semibold uppercase tracking-wide text-slate-500'>
+            SKU
+            <input
+              value={skuInput}
+              onChange={(event) => setSkuInput(event.target.value)}
+              className='mt-1 rounded-lg border border-slate-300 px-3 py-2 text-sm'
+              placeholder='e.g. SKU-001'
+            />
+          </label>
+        </div>
+      </div>
+
+      <div className='rounded-lg border border-slate-200 bg-white p-4 shadow-sm'>
+        <div className='space-y-4'>
+          <div>
+            <div className='flex flex-col gap-1 md:flex-row md:items-center md:justify-between'>
+              <div>
+                <h3 className='text-sm font-semibold text-slate-700'>Available sizes</h3>
+                <p className='text-xs text-slate-500'>Pick size labels customers can filter by.</p>
+              </div>
+              <div className='flex gap-2'>
+                <input
+                  value={newSizeValue}
+                  onChange={(event) => setNewSizeValue(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault()
+                      addSizeValue()
+                    }
+                  }}
+                  className='rounded-lg border border-slate-300 px-3 py-1 text-sm'
+                  placeholder='Add size'
+                />
+                <button
+                  type='button'
+                  onClick={addSizeValue}
+                  className='rounded border border-slate-300 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100'
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+            <div className='mt-3 flex flex-wrap gap-3'>
+              {sizesList.map((size) => {
+                const checked = selectedSizes.some((entry) => entry.toLowerCase() === size.toLowerCase())
+                return (
+                  <label key={size} className='flex items-center gap-2 rounded-full border border-slate-300 px-3 py-1 text-sm'>
+                    <input
+                      type='checkbox'
+                      className='h-4 w-4'
+                      checked={checked}
+                      onChange={() => toggleSize(size)}
+                    />
+                    <span>{size}</span>
+                  </label>
+                )
+              })}
+              {!sizesList.length && <span className='text-sm text-slate-500'>No sizes defined.</span>}
+            </div>
+          </div>
+
+          <div className='border-t border-slate-100 pt-4'>
+            <div className='flex flex-col gap-1 md:flex-row md:items-center md:justify-between'>
+              <div>
+                <h3 className='text-sm font-semibold text-slate-700'>Available colors</h3>
+                <p className='text-xs text-slate-500'>Track color variants available for merchandising.</p>
+              </div>
+              <div className='flex gap-2'>
+                <input
+                  value={newColorValue}
+                  onChange={(event) => setNewColorValue(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault()
+                      addColorValue()
+                    }
+                  }}
+                  className='rounded-lg border border-slate-300 px-3 py-1 text-sm'
+                  placeholder='Add color'
+                />
+                <button
+                  type='button'
+                  onClick={addColorValue}
+                  className='rounded border border-slate-300 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100'
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+            <div className='mt-3 flex flex-wrap gap-3'>
+              {colorsList.map((color) => {
+                const checked = selectedColors.some((entry) => entry.toLowerCase() === color.toLowerCase())
+                return (
+                  <label key={color} className='flex items-center gap-2 rounded-full border border-slate-300 px-3 py-1 text-sm'>
+                    <input
+                      type='checkbox'
+                      className='h-4 w-4'
+                      checked={checked}
+                      onChange={() => toggleColor(color)}
+                    />
+                    <span>{color}</span>
+                  </label>
+                )
+              })}
+              {!colorsList.length && <span className='text-sm text-slate-500'>No colors defined.</span>}
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className='rounded-lg border border-slate-200 bg-white p-4 shadow-sm'>

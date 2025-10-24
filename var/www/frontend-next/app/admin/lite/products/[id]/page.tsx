@@ -44,7 +44,7 @@ export default function ProductDetailPage() {
   const params = useParams()
   const router = useRouter()
   const productId = Array.isArray(params?.id) ? params?.id[0] : (params?.id as string)
-  const [catalog, setCatalog] = useState<CatalogData>({ collections: [], categories: [], sizes: [] })
+  const [catalog, setCatalog] = useState<CatalogData>({ collections: [], categories: [], sizes: [], colors: [] })
   const [product, setProduct] = useState<LiteProductDetail | null>(null)
   const [variantDrafts, setVariantDrafts] = useState<LiteProductVariant[]>([])
   const [loading, setLoading] = useState(true)
@@ -239,6 +239,27 @@ export default function ProductDetailPage() {
     )
   }
 
+  const baseVariant = Array.isArray(product.variants) && product.variants.length ? product.variants[0] : null
+  const variantDefaults = product.variant_defaults
+    ? {
+        manage_inventory: !!product.variant_defaults.manage_inventory,
+        allow_backorder: !!product.variant_defaults.allow_backorder,
+        inventory_quantity:
+          typeof product.variant_defaults.inventory_quantity === 'number'
+            ? product.variant_defaults.inventory_quantity
+            : typeof baseVariant?.inventory_quantity === 'number'
+              ? baseVariant.inventory_quantity
+              : 0,
+        sku: product.variant_defaults.sku || baseVariant?.sku || null,
+      }
+    : {
+        manage_inventory: baseVariant?.manage_inventory ?? true,
+        allow_backorder: baseVariant?.allow_backorder ?? false,
+        inventory_quantity:
+          typeof baseVariant?.inventory_quantity === 'number' ? baseVariant.inventory_quantity : 0,
+        sku: baseVariant?.sku || null,
+      }
+
   const editable: EditableProduct = {
     id: product.id,
     title: product.title,
@@ -250,6 +271,9 @@ export default function ProductDetailPage() {
     price: product.price,
     images: product.images,
     thumbnail: product.thumbnail,
+    available_sizes: Array.isArray(product.available_sizes) ? product.available_sizes : [],
+    available_colors: Array.isArray(product.available_colors) ? product.available_colors : [],
+    variant_defaults: variantDefaults,
   }
 
   const getVariantSizeValue = (variant: LiteProductVariant) => {

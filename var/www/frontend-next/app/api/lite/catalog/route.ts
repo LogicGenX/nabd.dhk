@@ -62,11 +62,32 @@ const fetchJson = async (
   }
 }
 
+const collectStringValues = (values: unknown) => {
+  if (!Array.isArray(values)) return []
+  return values
+    .filter((value): value is string => typeof value === 'string')
+    .map((value) => value.trim())
+    .filter((value) => Boolean(value))
+}
+
 const extractSizes = (productsPayload: any) => {
   if (!productsPayload || !Array.isArray(productsPayload.products)) return []
   const sizes = new Map<string, string>()
 
   for (const product of productsPayload.products) {
+    if (Array.isArray(product?.available_sizes)) {
+      for (const entry of collectStringValues(product.available_sizes)) {
+        const key = entry.toLowerCase()
+        if (!sizes.has(key)) sizes.set(key, entry)
+      }
+    }
+    if (Array.isArray(product?.metadata?.available_sizes)) {
+      for (const entry of collectStringValues(product.metadata.available_sizes)) {
+        const key = entry.toLowerCase()
+        if (!sizes.has(key)) sizes.set(key, entry)
+      }
+    }
+
     const options = Array.isArray(product?.options) ? product.options : []
     const sizeOption = options.find((option) =>
       typeof option?.title === 'string' && option.title.toLowerCase() === 'size'
@@ -85,6 +106,28 @@ const extractSizes = (productsPayload: any) => {
   }
 
   return Array.from(sizes.values()).sort((a, b) => a.localeCompare(b))
+}
+
+const extractColors = (productsPayload: any) => {
+  if (!productsPayload || !Array.isArray(productsPayload.products)) return []
+  const colors = new Map<string, string>()
+
+  for (const product of productsPayload.products) {
+    if (Array.isArray(product?.available_colors)) {
+      for (const entry of collectStringValues(product.available_colors)) {
+        const key = entry.toLowerCase()
+        if (!colors.has(key)) colors.set(key, entry)
+      }
+    }
+    if (Array.isArray(product?.metadata?.available_colors)) {
+      for (const entry of collectStringValues(product.metadata.available_colors)) {
+        const key = entry.toLowerCase()
+        if (!colors.has(key)) colors.set(key, entry)
+      }
+    }
+  }
+
+  return Array.from(colors.values()).sort((a, b) => a.localeCompare(b))
 }
 
 export async function GET(req: NextRequest) {
@@ -114,6 +157,12 @@ export async function GET(req: NextRequest) {
           .map((value: string) => value.trim())
       : []
 
+    let colors: string[] = Array.isArray(catalogPayload?.colors)
+      ? catalogPayload.colors
+          .filter((value: unknown): value is string => typeof value === 'string' && Boolean(value.trim()))
+          .map((value: string) => value.trim())
+      : []
+
     if (!sizes.length) {
       const productsPayload = await fetchJson(
         req,
@@ -123,10 +172,23 @@ export async function GET(req: NextRequest) {
       )
       if (productsPayload) {
         sizes = extractSizes(productsPayload)
+        if (!colors.length) colors = extractColors(productsPayload)
       }
     }
 
-    return NextResponse.json({ collections, categories, sizes })
+    if (!colors.length) {
+      const productsPayload = await fetchJson(
+        req,
+        token,
+        'lite/products?limit=1000',
+        { optional: true }
+      )
+      if (productsPayload) {
+        colors = extractColors(productsPayload)
+      }
+    }
+
+    return NextResponse.json({ collections, categories, sizes, colors })
   } catch (error) {
     if (error instanceof NextResponse) {
       return error

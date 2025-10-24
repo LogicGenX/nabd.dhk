@@ -101,6 +101,107 @@ const toStringArray = (values) => {
     .filter((value) => value.length > 0)
 }
 
+const uniqueStringArray = (values) => {
+  const normalized = toStringArray(values)
+  if (!normalized.length) return []
+  const seen = new Set()
+  const result = []
+  for (const value of normalized) {
+    const key = value.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    result.push(value)
+  }
+  return result
+}
+
+const hasOwn = (object, key) => Object.prototype.hasOwnProperty.call(object || {}, key)
+
+const parseBoolean = (value, fallback = false) => {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value !== 0
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    if (!normalized) return fallback
+    if (['true', '1', 'yes', 'y', 'on'].includes(normalized)) return true
+    if (['false', '0', 'no', 'n', 'off'].includes(normalized)) return false
+  }
+  return fallback
+}
+
+const parseInventoryQuantity = (value, fallback = 0) => {
+  const source = value !== undefined ? value : fallback
+  const numeric = Number(source)
+  if (!Number.isFinite(numeric)) return Math.max(0, Math.round(Number(fallback) || 0))
+  const rounded = Math.round(numeric)
+  if (rounded < 0) return 0
+  return rounded
+}
+
+const normalizeVariantConfig = (variant, legacy = {}) => {
+  const base = variant && typeof variant === 'object' ? variant : {}
+  const fallback = legacy && typeof legacy === 'object' ? legacy : {}
+  const rawSku = base.sku ?? fallback.sku ?? null
+  const manageInventory = parseBoolean(
+    base.manage_inventory,
+    parseBoolean(fallback.manage_inventory, true)
+  )
+  const allowBackorder = parseBoolean(
+    base.allow_backorder,
+    parseBoolean(fallback.allow_backorder, false)
+  )
+  const inventoryQuantity = parseInventoryQuantity(
+    base.inventory_quantity ?? fallback.inventory_quantity ?? 0,
+    0
+  )
+
+  return {
+    sku: typeof rawSku === 'string' && rawSku.trim() ? rawSku.trim() : null,
+    manage_inventory: manageInventory,
+    allow_backorder: allowBackorder,
+    inventory_quantity: manageInventory ? inventoryQuantity : inventoryQuantity,
+  }
+}
+
+const collectSizeValuesFromProduct = (product) => {
+  const result = []
+  const seen = new Set()
+
+  const options = Array.isArray(product?.options) ? product.options : []
+  const sizeOption = options.find((option) => {
+    if (!option || typeof option?.title !== 'string') return false
+    return option.title.trim().toLowerCase() === 'size'
+  })
+
+  if (sizeOption && sizeOption.id) {
+    const variants = Array.isArray(product?.variants) ? product.variants : []
+    for (const variant of variants) {
+      const variantOptions = Array.isArray(variant?.options) ? variant.options : []
+      const match = variantOptions.find((opt) => opt?.option_id === sizeOption.id)
+      const rawValue = typeof match?.value === 'string' ? match.value.trim() : ''
+      if (!rawValue) continue
+      const key = rawValue.toLowerCase()
+      if (seen.has(key)) continue
+      seen.add(key)
+      result.push(rawValue)
+    }
+  }
+
+  const metadataSizes = uniqueStringArray(product?.metadata?.available_sizes)
+  for (const entry of metadataSizes) {
+    const key = entry.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    result.push(entry)
+  }
+
+  return result
+}
+
+const collectColorValuesFromProduct = (product) => {
+  return uniqueStringArray(product?.metadata?.available_colors)
+}
+
 const listCategories = async (categoryService, config = {}) => {
   const selector = {}
   const baseConfig = { skip: 0, take: 1000, ...config }
@@ -137,6 +238,29 @@ const serializeProduct = (product, currency) => {
         title: option.title,
       }))
     : []
+  const metadata =
+    product && product.metadata && typeof product.metadata === 'object'
+      ? product.metadata
+      : null
+  const sizeValues = collectSizeValuesFromProduct(product)
+  const colorValues = collectColorValuesFromProduct(product)
+  const primaryVariant = variants[0] || null
+  const variantDefaults = primaryVariant
+    ? {
+        sku: primaryVariant.sku,
+        manage_inventory: !!primaryVariant.manage_inventory,
+        allow_backorder: !!primaryVariant.allow_backorder,
+        inventory_quantity:
+          typeof primaryVariant.inventory_quantity === 'number'
+            ? primaryVariant.inventory_quantity
+            : 0,
+      }
+    : {
+        sku: null,
+        manage_inventory: true,
+        allow_backorder: false,
+        inventory_quantity: 0,
+      }
   const inStock = variants.some((variant) => {
     if (!variant.manage_inventory) return true
     return (variant.inventory_quantity ?? 0) > 0
@@ -168,7 +292,10 @@ const serializeProduct = (product, currency) => {
     currency_code: price.currency_code || currency,
     variant_id: price.variant_id || null,
     sku: product.variants && product.variants[0] ? product.variants[0].sku : null,
-    metadata: product.metadata || null,
+    metadata,
+    available_sizes: sizeValues,
+    available_colors: colorValues,
+    variant_defaults: variantDefaults,
     created_at: product.created_at,
     updated_at: product.updated_at,
   }
@@ -179,25 +306,29 @@ const extractProductSizes = (products) => {
   const sizes = new Map()
 
   for (const product of products) {
-    const options = Array.isArray(product?.options) ? product.options : []
-    const sizeOption = options.find((option) => {
-      if (!option || typeof option?.title !== 'string') return false
-      return option.title.trim().toLowerCase() === 'size'
-    })
-    if (!sizeOption || !sizeOption.id) continue
-
-    const variants = Array.isArray(product?.variants) ? product.variants : []
-    for (const variant of variants) {
-      const variantOptions = Array.isArray(variant?.options) ? variant.options : []
-      const match = variantOptions.find((opt) => opt?.option_id === sizeOption.id)
-      const rawValue = typeof match?.value === 'string' ? match.value.trim() : ''
-      if (!rawValue) continue
-      const normalized = rawValue.toLowerCase()
-      if (!sizes.has(normalized)) sizes.set(normalized, rawValue)
+    const values = collectSizeValuesFromProduct(product)
+    for (const value of values) {
+      const normalized = value.toLowerCase()
+      if (!sizes.has(normalized)) sizes.set(normalized, value)
     }
   }
 
   return Array.from(sizes.values()).sort((a, b) => a.localeCompare(b))
+}
+
+const extractProductColors = (products) => {
+  if (!Array.isArray(products)) return []
+
+  const colors = new Map()
+  for (const product of products) {
+    const values = collectColorValuesFromProduct(product)
+    for (const value of values) {
+      const normalized = value.toLowerCase()
+      if (!colors.has(normalized)) colors.set(normalized, value)
+    }
+  }
+
+  return Array.from(colors.values()).sort((a, b) => a.localeCompare(b))
 }
 
 const parseLimit = (value, fallback, max) => {
@@ -313,6 +444,15 @@ exports.create = async (req, res) => {
     thumbnail,
     images = [],
     metadata,
+    variant,
+    inventory_quantity,
+    manage_inventory,
+    allow_backorder,
+    sku,
+    available_sizes,
+    available_colors,
+    sizes,
+    colors,
   } = req.body
 
   const productService = req.scope.resolve('productService')
@@ -324,11 +464,26 @@ exports.create = async (req, res) => {
     typeof thumbnail === 'string' && thumbnail.trim()
       ? thumbnail.trim()
       : imageUrls[0] || undefined
-  const metadataPayload = metadata && typeof metadata === 'object' ? metadata : undefined
+  const metadataPayloadBase =
+    metadata && typeof metadata === 'object' && !Array.isArray(metadata) ? { ...metadata } : {}
+  const sizeValues = uniqueStringArray(available_sizes ?? sizes)
+  const colorValues = uniqueStringArray(available_colors ?? colors)
+  if (sizeValues.length) metadataPayloadBase.available_sizes = sizeValues
+  if (colorValues.length) metadataPayloadBase.available_colors = colorValues
+  const metadataPayload =
+    metadataPayloadBase && Object.keys(metadataPayloadBase).length > 0
+      ? metadataPayloadBase
+      : undefined
   const normalizedHandle =
     typeof handle === 'string' && handle.trim()
       ? handle.trim()
       : slugify(title, 'product')
+  const variantConfig = normalizeVariantConfig(variant, {
+    inventory_quantity,
+    manage_inventory,
+    allow_backorder,
+    sku,
+  })
 
   const payload = {
     title,
@@ -344,6 +499,10 @@ exports.create = async (req, res) => {
     variants: [
       {
         title: 'Default',
+        sku: variantConfig.sku || undefined,
+        inventory_quantity: variantConfig.inventory_quantity,
+        manage_inventory: variantConfig.manage_inventory,
+        allow_backorder: variantConfig.allow_backorder,
         prices: [
           {
             amount: numericPrice,
@@ -412,6 +571,15 @@ exports.update = async (req, res) => {
     thumbnail,
     images,
     metadata,
+    variant,
+    inventory_quantity,
+    manage_inventory,
+    allow_backorder,
+    sku,
+    available_sizes,
+    available_colors,
+    sizes,
+    colors,
   } = req.body || {}
 
   if (
@@ -426,6 +594,20 @@ exports.update = async (req, res) => {
 
   const productService = req.scope.resolve('productService')
   const productVariantService = req.scope.resolve('productVariantService')
+
+  let existing
+  try {
+    existing = await productService.retrieve(productId, {
+      relations: ['variants', 'variants.prices'],
+    })
+  } catch (error) {
+    const statusCode = typeof error?.statusCode === 'number' ? error.statusCode : 500
+    const message =
+      typeof error?.message === 'string' && error.message.trim()
+        ? error.message
+        : 'Failed to load product'
+    return res.status(statusCode).json({ message })
+  }
 
   const updatePayload = {}
   if (title !== undefined) updatePayload.title = title
@@ -447,7 +629,35 @@ exports.update = async (req, res) => {
       updatePayload.thumbnail = thumbnail
     }
   }
-  if (metadata && typeof metadata === 'object') updatePayload.metadata = metadata
+  const metadataProvided =
+    metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+  let metadataBase = metadataProvided
+    ? { ...metadata }
+    : existing.metadata && typeof existing.metadata === 'object'
+      ? { ...existing.metadata }
+      : {}
+  let metadataChanged = !!metadataProvided
+
+  const sizeInput = available_sizes !== undefined ? available_sizes : sizes
+  if (sizeInput !== undefined) {
+    const values = uniqueStringArray(sizeInput)
+    metadataChanged = true
+    if (values.length) metadataBase.available_sizes = values
+    else delete metadataBase.available_sizes
+  }
+
+  const colorInput = available_colors !== undefined ? available_colors : colors
+  if (colorInput !== undefined) {
+    const values = uniqueStringArray(colorInput)
+    metadataChanged = true
+    if (values.length) metadataBase.available_colors = values
+    else delete metadataBase.available_colors
+  }
+
+  if (metadataChanged) {
+    updatePayload.metadata = metadataBase
+  }
+
   if (Array.isArray(images)) updatePayload.images = toStringArray(images)
   if (Array.isArray(category_ids)) updatePayload.categories = toStringArray(category_ids).map((id) => ({ id }))
   if (handle !== undefined) {
@@ -474,22 +684,46 @@ exports.update = async (req, res) => {
     }
   }
 
+  const variantBody = variant && typeof variant === 'object' ? variant : {}
+  const manageProvided = hasOwn(variantBody, 'manage_inventory') || manage_inventory !== undefined
+  const allowProvided = hasOwn(variantBody, 'allow_backorder') || allow_backorder !== undefined
+  const inventoryProvided =
+    hasOwn(variantBody, 'inventory_quantity') || inventory_quantity !== undefined
+  const skuProvided = hasOwn(variantBody, 'sku') || sku !== undefined
+
+  const variantUpdate = {}
+  if (manageProvided || allowProvided || inventoryProvided || skuProvided) {
+    if (!existing.variants || !existing.variants.length) {
+      return res.status(400).json({ message: 'Product has no variants to update' })
+    }
+    const config = normalizeVariantConfig(variantBody, {
+      inventory_quantity,
+      manage_inventory,
+      allow_backorder,
+      sku,
+    })
+    if (manageProvided) variantUpdate.manage_inventory = config.manage_inventory
+    if (allowProvided) variantUpdate.allow_backorder = config.allow_backorder
+    if (inventoryProvided) variantUpdate.inventory_quantity = config.inventory_quantity
+    if (skuProvided) variantUpdate.sku = config.sku
+  }
+
   if (price !== undefined && price !== null && !Number.isNaN(Number(price))) {
     const numericPrice = Math.round(Number(price))
-    const product = await productService.retrieve(productId, {
-      relations: ['variants', 'variants.prices'],
-    })
-    const variant = product.variants && product.variants[0]
-    if (variant) {
-      await productVariantService.update(variant.id, {
-        prices: [
-          {
-            amount: numericPrice,
-            currency_code: DEFAULT_CURRENCY,
-          },
-        ],
-      })
+    variantUpdate.prices = [
+      {
+        amount: numericPrice,
+        currency_code: DEFAULT_CURRENCY,
+      },
+    ]
+  }
+
+  if (Object.keys(variantUpdate).length > 0) {
+    const targetVariant = existing.variants && existing.variants[0]
+    if (!targetVariant) {
+      return res.status(400).json({ message: 'Product has no variants to update' })
     }
+    await productVariantService.update(targetVariant.id, variantUpdate)
   }
 
   const refreshed = await productService.retrieve(productId, { relations: DEFAULT_RELATIONS })
@@ -529,6 +763,7 @@ exports.catalog = async (req, res) => {
       handle: category.handle,
     })),
     sizes: extractProductSizes(products),
+    colors: extractProductColors(products),
   })
 }
 
