@@ -23,7 +23,7 @@ export default function CategoriesFilter({ selected, onSelect, variant = 'pills'
       const withCount = await Promise.all(
         product_categories.map(async (c: any) => {
           const { count } = await medusa.products.list({
-            category_id: c.id,
+            category_id: [c.id],
             limit: 1,
           })
           return { id: c.id, name: c.name, count }

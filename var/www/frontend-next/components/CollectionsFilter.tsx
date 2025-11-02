@@ -23,7 +23,7 @@ export default function CollectionsFilter({ selected, onSelect, variant = 'pills
       const withCount = await Promise.all(
         collections.map(async (c: any) => {
           const { count } = await medusa.products.list({
-            collection_id: c.id,
+            collection_id: [c.id],
             limit: 1,
           })
           return { id: c.id, title: c.title, count }

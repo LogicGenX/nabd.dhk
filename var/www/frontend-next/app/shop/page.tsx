@@ -43,7 +43,7 @@ export default function ShopPage() {
             .retrieve(collectionId)
             .then(async ({ collection }) => {
               const { count } = await medusa.products.list({
-                collection_id: collectionId,
+                collection_id: [collectionId],
                 limit: 1,
               })
               setCollection({ id: collection.id, title: collection.title, count })
@@ -56,7 +56,7 @@ export default function ShopPage() {
             .retrieve(categoryId)
             .then(async ({ product_category }) => {
               const { count } = await medusa.products.list({
-                category_id: categoryId,
+                category_id: [categoryId],
                 limit: 1,
               })
               setCategory({
