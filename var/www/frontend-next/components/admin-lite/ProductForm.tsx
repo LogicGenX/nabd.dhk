@@ -276,6 +276,11 @@ export default function ProductForm({
     const trimmedImages = images
       .map((value) => (typeof value === 'string' ? value.trim() : ''))
       .filter((value) => Boolean(value))
+    const hasInlineImage = trimmedImages.some((url) => url.toLowerCase().startsWith('data:'))
+    if (hasInlineImage) {
+      setLocalError('Images look like inline data. Upload files or host them externally before saving.')
+      return
+    }
     const variantPayload: ProductFormSubmit['variant'] = {
       manage_inventory: !!manageInventory,
       allow_backorder: !!allowBackorder,
@@ -284,21 +289,34 @@ export default function ProductForm({
     const trimmedSku = skuInput.trim()
     if (trimmedSku) variantPayload.sku = trimmedSku
 
+    const submission: ProductFormSubmit = {
+      title: title.trim(),
+      description: description || null,
+      handle: handle || undefined,
+      status,
+      collection_id: collectionId,
+      category_ids: categoryIds,
+      price: Math.round(numericPrice),
+      images: trimmedImages,
+      thumbnail: thumbnail || (trimmedImages[0] || undefined),
+      available_sizes: sanitizedSizes,
+      available_colors: sanitizedColors,
+      variant: variantPayload,
+    }
+
     try {
-      await onSubmit({
-        title: title.trim(),
-        description: description || null,
-        handle: handle || undefined,
-        status,
-        collection_id: collectionId,
-        category_ids: categoryIds,
-        price: Math.round(numericPrice),
-        images: trimmedImages,
-        thumbnail: thumbnail || (trimmedImages[0] || undefined),
-        available_sizes: sanitizedSizes,
-        available_colors: sanitizedColors,
-        variant: variantPayload,
-      })
+      const payloadString = JSON.stringify(submission)
+      const payloadBytes = typeof window !== 'undefined' && window.TextEncoder ? new TextEncoder().encode(payloadString).length : payloadString.length
+      if (payloadBytes > 950000) {
+        setLocalError('Product details are too large to submit. Shorten the description or remove large metadata.')
+        return
+      }
+    } catch (error) {
+      // If serialization fails we will let the request surface the error
+    }
+
+    try {
+      await onSubmit(submission)
     } catch (err: any) {
       setLocalError(err?.message || 'Unable to save product')
     }

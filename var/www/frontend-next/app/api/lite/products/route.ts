@@ -58,6 +58,16 @@ const parseJson = async (response: Response) => {
 
 const handleResponse = async (response: Response) => {
   if (!response.ok) {
+    if (response.status === 413) {
+      throw NextResponse.json(
+        {
+          message:
+            'Request too large. Remove embedded images or reduce description size before submitting.',
+        },
+        { status: 413 }
+      )
+    }
+
     const text = await response.text().catch(() => '')
     console.error('[admin-lite] products upstream error', response.status, text)
     let message = 'Backend request failed'
