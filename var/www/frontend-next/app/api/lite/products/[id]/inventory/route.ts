@@ -276,10 +276,15 @@ export const PATCH = async (
           inventory_quantity: inStock ? (quantity > 0 ? quantity : 1) : 0,
           allow_backorder: inStock ? !!variant?.allow_backorder : false,
         }
-        const response = await buildUpstreamRequest(req, token, 'variants/' + variant.id, {
-          method: 'PUT',
-          body: JSON.stringify(payload),
-        })
+        const response = await buildUpstreamRequest(
+          req,
+          token,
+          'admin/lite/variants/' + variant.id,
+          {
+            method: 'PUT',
+            body: JSON.stringify(payload),
+          }
+        )
         await ensureVariantUpdate('inventory variant update', response)
       })
     )

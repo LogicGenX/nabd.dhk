@@ -28,7 +28,7 @@ const forward = async (
     requestBody = JSON.stringify(body)
   }
 
-  const url = buildAdminUrl('variants/' + encodeURIComponent(variantId), req)
+  const url = buildAdminUrl('admin/lite/variants/' + encodeURIComponent(variantId), req)
 
   let response: Response
   try {

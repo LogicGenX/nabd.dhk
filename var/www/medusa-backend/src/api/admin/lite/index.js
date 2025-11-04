@@ -56,6 +56,8 @@ module.exports = (rootRouter) => {
   route.get('/products/:id', asyncHandler(products.retrieve))
   route.post('/products', jsonBody, asyncHandler(products.create))
   route.put('/products/:id', jsonBody, asyncHandler(products.update))
+  route.put('/variants/:id', jsonBody, asyncHandler(products.updateVariant))
+  route.patch('/variants/:id', jsonBody, asyncHandler(products.updateVariant))
   route.patch('/products/:id/inventory', jsonBody, asyncHandler(products.updateInventory))
   route.get('/catalog', asyncHandler(products.catalog))
   route.post('/catalog/collections', jsonBody, asyncHandler(products.createCollection))

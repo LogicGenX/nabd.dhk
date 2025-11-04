@@ -138,6 +138,56 @@ const parseInventoryQuantity = (value, fallback = 0) => {
   return rounded
 }
 
+const coerceInventoryQuantity = (value) => {
+  if (value === undefined || value === null) return null
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) return 0
+    const parsed = Number(trimmed)
+    if (!Number.isFinite(parsed)) return null
+    const rounded = Math.round(parsed)
+    return rounded < 0 ? 0 : rounded
+  }
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) return null
+    const rounded = Math.round(value)
+    return rounded < 0 ? 0 : rounded
+  }
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return null
+  const rounded = Math.round(parsed)
+  return rounded < 0 ? 0 : rounded
+}
+
+const normalizeVariantOptionUpdates = (entries, productOptions) => {
+  if (!Array.isArray(entries) || !entries.length) return []
+  const allowed = new Set(
+    Array.isArray(productOptions)
+      ? productOptions
+          .map((option) => (option && typeof option.id === 'string' ? option.id : null))
+          .filter(Boolean)
+      : []
+  )
+  if (!allowed.size) return []
+  const normalized = []
+  const seen = new Set()
+  for (const entry of entries) {
+    if (!entry || typeof entry !== 'object') continue
+    const optionId =
+      typeof entry.option_id === 'string' && entry.option_id.trim()
+        ? entry.option_id.trim()
+        : typeof entry.id === 'string' && entry.id.trim()
+          ? entry.id.trim()
+          : null
+    if (!optionId || !allowed.has(optionId) || seen.has(optionId)) continue
+    seen.add(optionId)
+    const value =
+      entry.value === null || entry.value === undefined ? '' : String(entry.value)
+    normalized.push({ option_id: optionId, value })
+  }
+  return normalized
+}
+
 const normalizeVariantConfig = (variant, legacy = {}) => {
   const base = variant && typeof variant === 'object' ? variant : {}
   const fallback = legacy && typeof legacy === 'object' ? legacy : {}
@@ -819,6 +869,97 @@ exports.createCategory = async (req, res) => {
       handle: created.handle,
     },
   })
+}
+
+exports.updateVariant = async (req, res) => {
+  const variantId = req.params.id
+  if (!variantId) {
+    return res.status(400).json({ message: 'Variant id is required' })
+  }
+
+  const body = req.body || {}
+  const hasManageInventory = hasOwn(body, 'manage_inventory')
+  const hasAllowBackorder = hasOwn(body, 'allow_backorder')
+  const hasInventory = hasOwn(body, 'inventory_quantity')
+  const hasOptions = Array.isArray(body.options)
+
+  if (!hasManageInventory && !hasAllowBackorder && !hasInventory && !hasOptions) {
+    return res.status(400).json({ message: 'No variant fields provided' })
+  }
+
+  const variantService = req.scope.resolve('productVariantService')
+  const productService = req.scope.resolve('productService')
+  const manager = req.scope.resolve('manager')
+
+  let variant
+  try {
+    variant = await variantService.retrieve(variantId, {
+      relations: ['product', 'product.options', 'options'],
+    })
+  } catch (error) {
+    return res.status(404).json({ message: 'Variant not found' })
+  }
+
+  const updates = {}
+
+  if (hasManageInventory) {
+    updates.manage_inventory = parseBoolean(body.manage_inventory, !!variant.manage_inventory)
+  }
+
+  if (hasAllowBackorder) {
+    updates.allow_backorder = parseBoolean(body.allow_backorder, !!variant.allow_backorder)
+  }
+
+  if (hasInventory) {
+    const coerced = coerceInventoryQuantity(body.inventory_quantity)
+    if (coerced === null) {
+      return res.status(400).json({ message: 'inventory_quantity must be numeric' })
+    }
+    updates.inventory_quantity = coerced
+  }
+
+  if (updates.manage_inventory === false && !hasInventory) {
+    updates.inventory_quantity = 0
+  }
+
+  const optionUpdates = normalizeVariantOptionUpdates(
+    body.options,
+    variant?.product?.options || []
+  )
+  if (optionUpdates.length) {
+    updates.options = optionUpdates
+  }
+
+  if (!Object.keys(updates).length) {
+    return res.status(400).json({ message: 'No valid variant fields to update' })
+  }
+
+  try {
+    await manager.transaction(async (transactionManager) => {
+      await variantService.withTransaction(transactionManager).update(variantId, updates)
+    })
+
+    const product = await productService.retrieve(variant.product_id, {
+      relations: DEFAULT_RELATIONS,
+    })
+    res.json({ product: serializeProduct(product, DEFAULT_CURRENCY) })
+  } catch (error) {
+    let logger = null
+    try {
+      logger = req.scope?.resolve('logger')
+    } catch (loggerError) {
+      logger = null
+    }
+    if (logger?.error) {
+      logger.error(
+        '[admin-lite] variant update failed for ' +
+          variantId +
+          ': ' +
+          (error?.message || error)
+      )
+    }
+    res.status(500).json({ message: 'Failed to update variant' })
+  }
 }
 
 exports.updateInventory = async (req, res) => {
