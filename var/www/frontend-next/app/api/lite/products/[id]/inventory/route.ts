@@ -84,7 +84,7 @@ const fetchProduct = async (req: NextRequest, token: string, productId: string) 
   const response = await buildUpstreamRequest(
     req,
     token,
-    'products/' + encodeURIComponent(productId) + '?expand=' + PRODUCT_EXPAND
+    'lite/products/' + encodeURIComponent(productId) + '?expand=' + PRODUCT_EXPAND
   )
   const payload = await parseJsonResponse('inventory product fetch', response)
   const product = payload?.product ?? payload

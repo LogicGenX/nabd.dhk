@@ -47,7 +47,8 @@ export default function ProductGrid({
       if (collectionId) params.collection_id = [collectionId]
       if (categoryId) params.category_id = [categoryId]
       if (q) params.q = q
-      if (order) params.order = order
+      const sort = typeof order === 'string' && order.trim() ? order : '-created_at'
+      params.order = sort
 
       const { products } = await medusa.products.list(params)
       const mapped: Product[] = products.map((p: any) => {
