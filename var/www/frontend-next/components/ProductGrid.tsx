@@ -43,9 +43,9 @@ export default function ProductGrid({
       loadingRef.current = true
 
       const effectiveOffset = reset ? 0 : offsetRef.current
-      const params: any = { limit, offset: effectiveOffset }
-      if (collectionId) params.collection_id = collectionId
-      if (categoryId) params.category_id = categoryId
+      const params: Record<string, unknown> = { limit, offset: effectiveOffset }
+      if (collectionId) params.collection_id = [collectionId]
+      if (categoryId) params.category_id = [categoryId]
       if (q) params.q = q
       if (order) params.order = order
 
