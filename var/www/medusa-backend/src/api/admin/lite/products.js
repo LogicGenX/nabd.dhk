@@ -213,6 +213,85 @@ const normalizeVariantConfig = (variant, legacy = {}) => {
   }
 }
 
+const resolveLogger = (req) => {
+  const scope = req && typeof req === 'object' ? req.scope : null
+  if (!scope || typeof scope.resolve !== 'function') return null
+  try {
+    return scope.resolve('logger')
+  } catch (error) {
+    return null
+  }
+}
+
+const resolveDefaultSalesChannel = async (req) => {
+  const scope = req && typeof req === 'object' ? req.scope : null
+  if (!scope || typeof scope.resolve !== 'function') return null
+
+  let service = null
+  try {
+    service = scope.resolve('salesChannelService')
+  } catch (error) {
+    return null
+  }
+
+  if (!service || typeof service !== 'object') return null
+
+  if (typeof service.retrieveDefault === 'function') {
+    try {
+      const channel = await service.retrieveDefault()
+      if (channel && typeof channel.id === 'string') return channel.id
+    } catch (error) {
+      const logger = resolveLogger(req)
+      if (logger && typeof logger.warn === 'function') {
+        logger.warn('[admin-lite] default sales channel lookup failed: ' + (error?.message || error))
+      }
+    }
+  }
+
+  if (typeof service.listAndCount === 'function') {
+    try {
+      const result = await service.listAndCount({ is_default: true }, { skip: 0, take: 1 })
+      const channels = Array.isArray(result) ? result[0] : []
+      const entry = Array.isArray(channels) ? channels[0] : channels
+      if (entry && typeof entry.id === 'string') return entry.id
+    } catch (error) {
+      const logger = resolveLogger(req)
+      if (logger && typeof logger.warn === 'function') {
+        logger.warn('[admin-lite] fallback default sales channel lookup failed: ' + (error?.message || error))
+      }
+    }
+  }
+
+  return null
+}
+
+const ensureProductInDefaultSalesChannel = async (req, productId) => {
+  if (!productId) return
+  const scope = req && typeof req === 'object' ? req.scope : null
+  if (!scope || typeof scope.resolve !== 'function') return
+
+  let service = null
+  try {
+    service = scope.resolve('salesChannelService')
+  } catch (error) {
+    return
+  }
+
+  if (!service || typeof service.addProducts !== 'function') return
+
+  const channelId = await resolveDefaultSalesChannel(req)
+  if (!channelId) return
+
+  try {
+    await service.addProducts(channelId, [productId])
+  } catch (error) {
+    const logger = resolveLogger(req)
+    if (logger && typeof logger.warn === 'function') {
+      logger.warn('[admin-lite] failed to add product ' + productId + ' to sales channel ' + channelId + ': ' + (error?.message || error))
+    }
+  }
+}
+
 const collectSizeValuesFromProduct = (product) => {
   const result = []
   const seen = new Set()
@@ -604,6 +683,7 @@ exports.create = async (req, res) => {
       return res.status(statusCode).json({ message })
     }
   }
+  await ensureProductInDefaultSalesChannel(req, created?.id)
   const product = await productService.retrieve(created.id, { relations: DEFAULT_RELATIONS })
   res.status(201).json({ product: serializeProduct(product, DEFAULT_CURRENCY) })
 }
@@ -776,6 +856,7 @@ exports.update = async (req, res) => {
     await productVariantService.update(targetVariant.id, variantUpdate)
   }
 
+  await ensureProductInDefaultSalesChannel(req, productId)
   const refreshed = await productService.retrieve(productId, { relations: DEFAULT_RELATIONS })
   res.json({ product: serializeProduct(refreshed, DEFAULT_CURRENCY) })
 }
