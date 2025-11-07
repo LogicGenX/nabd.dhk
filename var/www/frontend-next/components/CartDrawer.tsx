@@ -1,6 +1,7 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { FaTimes } from 'react-icons/fa'
 import { useCart } from '../lib/store'
 import { formatAmount } from '../lib/currency'
@@ -58,7 +59,7 @@ export default function CartDrawer({ open, onClose }: Props) {
                 <li key={item.id} className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <Image
-                      src={item.image}
+                      src={item.image || '/placeholder.svg'}
                       alt={item.title}
                       width={40}
                       height={40}
@@ -72,9 +73,27 @@ export default function CartDrawer({ open, onClose }: Props) {
                 </li>
               ))}
             </ul>
-            <div className="flex justify-between font-semibold border-t pt-2">
-              <span>Subtotal</span>
-              <span>{formatAmount(totalPrice())}</span>
+            <div className="space-y-3 border-t pt-2">
+              <div className="flex justify-between font-semibold">
+                <span>Subtotal</span>
+                <span>{formatAmount(totalPrice())}</span>
+              </div>
+              <div className="space-y-2">
+                <Link
+                  href="/cart"
+                  className="block w-full rounded-md border border-gray-200 px-4 py-2 text-center font-medium text-gray-700 hover:border-black hover:text-black"
+                  onClick={onClose}
+                >
+                  View cart
+                </Link>
+                <Link
+                  href="/checkout"
+                  className="block w-full rounded-md bg-accent px-4 py-2 text-center font-semibold uppercase tracking-brand text-white shadow hover:bg-accent/90"
+                  onClick={onClose}
+                >
+                  Checkout
+                </Link>
+              </div>
             </div>
           </>
         )}
