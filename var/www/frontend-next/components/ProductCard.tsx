@@ -1,16 +1,12 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { formatAmount } from '../lib/currency'
+import { type ProductSummary } from '../lib/products'
 
-export interface Product {
-  id: string
-  title: string
-  thumbnail: string
-  price: number
-}
+export type Product = ProductSummary
 
 interface ProductCardProps {
-  product: Product
+  product: ProductSummary
 }
 
 export default function ProductCard({ product }: ProductCardProps) {

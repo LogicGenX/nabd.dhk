@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { medusa } from '../lib/medusa'
-import ProductCard, { type Product } from './ProductCard'
+import { mapProductSummary, type ProductSummary } from '../lib/products'
+import ProductCard from './ProductCard'
 import ProductCardSkeleton from './ProductCardSkeleton'
 
 interface Props {
@@ -18,7 +19,7 @@ export default function ProductGrid({
   q,
   order,
 }: Props) {
-  const [products, setProducts] = useState<Product[]>([])
+  const [products, setProducts] = useState<ProductSummary[]>([])
   const [offset, setOffset] = useState(0)
   const [loading, setLoading] = useState(false)
   const [hasMore, setHasMore] = useState(true)
@@ -51,18 +52,7 @@ export default function ProductGrid({
       params.order = sort
 
       const { products } = await medusa.products.list(params)
-      const mapped: Product[] = products.map((p: any) => {
-        const thumb =
-          (typeof p.thumbnail === 'string' && p.thumbnail) ||
-          p.images?.[0]?.url ||
-          '/placeholder.svg'
-        return {
-          id: p.id,
-          title: p.title,
-          thumbnail: thumb,
-          price: p.variants[0]?.prices[0]?.amount / 100 || 0,
-        }
-      })
+      const mapped: ProductSummary[] = products.map((p: any) => mapProductSummary(p))
 
       // Update products and offsets
       setProducts((prev) => (reset ? mapped : [...prev, ...mapped]))

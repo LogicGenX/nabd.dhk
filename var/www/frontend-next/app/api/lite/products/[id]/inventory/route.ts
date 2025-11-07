@@ -279,7 +279,7 @@ export const PATCH = async (
         const response = await buildUpstreamRequest(
           req,
           token,
-          'admin/lite/variants/' + variant.id,
+          'admin/variants/' + variant.id,
           {
             method: 'PUT',
             body: JSON.stringify(payload),

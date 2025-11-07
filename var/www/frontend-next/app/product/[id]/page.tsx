@@ -1,10 +1,12 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import { medusa } from '../../../lib/medusa'
 import { formatAmount } from '../../../lib/currency'
 import { useCart } from '../../../lib/store'
 import ProductPageSkeleton from '../../../components/ProductPageSkeleton'
+import ProductRecommendations from '../../../components/ProductRecommendations'
+import { FALLBACK_IMAGE } from '../../../lib/products'
 
 interface Product {
   id: string
@@ -12,6 +14,10 @@ interface Product {
   description: string
   images: { url: string }[]
   price: number
+  variantId?: string
+  variantTitle?: string | null
+  collectionId?: string | null
+  categoryIds: string[]
 }
 
 export default function ProductPage({ params }: { params: { id: string } }) {
@@ -22,16 +28,36 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   const add = useCart((state) => state.add)
 
   useEffect(() => {
+    let active = true
     medusa.products.retrieve(id).then(({ product }) => {
+      if (!active) return
+      const variants = Array.isArray(product.variants) ? product.variants : []
+      const primaryVariant =
+        variants.find((variant: any) => {
+          if (!variant) return false
+          if (!variant.manage_inventory) return true
+          return typeof variant.inventory_quantity === 'number' ? variant.inventory_quantity > 0 : true
+        }) || variants[0] || null
       setProduct({
         id: product.id,
         title: product.title,
         description: product.description,
         images: product.images || [],
-        price: product.variants[0]?.prices[0]?.amount / 100 || 0,
+        price: primaryVariant?.prices?.[0]?.amount ? primaryVariant.prices[0].amount / 100 : 0,
+        variantId: primaryVariant?.id,
+        variantTitle: primaryVariant?.title || null,
+        collectionId: product.collection_id || null,
+        categoryIds: Array.isArray(product.categories) ? product.categories.map((c: any) => c.id).filter(Boolean) : [],
       })
     })
+    return () => {
+      active = false
+    }
   }, [id])
+
+  const canAddToCart = useMemo(() => {
+    return Boolean(product?.variantId)
+  }, [product?.variantId])
 
   if (!product) {
     return <ProductPageSkeleton />
@@ -43,7 +69,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         <div className="flex-1 flex flex-col gap-4">
           <div className="relative w-full aspect-square">
             <Image
-              src={product.images[selectedImage]?.url || '/placeholder.svg'}
+              src={product.images[selectedImage]?.url || FALLBACK_IMAGE}
               alt={`${product.title} image ${selectedImage + 1}`}
               fill
               className="object-cover"
@@ -94,22 +120,31 @@ export default function ProductPage({ params }: { params: { id: string } }) {
               </button>
             </div>
             <button
-              className="px-8 py-3 bg-accent text-white border border-accent rounded-md hover:bg-accent/90 transition-colors"
-              onClick={() =>
+              className="px-8 py-3 bg-accent text-white border border-accent rounded-md hover:bg-accent/90 transition-colors disabled:cursor-not-allowed disabled:bg-gray-400 disabled:border-gray-400"
+              disabled={!canAddToCart}
+              onClick={() => {
+                if (!product?.variantId) return
                 add({
-                  id: product.id,
+                  id: product.variantId,
+                  productId: product.id,
                   title: product.title,
+                  variantTitle: product.variantTitle,
                   price: product.price,
                   quantity,
-                  image: product.images[0]?.url || '/placeholder.svg',
+                  image: product.images[0]?.url || FALLBACK_IMAGE,
                 })
-              }
+              }}
             >
-              Add to Cart
+              {canAddToCart ? 'Add to Cart' : 'Unavailable'}
             </button>
           </div>
         </div>
       </div>
+      <ProductRecommendations
+        productId={product.id}
+        collectionId={product.collectionId}
+        categoryIds={product.categoryIds}
+      />
     </main>
   )
 }

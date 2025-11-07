@@ -53,7 +53,12 @@ export default function CartPage() {
                       height={60}
                       className='object-cover'
                     />
-                    <span className='font-medium'>{item.title}</span>
+                    <div>
+                      <p className='font-medium'>{item.title}</p>
+                      {item.variantTitle && (
+                        <p className='text-xs text-gray-500'>{item.variantTitle}</p>
+                      )}
+                    </div>
                   </div>
                 </td>
                 <td className='p-2'>

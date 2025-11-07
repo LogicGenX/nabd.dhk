@@ -83,6 +83,8 @@ When running the Docker stack, avoid starting a host-level Nginx instance on por
 | --- | --- |
 | `MEDUSA_BACKEND_URL` | Explicit Medusa origin for API routes and Admin Lite proxies (e.g. `https://api.nabd.dhk`). |
 | `NEXT_PUBLIC_MEDUSA_URL` | Public Medusa origin used by the storefront client. Falls back to `MEDUSA_BACKEND_URL`. |
+| `NEXT_PUBLIC_MEDUSA_REGION_ID` | Optional Medusa region identifier that the checkout route should attach to new carts. When omitted the backend auto-selects the first available region. |
+| `NEXT_PUBLIC_MEDUSA_SHIPPING_OPTION_ID` | Optional shipping option identifier used by checkout to add a delivery method before completing the cart. Falls back to the first non-return option for the active region. |
 | `NEXT_PUBLIC_SANITY_PROJECT_ID` / `NEXT_PUBLIC_SANITY_DATASET` | Sanity dataset identifiers for the storefront queries. |
 | `SANITY_API_READ_TOKEN` | Optional server-side token for authenticated Sanity reads. |
 | `ADMIN_LITE_CURRENCY_CODE` | Overrides the default BDT currency code for Admin Lite pricing helpers. |

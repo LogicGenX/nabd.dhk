@@ -51,6 +51,7 @@ describe('catalog route', () => {
     const fetchMock = vi
       .fn<Parameters<typeof fetch>, ReturnType<typeof fetch>>()
       .mockResolvedValueOnce(jsonResponse(catalogPayload))
+      .mockResolvedValueOnce(jsonResponse({ products: [] }))
 
     global.fetch = fetchMock as unknown as typeof fetch
 
@@ -68,11 +69,13 @@ describe('catalog route', () => {
     ])
     expect(data.sizes).toEqual(['M', 'XL'])
 
-    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
     const firstUrl = fetchMock.mock.calls[0][0] as string
     expect(firstUrl).toBe(BACKEND_URL + '/admin/lite/catalog')
     const headers = fetchMock.mock.calls[0][1]?.headers as Headers
     expect(headers.get('accept-encoding')).toBe('identity')
+    const secondUrl = fetchMock.mock.calls[1][0] as string
+    expect(secondUrl).toBe(BACKEND_URL + '/admin/lite/products?limit=1000&expand=options,variants,variants.options')
   })
 
   it('treats missing product categories as optional', async () => {

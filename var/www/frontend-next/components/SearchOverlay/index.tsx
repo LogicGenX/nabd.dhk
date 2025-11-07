@@ -4,7 +4,8 @@ import React, { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { FaTimes } from 'react-icons/fa'
 import { medusa } from '../../lib/medusa'
-import ProductCard, { type Product } from '../ProductCard'
+import ProductCard from '../ProductCard'
+import { mapProductSummary, type ProductSummary } from '../../lib/products'
 
 interface Props {
   open: boolean
@@ -14,7 +15,7 @@ interface Props {
 export default function SearchOverlay({ open, onClose }: Props) {
   const [query, setQuery] = useState('')
   const [debounced, setDebounced] = useState('')
-  const [products, setProducts] = useState<Product[]>([])
+  const [products, setProducts] = useState<ProductSummary[]>([])
   const [categories, setCategories] = useState<{ id: string; name: string }[]>(
     [],
   )
@@ -80,18 +81,7 @@ export default function SearchOverlay({ open, onClose }: Props) {
           medusa.productCategories.list(),
         ])
         if (!active) return
-        const mapped: Product[] = prodRes.products.map((p: any) => {
-          const thumb =
-            (typeof p.thumbnail === 'string' && p.thumbnail) ||
-            p.images?.[0]?.url ||
-            '/placeholder.svg'
-          return {
-            id: p.id,
-            title: p.title,
-            thumbnail: thumb,
-            price: p.variants[0]?.prices[0]?.amount / 100 || 0,
-          }
-        })
+        const mapped: ProductSummary[] = prodRes.products.map((p: any) => mapProductSummary(p))
         const filtered = catRes.product_categories.filter((c: any) =>
           c.name.toLowerCase().includes(debounced.toLowerCase()),
         )

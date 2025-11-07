@@ -57,7 +57,7 @@ export default function CartDrawer({ open, onClose }: Props) {
             <ul className="space-y-2">
               {items.map((item) => (
                 <li key={item.id} className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 text-sm">
                     <Image
                       src={item.image || '/placeholder.svg'}
                       alt={item.title}
@@ -65,11 +65,17 @@ export default function CartDrawer({ open, onClose }: Props) {
                       height={40}
                       className="rounded object-cover"
                     />
-                    <span>
-                      {item.title} x {item.quantity}
-                    </span>
+                    <div>
+                      <p className="font-medium">{item.title}</p>
+                      {item.variantTitle && (
+                        <p className="text-xs text-gray-500">{item.variantTitle}</p>
+                      )}
+                      <p className="text-xs text-gray-500">Qty {item.quantity}</p>
+                    </div>
                   </div>
-                  <span>{formatAmount(item.price * item.quantity)}</span>
+                  <span className="text-sm font-semibold">
+                    {formatAmount(item.price * item.quantity)}
+                  </span>
                 </li>
               ))}
             </ul>

@@ -163,7 +163,7 @@ export async function GET(req: NextRequest) {
           .map((value: string) => value.trim())
       : []
 
-    if (!sizes.length) {
+    if (!sizes.length || !colors.length) {
       const productsPayload = await fetchJson(
         req,
         token,
@@ -171,20 +171,8 @@ export async function GET(req: NextRequest) {
         { optional: true }
       )
       if (productsPayload) {
-        sizes = extractSizes(productsPayload)
+        if (!sizes.length) sizes = extractSizes(productsPayload)
         if (!colors.length) colors = extractColors(productsPayload)
-      }
-    }
-
-    if (!colors.length) {
-      const productsPayload = await fetchJson(
-        req,
-        token,
-        'lite/products?limit=1000',
-        { optional: true }
-      )
-      if (productsPayload) {
-        colors = extractColors(productsPayload)
       }
     }
 

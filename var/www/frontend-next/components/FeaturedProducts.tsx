@@ -3,36 +3,19 @@ import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { medusa } from '../lib/medusa'
+import { mapProductSummary, type ProductSummary } from '../lib/products'
 import { formatAmount } from '../lib/currency'
 import ProductCardSkeleton from './ProductCardSkeleton'
 
-interface Product {
-  id: string
-  title: string
-  thumbnail: string
-  price: number
-}
-
 export default function FeaturedProducts() {
-  const [products, setProducts] = useState<Product[]>([])
+  const [products, setProducts] = useState<ProductSummary[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     medusa.products
       .list({ limit: 4 })
       .then(({ products }) => {
-        const mapped = products.map((p: any) => {
-          const thumb =
-            (typeof p.thumbnail === 'string' && p.thumbnail) ||
-            p.images?.[0]?.url ||
-            '/placeholder.svg'
-          return {
-            id: p.id,
-            title: p.title,
-            thumbnail: thumb,
-            price: p.variants[0]?.prices[0]?.amount / 100 || 0,
-          }
-        })
+        const mapped = products.map((p: any) => mapProductSummary(p))
         setProducts(mapped)
       })
       .finally(() => setLoading(false))

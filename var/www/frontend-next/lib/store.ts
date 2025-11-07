@@ -1,9 +1,11 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-interface CartItem {
-  id: string
+export interface CartItem {
+  id: string // variant id
+  productId: string
   title: string
+  variantTitle?: string | null
   price: number
   quantity: number
   image?: string
@@ -24,6 +26,9 @@ export const useCart = create<CartState>()(
       items: [],
       add: (item) =>
         set((state) => {
+          if (!item.id || !item.productId) {
+            return state
+          }
           const existing = state.items.find((i) => i.id === item.id)
           if (existing) {
             return {
@@ -47,6 +52,18 @@ export const useCart = create<CartState>()(
       totalPrice: () =>
         get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),
     }),
-    { name: 'cart' },
+    {
+      name: 'cart',
+      version: 2,
+      migrate: (persistedState: any, version) => {
+        if (!persistedState || typeof persistedState !== 'object') {
+          return { items: [] }
+        }
+        if (!version || version < 2) {
+          return { items: [] }
+        }
+        return persistedState as CartState
+      },
+    },
   ),
 )
