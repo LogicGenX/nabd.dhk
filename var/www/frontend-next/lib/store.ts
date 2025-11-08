@@ -55,12 +55,12 @@ export const useCart = create<CartState>()(
     {
       name: 'cart',
       version: 2,
-      migrate: (persistedState: any, version) => {
+      migrate: (persistedState: unknown, version) => {
         if (!persistedState || typeof persistedState !== 'object') {
-          return { items: [] }
+          return { items: [] } as CartState
         }
-        if (!version || version < 2) {
-          return { items: [] }
+        if (version !== 2) {
+          return { items: [] } as CartState
         }
         return persistedState as CartState
       },
