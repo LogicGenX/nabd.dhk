@@ -1,3 +1,5 @@
+import { ensureMedusaFileUrl } from './media'
+
 export const FALLBACK_IMAGE = '/placeholder.svg'
 
 export interface ProductSummary {
@@ -15,11 +17,20 @@ const safeArray = <T>(value: unknown): T[] => {
 
 const resolveThumbnail = (product: any) => {
   if (typeof product?.thumbnail === 'string' && product.thumbnail.trim()) {
-    return product.thumbnail
+    const normalized = ensureMedusaFileUrl(product.thumbnail)
+    if (normalized) {
+      return normalized
+    }
   }
   const images = safeArray<{ url?: string }>(product?.images)
   const firstImage = images.find((image) => typeof image?.url === 'string' && image.url.trim())
-  return firstImage?.url || FALLBACK_IMAGE
+  if (firstImage?.url) {
+    const normalized = ensureMedusaFileUrl(firstImage.url)
+    if (normalized) {
+      return normalized
+    }
+  }
+  return FALLBACK_IMAGE
 }
 
 const resolvePrimaryVariant = (product: any) => {

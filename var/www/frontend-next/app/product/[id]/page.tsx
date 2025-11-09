@@ -7,6 +7,7 @@ import { useCart } from '../../../lib/store'
 import ProductPageSkeleton from '../../../components/ProductPageSkeleton'
 import ProductRecommendations from '../../../components/ProductRecommendations'
 import { FALLBACK_IMAGE } from '../../../lib/products'
+import { ensureMedusaFileUrl } from '../../../lib/media'
 
 interface Product {
   id: string
@@ -42,7 +43,11 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         id: product.id,
         title: product.title,
         description: product.description,
-        images: product.images || [],
+        images: Array.isArray(product.images)
+          ? product.images.map((img: any) => ({
+              url: ensureMedusaFileUrl(img?.url) || FALLBACK_IMAGE,
+            }))
+          : [],
         price: primaryVariant?.prices?.[0]?.amount ? primaryVariant.prices[0].amount / 100 : 0,
         variantId: primaryVariant?.id,
         variantTitle: primaryVariant?.title || null,

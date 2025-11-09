@@ -131,6 +131,18 @@ const run = (command, args, options = {}) =>
     })
   })
 
+const ensureRegionAndShipping = async () => {
+  console.log('[admin-lite] Ensuring default region and shipping option exist...')
+  try {
+    await run('node', ['scripts/create-region-and-shipping.js'])
+  } catch (error) {
+    console.warn(
+      '[admin-lite] create-region-and-shipping failed (non-fatal):',
+      error?.message || error,
+    )
+  }
+}
+
 const start = async () => {
   const skipMigrations = String(process.env.MEDUSA_SKIP_MIGRATIONS || '').toLowerCase() === 'true'
   const medusaBin = resolveBin('medusa')
@@ -154,6 +166,8 @@ const start = async () => {
     } catch (err) {
       console.warn('[admin-lite] ensure:admin failed (non-fatal):', err?.message || err)
     }
+
+    await ensureRegionAndShipping()
 
     const extraArgs = process.argv.slice(2)
     const host = process.env.MEDUSA_HOST || '0.0.0.0'

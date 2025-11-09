@@ -358,6 +358,43 @@ const isDuplicateHandleError = (error) => {
   return false
 }
 
+const resolveUploadsBaseUrl = () => {
+  const candidates = [
+    process.env.MEDUSA_UPLOADS_BASE_URL,
+    process.env.MEDUSA_FILE_BASE_URL,
+    process.env.MEDUSA_ADMIN_BACKEND_URL,
+    process.env.MEDUSA_BACKEND_URL,
+    process.env.RENDER_EXTERNAL_URL,
+  ]
+
+  for (const candidate of candidates) {
+    if (candidate && typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim().replace(/\/$/, '')
+    }
+  }
+
+  return ''
+}
+
+const uploadsBaseUrl = resolveUploadsBaseUrl()
+
+const normalizeImageUrl = (value) => {
+  if (!value || typeof value !== 'string') return value
+  const trimmed = value.trim()
+  if (!trimmed) return trimmed
+  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('//') || trimmed.startsWith('data:')) {
+    return trimmed
+  }
+  if (!/\/uploads\//i.test(trimmed)) {
+    return trimmed
+  }
+  const normalized = trimmed.startsWith('/') ? trimmed : '/' + trimmed
+  if (!uploadsBaseUrl) {
+    return normalized
+  }
+  return uploadsBaseUrl + normalized
+}
+
 const serializeProduct = (product, currency) => {
   const price = mapPrice(product, currency)
   const variants = mapVariants(product, currency)
@@ -395,6 +432,24 @@ const serializeProduct = (product, currency) => {
     return (variant.inventory_quantity ?? 0) > 0
   })
 
+  const resolveThumbnail = () => {
+    const rawThumbnail = typeof product.thumbnail === 'string' ? product.thumbnail : null
+    const normalized = normalizeImageUrl(rawThumbnail)
+    if (normalized) return normalized
+
+    if (Array.isArray(product.images) && product.images.length) {
+      const first = product.images.find((image) => image?.url)
+      if (first?.url) {
+        const fallback = normalizeImageUrl(first.url)
+        if (fallback) {
+          return fallback
+        }
+      }
+    }
+
+    return rawThumbnail || null
+  }
+
   return {
     id: product.id,
     title: product.title,
@@ -409,10 +464,17 @@ const serializeProduct = (product, currency) => {
       ? product.categories.map((category) => ({ id: category.id, name: category.name }))
       : [],
     category_ids: Array.isArray(product.categories) ? product.categories.map((category) => category.id) : [],
-    thumbnail: product.thumbnail || (product.images && product.images[0] && product.images[0].url) || null,
-    images: Array.isArray(product.images) ? product.images.map((image) => image.url) : [],
+    thumbnail: resolveThumbnail(),
+    images: Array.isArray(product.images)
+      ? product.images
+          .map((image) => normalizeImageUrl(image?.url))
+          .filter((url) => typeof url === 'string' && url.length)
+      : [],
     image_objects: Array.isArray(product.images)
-      ? product.images.map((image) => ({ id: image.id, url: image.url }))
+      ? product.images.map((image) => ({
+          id: image.id,
+          url: normalizeImageUrl(image?.url),
+        }))
       : [],
     options,
     variants,

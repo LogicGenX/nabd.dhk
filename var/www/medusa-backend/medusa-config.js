@@ -1,6 +1,26 @@
 const dotenv = require('dotenv')
 dotenv.config()
 
+const resolveUploadsBaseUrl = () => {
+  const candidates = [
+    process.env.MEDUSA_UPLOADS_BASE_URL,
+    process.env.MEDUSA_FILE_BASE_URL,
+    process.env.MEDUSA_BACKEND_URL,
+    process.env.MEDUSA_ADMIN_BACKEND_URL,
+    process.env.RENDER_EXTERNAL_URL,
+  ]
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim().replace(/\/$/, '')
+    }
+  }
+
+  return '/api'
+}
+
+const uploadsBaseUrl = resolveUploadsBaseUrl()
+
 module.exports = {
   projectConfig: {
     redis_url: process.env.REDIS_URL,
@@ -20,10 +40,7 @@ module.exports = {
       resolve: 'medusa-file-local',
       options: {
         upload_dir: 'uploads',
-        base_url:
-          process.env.MEDUSA_BACKEND_URL ||
-          process.env.MEDUSA_ADMIN_BACKEND_URL ||
-          '/api',
+        base_url: uploadsBaseUrl,
       },
     },
     {
