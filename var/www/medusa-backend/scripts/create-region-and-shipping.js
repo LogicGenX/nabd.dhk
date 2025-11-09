@@ -8,11 +8,46 @@
  * shipping option and pricing context to work with.
  */
 
+const fs = require('fs')
 const path = require('path')
-const dotenv = require('dotenv')
 
 const backendRoot = path.join(__dirname, '..')
-dotenv.config({ path: path.join(backendRoot, '.env') })
+const envPath = path.join(backendRoot, '.env')
+
+const loadEnv = () => {
+  try {
+    const dotenv = require('dotenv')
+    dotenv.config({ path: envPath })
+    return
+  } catch (error) {
+    console.warn('[region-bootstrap] dotenv not available, falling back to manual .env parser')
+  }
+
+  if (!fs.existsSync(envPath)) {
+    return
+  }
+
+  const lines = fs.readFileSync(envPath, 'utf8').split(/\r?\n/)
+  lines.forEach((line) => {
+    if (!line || line.trim().startsWith('#')) return
+    const idx = line.indexOf('=')
+    if (idx === -1) return
+    const key = line.slice(0, idx).trim()
+    if (!key) return
+    let value = line.slice(idx + 1)
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1)
+    }
+    if (!(key in process.env)) {
+      process.env[key] = value
+    }
+  })
+}
+
+loadEnv()
 
 const loadMedusa = () => {
   try {
