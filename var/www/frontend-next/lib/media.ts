@@ -3,11 +3,17 @@ import {
   DEFAULT_PRODUCTION_MEDUSA_BACKEND_URL,
 } from './constants'
 
+const removeCommaBeforeSlash = (value: string) => value.replace(/,(?=\/)/g, '')
+
+const stripTrailingDelimiters = (value: string) => value.replace(/[,\s]+$/g, '')
+
 const normalizeBase = (value?: string | null) => {
   if (!value) return ''
   const trimmed = value.trim()
   if (!trimmed) return ''
-  return trimmed.replace(/\/+$/, '')
+  const sanitized = stripTrailingDelimiters(removeCommaBeforeSlash(trimmed))
+  if (!sanitized) return ''
+  return sanitized.replace(/\/+$/, '')
 }
 
 const fallbackMedusaUrl =
@@ -35,16 +41,17 @@ export const ensureMedusaFileUrl = (value?: string | null) => {
   if (!trimmed) {
     return ''
   }
+  const sanitized = removeCommaBeforeSlash(trimmed)
 
-  if (hasProtocol.test(trimmed) || protocolRelative.test(trimmed) || dataUri.test(trimmed)) {
-    return trimmed
+  if (hasProtocol.test(sanitized) || protocolRelative.test(sanitized) || dataUri.test(sanitized)) {
+    return sanitized
   }
 
-  if (!uploadsSegment.test(trimmed)) {
-    return trimmed
+  if (!uploadsSegment.test(sanitized)) {
+    return sanitized
   }
 
-  const normalized = trimmed.startsWith('/') ? trimmed : '/' + trimmed
+  const normalized = sanitized.startsWith('/') ? sanitized : '/' + sanitized
   if (!medusaAssetsBase) {
     return normalized
   }

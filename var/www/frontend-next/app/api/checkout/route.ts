@@ -52,7 +52,7 @@ const resolveRegionId = async () => {
   return cachedRegionId
 }
 
-const resolveShippingOptionId = async (regionId: string) => {
+const resolveConfiguredShippingOptionId = () => {
   if (cachedShippingOptionId) return cachedShippingOptionId
   const envOption =
     process.env.NEXT_PUBLIC_MEDUSA_SHIPPING_OPTION_ID ||
@@ -62,16 +62,54 @@ const resolveShippingOptionId = async (regionId: string) => {
     cachedShippingOptionId = envOption
     return envOption
   }
+  return null
+}
 
-  const { shipping_options: options } = await medusa.shippingOptions.list({
-    region_id: regionId,
-  })
-  const option = options?.find((opt: any) => !opt.is_return)
-  if (!option) {
-    throw new Error('No shipping options configured for region ' + regionId)
+const listCartShippingOptions = async (cartId: string) => {
+  try {
+    const client: any = medusa.shippingOptions
+    if (typeof client?.listCartOptions !== 'function') {
+      return []
+    }
+    const response = await client.listCartOptions(cartId)
+    return Array.isArray(response?.shipping_options) ? response.shipping_options : []
+  } catch (error) {
+    console.warn('[checkout] unable to list cart-specific shipping options', error)
+    return []
   }
-  cachedShippingOptionId = option.id
-  return cachedShippingOptionId
+}
+
+const listRegionShippingOptions = async (regionId: string) => {
+  try {
+    const response = await medusa.shippingOptions.list({
+      region_id: regionId,
+    })
+    return Array.isArray(response?.shipping_options) ? response.shipping_options : []
+  } catch (error) {
+    console.warn('[checkout] unable to list region shipping options', error)
+    return []
+  }
+}
+
+const resolveShippingOptionId = async (cartId: string, regionId: string) => {
+  const configured = resolveConfiguredShippingOptionId()
+  if (configured) return configured
+
+  const cartOptions = await listCartShippingOptions(cartId)
+  const cartOption = cartOptions.find((opt: any) => opt && !opt.is_return)
+  if (cartOption?.id) {
+    cachedShippingOptionId = cartOption.id
+    return cachedShippingOptionId
+  }
+
+  const regionOptions = await listRegionShippingOptions(regionId)
+  const regionOption = regionOptions.find((opt: any) => opt && !opt.is_return)
+  if (regionOption?.id) {
+    cachedShippingOptionId = regionOption.id
+    return cachedShippingOptionId
+  }
+
+  throw new Error('No shipping options configured for cart ' + cartId)
 }
 
 const normalizePhone = (value: string) => {
@@ -129,7 +167,6 @@ export const POST = async (req: Request) => {
     }
 
     const regionId = await resolveRegionId()
-    const shippingOptionId = await resolveShippingOptionId(regionId)
     const providerId = PAYMENT_PROVIDER_MAP[payload.paymentMethod]
 
     const {
@@ -166,6 +203,8 @@ export const POST = async (req: Request) => {
     if (!addressedCart.id) {
       throw new Error('Unable to update cart with address information')
     }
+
+    const shippingOptionId = await resolveShippingOptionId(addressedCart.id, regionId)
 
     await medusa.carts.addShippingMethod(addressedCart.id, {
       option_id: shippingOptionId,
