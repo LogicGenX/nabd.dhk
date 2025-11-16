@@ -13,13 +13,13 @@ interface Props {
 }
 
 export default function CartDrawer({ open, onClose }: Props) {
-  const { items, totalPrice } = useCart()
-  const [showEmpty, setShowEmpty] = useState(items.length === 0)
+  const cart = useCart((state) => state.cart)
+  const totalPrice = useCart((state) => state.totalPrice)
+  const updateQuantity = useCart((state) => state.updateQuantity)
   const [hydrated, setHydrated] = useState(false)
 
-  useEffect(() => {
-    setShowEmpty(items.length === 0)
-  }, [items.length])
+  const items = cart?.items || []
+  const showEmpty = items.length === 0
 
   useEffect(() => {
     setHydrated(true)
@@ -59,7 +59,7 @@ export default function CartDrawer({ open, onClose }: Props) {
                 <li key={item.id} className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 text-sm">
                     <Image
-                      src={item.image || '/placeholder.svg'}
+                      src={item.thumbnail || '/placeholder.svg'}
                       alt={item.title}
                       width={40}
                       height={40}
@@ -67,14 +67,34 @@ export default function CartDrawer({ open, onClose }: Props) {
                     />
                     <div>
                       <p className="font-medium">{item.title}</p>
-                      {item.variantTitle && (
-                        <p className="text-xs text-gray-500">{item.variantTitle}</p>
+                      {item.description && (
+                        <p className="text-xs text-gray-500">{item.description}</p>
                       )}
-                      <p className="text-xs text-gray-500">Qty {item.quantity}</p>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <span>Qty {item.quantity}</span>
+                        <div className="flex rounded border border-gray-200">
+                          <button
+                            className="px-2"
+                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            aria-label="Decrease quantity"
+                          >
+                            -
+                          </button>
+                          <button
+                            className="px-2"
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            aria-label="Increase quantity"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <span className="text-sm font-semibold">
-                    {formatAmount(item.price * item.quantity)}
+                    {formatAmount(
+                      ((typeof item.total === 'number' ? item.total : item.unit_price * item.quantity) || 0) / 100,
+                    )}
                   </span>
                 </li>
               ))}

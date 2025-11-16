@@ -13,25 +13,37 @@ interface Props {
   selected?: string
   onSelect: (opt: Option | null) => void
   variant?: 'pills' | 'list'
+  options?: Option[]
 }
 
-export default function CategoriesFilter({ selected, onSelect, variant = 'pills' }: Props) {
-  const [categories, setCategories] = useState<Option[]>([])
+export default function CategoriesFilter({ selected, onSelect, variant = 'pills', options }: Props) {
+  const [categories, setCategories] = useState<Option[]>(options || [])
 
   useEffect(() => {
-    medusa.productCategories.list().then(async ({ product_categories }) => {
-      const withCount = await Promise.all(
-        product_categories.map(async (c: any) => {
-          const { count } = await medusa.products.list({
-            category_id: [c.id],
-            limit: 1,
+    if (Array.isArray(options)) {
+      setCategories(options)
+      if (options.length) {
+        return
+      }
+    }
+    medusa.productCategories
+      .list()
+      .then(async ({ product_categories }) => {
+        const withCount = await Promise.all(
+          product_categories.map(async (c: any) => {
+            const { count } = await medusa.products.list({
+              category_id: [c.id],
+              limit: 1,
+            })
+            return { id: c.id, name: c.name, count }
           })
-          return { id: c.id, name: c.name, count }
-        })
-      )
-      setCategories(withCount)
-    })
-  }, [])
+        )
+        setCategories(withCount)
+      })
+      .catch((error) => {
+        console.warn('[CategoriesFilter] failed to load categories', error)
+      })
+  }, [options])
 
   const total = categories.reduce((sum, c) => sum + c.count, 0)
 

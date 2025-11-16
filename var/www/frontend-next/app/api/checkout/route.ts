@@ -13,6 +13,7 @@ type CheckoutItem = {
 
 type CheckoutPayload = {
   items: CheckoutItem[]
+  cartId?: string | null
   name: string
   email: string
   phone: string
@@ -133,15 +134,18 @@ const normalizeCountryCode = (value?: string) => {
 
 const validatePayload = (payload: CheckoutPayload) => {
   const errors: string[] = []
-  if (!payload?.items || !Array.isArray(payload.items) || !payload.items.length) {
-    errors.push('Cart is empty')
-  }
+  const requiresItems = !payload.cartId
   const safeItems =
     Array.isArray(payload.items) && payload.items.length
       ? payload.items.filter((item) => item?.id && item?.quantity > 0)
       : []
-  if (!safeItems.length) {
-    errors.push('No purchasable items found')
+  if (requiresItems) {
+    if (!payload?.items || !Array.isArray(payload.items) || !payload.items.length) {
+      errors.push('Cart is empty')
+    }
+    if (!safeItems.length) {
+      errors.push('No purchasable items found')
+    }
   }
   if (!payload.name?.trim()) errors.push('Name is required')
   if (!payload.email?.trim()) errors.push('Email is required')
@@ -166,20 +170,31 @@ export const POST = async (req: Request) => {
       return NextResponse.json({ message: validation.errors.join(', ') }, { status: 400 })
     }
 
-    const regionId = await resolveRegionId()
     const providerId = PAYMENT_PROVIDER_MAP[payload.paymentMethod]
 
-    const {
-      cart: initialCart,
-    } = await medusa.carts.create({
-      region_id: regionId,
-    })
+    let regionId = await resolveRegionId()
+    let workingCartId: string
 
-    for (const item of validation.items) {
-      await medusa.carts.lineItems.create(initialCart.id, {
-        variant_id: item.id,
-        quantity: item.quantity,
+    if (payload.cartId) {
+      const { cart } = await medusa.carts.retrieve(payload.cartId)
+      if (!cart || !Array.isArray(cart.items) || !cart.items.length) {
+        throw new Error('Cart has no items to checkout')
+      }
+      workingCartId = cart.id
+      regionId = cart.region_id || regionId
+    } else {
+      const { cart: initialCart } = await medusa.carts.create({
+        region_id: regionId,
       })
+
+      for (const item of validation.items) {
+        await medusa.carts.lineItems.create(initialCart.id, {
+          variant_id: item.id,
+          quantity: item.quantity,
+        })
+      }
+      const refreshed = await medusa.carts.retrieve(initialCart.id)
+      workingCartId = refreshed.cart.id
     }
 
     const { first_name, last_name } = splitName(payload.name)
@@ -194,7 +209,7 @@ export const POST = async (req: Request) => {
       phone: normalizedPhone,
     }
 
-    const { cart: addressedCart } = await medusa.carts.update(initialCart.id, {
+    const { cart: addressedCart } = await medusa.carts.update(workingCartId, {
       email: payload.email.trim(),
       billing_address: address,
       shipping_address: address,

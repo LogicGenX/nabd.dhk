@@ -3,38 +3,53 @@
 import { useEffect, useMemo, useState } from 'react'
 import { medusa } from '../lib/medusa'
 
-type Chip = {
+export type CategoryChip = {
   id: string
   name: string
+  count?: number
 }
 
 interface Props {
+  items?: CategoryChip[]
   names?: string[]
   selected?: string
-  onSelect: (opt: { id: string; name: string } | null) => void
+  onSelect: (opt: CategoryChip | null) => void
 }
 
-export default function CategoryChips({
-  names = ['T-Shirts', 'Pants', 'Sets', 'Accessories'],
-  selected,
-  onSelect,
-}: Props) {
-  const [all, setAll] = useState<Chip[]>([])
+const DEFAULT_NAMES = ['T-Shirts', 'Pants', 'Sets', 'Accessories']
+
+export default function CategoryChips({ items, names = DEFAULT_NAMES, selected, onSelect }: Props) {
+  const [fetched, setFetched] = useState<CategoryChip[]>([])
 
   useEffect(() => {
-    medusa.productCategories.list().then(({ product_categories }) => {
-      setAll(
-        product_categories.map((c: any) => ({ id: c.id, name: c.name })) as Chip[],
-      )
-    })
-  }, [])
+    if (items && items.length) {
+      setFetched(items)
+      return
+    }
+    let mounted = true
+    medusa.productCategories
+      .list()
+      .then(({ product_categories }) => {
+        if (!mounted) return
+        setFetched(product_categories.map((c: any) => ({ id: c.id, name: c.name })) as CategoryChip[])
+      })
+      .catch((error) => {
+        console.warn('[CategoryChips] failed to load categories', error)
+      })
+    return () => {
+      mounted = false
+    }
+  }, [items])
 
   const chips = useMemo(() => {
-    const byName = new Map(all.map((c) => [c.name.toLowerCase(), c]))
+    if (items && items.length) {
+      return items
+    }
+    const byName = new Map(fetched.map((c) => [c.name.toLowerCase(), c]))
     return names
-      .map((n) => byName.get(n.toLowerCase()))
-      .filter(Boolean) as Chip[]
-  }, [all, names])
+      .map((label) => byName.get(label.toLowerCase()))
+      .filter(Boolean) as CategoryChip[]
+  }, [items, fetched, names])
 
   return (
     <div className='flex flex-wrap gap-2'>
@@ -60,4 +75,3 @@ export default function CategoryChips({
     </div>
   )
 }
-

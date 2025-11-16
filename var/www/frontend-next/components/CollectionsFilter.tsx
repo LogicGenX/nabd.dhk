@@ -13,25 +13,37 @@ interface Props {
   selected?: string
   onSelect: (opt: Option | null) => void
   variant?: 'pills' | 'list'
+  options?: Option[]
 }
 
-export default function CollectionsFilter({ selected, onSelect, variant = 'pills' }: Props) {
-  const [collections, setCollections] = useState<Option[]>([])
+export default function CollectionsFilter({ selected, onSelect, variant = 'pills', options }: Props) {
+  const [collections, setCollections] = useState<Option[]>(options || [])
 
   useEffect(() => {
-    medusa.collections.list().then(async ({ collections }) => {
-      const withCount = await Promise.all(
-        collections.map(async (c: any) => {
-          const { count } = await medusa.products.list({
-            collection_id: [c.id],
-            limit: 1,
+    if (Array.isArray(options)) {
+      setCollections(options)
+      if (options.length) {
+        return
+      }
+    }
+    medusa.collections
+      .list()
+      .then(async ({ collections }) => {
+        const withCount = await Promise.all(
+          collections.map(async (c: any) => {
+            const { count } = await medusa.products.list({
+              collection_id: [c.id],
+              limit: 1,
+            })
+            return { id: c.id, title: c.title, count }
           })
-          return { id: c.id, title: c.title, count }
-        })
-      )
-      setCollections(withCount)
-    })
-  }, [])
+        )
+        setCollections(withCount)
+      })
+      .catch((error) => {
+        console.warn('[CollectionsFilter] failed to load collections', error)
+      })
+  }, [options])
 
   const total = collections.reduce((sum, c) => sum + c.count, 0)
 

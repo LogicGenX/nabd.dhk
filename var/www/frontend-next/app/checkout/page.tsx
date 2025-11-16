@@ -31,7 +31,12 @@ interface CheckoutResponse {
 }
 
 export default function CheckoutPage() {
-  const { items, totalItems, totalPrice, clear } = useCart()
+  const cart = useCart((state) => state.cart)
+  const cartId = useCart((state) => state.cartId)
+  const totalItems = useCart((state) => state.totalItems)
+  const totalPrice = useCart((state) => state.totalPrice)
+  const clear = useCart((state) => state.clear)
+  const items = cart?.items || []
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -87,10 +92,12 @@ export default function CheckoutPage() {
           country: form.country,
           notes: form.notes.trim(),
           paymentMethod: form.payment,
+          cartId,
           items: items.map((item) => ({
-            id: item.id,
-            productId: item.productId,
+            id: item.variant_id || item.id,
+            productId: item.product_id || null,
             quantity: item.quantity,
+            lineId: item.id,
           })),
         }),
       })

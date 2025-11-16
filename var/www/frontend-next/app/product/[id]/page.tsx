@@ -130,13 +130,8 @@ export default function ProductPage({ params }: { params: { id: string } }) {
               onClick={() => {
                 if (!product?.variantId) return
                 add({
-                  id: product.variantId,
-                  productId: product.id,
-                  title: product.title,
-                  variantTitle: product.variantTitle,
-                  price: product.price,
+                  variantId: product.variantId,
                   quantity,
-                  image: product.images[0]?.url || FALLBACK_IMAGE,
                 })
               }}
             >

@@ -1,16 +1,35 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { medusa } from '../lib/medusa'
-import { mapProductSummary, type ProductSummary } from '../lib/products'
+
 import ProductCard from './ProductCard'
 import ProductCardSkeleton from './ProductCardSkeleton'
+import type { ProductSummary } from '../lib/products'
 
 interface Props {
   collectionId?: string
   categoryId?: string
   q?: string
   order?: string
+  size?: string
+  color?: string
+  priceMin?: string
+  priceMax?: string
+}
+
+interface CatalogResponse {
+  products: ProductSummary[]
+  cursor: number
+  hasMore: boolean
+}
+
+const buildQuery = (params: Record<string, string | undefined>) => {
+  const query = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return
+    query.set(key, value)
+  })
+  return query.toString()
 }
 
 export default function ProductGrid({
@@ -18,24 +37,27 @@ export default function ProductGrid({
   categoryId,
   q,
   order,
+  size,
+  color,
+  priceMin,
+  priceMax,
 }: Props) {
   const [products, setProducts] = useState<ProductSummary[]>([])
-  const [offset, setOffset] = useState(0)
+  const [cursor, setCursor] = useState(0)
   const [loading, setLoading] = useState(false)
   const [hasMore, setHasMore] = useState(true)
   const limit = 12
 
-  // Keep mutable values stable for load() without bloating deps
-  const loadingRef = useRef<boolean>(false)
-  const offsetRef = useRef<number>(0)
+  const loadingRef = useRef(false)
+  const cursorRef = useRef(0)
 
-  // Sync refs with state
   useEffect(() => {
     loadingRef.current = loading
   }, [loading])
+
   useEffect(() => {
-    offsetRef.current = offset
-  }, [offset])
+    cursorRef.current = cursor
+  }, [cursor])
 
   const load = useCallback(
     async (reset = false) => {
@@ -43,33 +65,47 @@ export default function ProductGrid({
       setLoading(true)
       loadingRef.current = true
 
-      const effectiveOffset = reset ? 0 : offsetRef.current
-      const params: Record<string, unknown> = { limit, offset: effectiveOffset }
-      if (collectionId) params.collection_id = [collectionId]
-      if (categoryId) params.category_id = [categoryId]
-      if (q) params.q = q
-      const sort = typeof order === 'string' && order.trim() ? order : '-created_at'
-      params.order = sort
+      const nextCursor = reset ? 0 : cursorRef.current
+      const query = buildQuery({
+        limit: String(limit),
+        cursor: String(nextCursor),
+        order: order || '-created_at',
+        collectionId: collectionId || undefined,
+        categoryId: categoryId || undefined,
+        q: q || undefined,
+        size: size || undefined,
+        color: color || undefined,
+        priceMin: priceMin || undefined,
+        priceMax: priceMax || undefined,
+      })
 
-      const { products } = await medusa.products.list(params)
-      const mapped: ProductSummary[] = products.map((p: any) => mapProductSummary(p))
-
-      // Update products and offsets
-      setProducts((prev) => (reset ? mapped : [...prev, ...mapped]))
-      const newOffset = reset ? mapped.length : effectiveOffset + mapped.length
-      offsetRef.current = newOffset
-      setOffset(newOffset)
-      setHasMore(products.length === limit)
-
-      setLoading(false)
-      loadingRef.current = false
+      try {
+        const response = await fetch(`/api/catalog/products?${query}`)
+        if (!response.ok) {
+          throw new Error('Unable to load products')
+        }
+        const payload: CatalogResponse = await response.json()
+        setProducts((prev) => (reset ? payload.products : [...prev, ...payload.products]))
+        setCursor(payload.cursor)
+        setHasMore(payload.hasMore)
+      } catch (error) {
+        console.error('[ProductGrid] failed to load products', error)
+        if (reset) {
+          setProducts([])
+          setCursor(0)
+          setHasMore(false)
+        }
+      } finally {
+        setLoading(false)
+        loadingRef.current = false
+      }
     },
-    [collectionId, categoryId, q, order]
+    [collectionId, categoryId, q, order, size, color, priceMin, priceMax],
   )
 
   useEffect(() => {
-    setOffset(0)
-    offsetRef.current = 0
+    setCursor(0)
+    cursorRef.current = 0
     load(true)
   }, [load])
 
@@ -84,19 +120,15 @@ export default function ProductGrid({
             <ProductCardSkeleton key={i} />
           ))}
       </div>
-      {loading && products.length > 0 && (
-        <p className='text-center py-4'>Loading...</p>
-      )}
+      {loading && products.length > 0 && <p className='text-center py-4'>Loading...</p>}
       {hasMore && !loading && (
         <div className='text-center py-4'>
-          <button
-            onClick={() => load()}
-            className='px-5 py-3 border rounded-full'
-          >
+          <button onClick={() => load()} className='px-5 py-3 border rounded-full'>
             Load more
           </button>
         </div>
       )}
+      {!loading && !products.length && <p className='text-center py-8 text-sm text-gray-500'>No products match these filters.</p>}
     </div>
   )
 }

@@ -6,7 +6,12 @@ import { useCart } from '../../lib/store'
 import { formatAmount } from '../../lib/currency'
 
 export default function CartPage() {
-  const { items, updateQuantity, totalItems, totalPrice } = useCart()
+  const cart = useCart((state) => state.cart)
+  const updateQuantity = useCart((state) => state.updateQuantity)
+  const totalItems = useCart((state) => state.totalItems)
+  const totalPrice = useCart((state) => state.totalPrice)
+
+  const items = cart?.items || []
 
   if (items.length === 0) {
     return (
@@ -47,16 +52,16 @@ export default function CartPage() {
                 <td className='p-2'>
                   <div className='flex items-center gap-4'>
                     <Image
-                      src={item.image || '/placeholder.svg'}
+                      src={item.thumbnail || '/placeholder.svg'}
                       alt={item.title}
                       width={60}
                       height={60}
-                      className='object-cover'
+                      className='object-cover rounded'
                     />
                     <div>
                       <p className='font-medium'>{item.title}</p>
-                      {item.variantTitle && (
-                        <p className='text-xs text-gray-500'>{item.variantTitle}</p>
+                      {item.description && (
+                        <p className='text-xs text-gray-500'>{item.description}</p>
                       )}
                     </div>
                   </div>
@@ -93,9 +98,11 @@ export default function CartPage() {
                     </button>
                   </div>
                 </td>
-                <td className='p-2'>{formatAmount(item.price)}</td>
+                <td className='p-2'>{formatAmount((item.unit_price || 0) / 100)}</td>
                 <td className='p-2 font-semibold'>
-                  {formatAmount(item.price * item.quantity)}
+                  {formatAmount(
+                    ((typeof item.total === 'number' ? item.total : item.unit_price * item.quantity) || 0) / 100,
+                  )}
                 </td>
                 <td className='p-2 text-center'>
                   <button
