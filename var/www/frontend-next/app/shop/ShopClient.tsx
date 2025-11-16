@@ -198,11 +198,7 @@ export default function ShopClient({ initialCollections, initialCategories }: Sh
     setPriceMax('')
   }
 
-  const heroCategories: CategoryChip[] = categories.slice(0, 6).map((category) => ({
-    id: category.id,
-    name: category.name,
-    count: category.count,
-  }))
+  const heroCategories = categories.slice(0, 6)
 
   const CollectionFilterComponent = CollectionsFilter
   const CategoryFilterComponent = CategoriesFilter
@@ -219,7 +215,11 @@ export default function ShopClient({ initialCollections, initialCategories }: Sh
         </nav>
         <h1 className='text-3xl md:text-4xl font-bold tracking-brand mb-1'>Shop</h1>
         <p className='text-sm text-gray-600 mb-3'>Refined essentials and elevated staples</p>
-        <CategoryChips items={heroCategories} selected={category?.id} onSelect={(opt) => setCategory(opt)} />
+        <CategoryChips
+          items={heroCategories}
+          selected={category?.id}
+          onSelect={(opt) => setCategory(opt ? { ...opt, count: opt.count ?? 0 } : null)}
+        />
       </div>
 
       <div className='flex gap-6'>
