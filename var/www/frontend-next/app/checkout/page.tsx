@@ -299,12 +299,16 @@ export default function CheckoutPage() {
               <li key={item.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
                 <div>
                   <p className="font-medium">{item.title}</p>
-                  {item.variantTitle && (
-                    <p className="text-sm text-gray-500">{item.variantTitle}</p>
+                  {item.variant?.title && (
+                    <p className="text-sm text-gray-500">{item.variant.title}</p>
                   )}
                   <p className="text-sm text-gray-500">Qty {item.quantity}</p>
                 </div>
-                <span className="font-semibold">{formatAmount(item.price * item.quantity)}</span>
+                <span className="font-semibold">
+                  {formatAmount(
+                    ((typeof item.total === 'number' ? item.total : item.unit_price * item.quantity) || 0) / 100,
+                  )}
+                </span>
               </li>
             ))}
           </ul>

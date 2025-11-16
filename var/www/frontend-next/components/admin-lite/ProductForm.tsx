@@ -169,7 +169,7 @@ export default function ProductForm({
     setSkuInput(initial.variant_defaults?.sku || '')
     setNewSizeValue('')
     setNewColorValue('')
-  }, [initial?.id])
+  }, [initial])
 
   useEffect(() => {
     setCollections(catalog.collections)

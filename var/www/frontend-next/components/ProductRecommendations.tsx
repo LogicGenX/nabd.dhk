@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { medusa } from '../lib/medusa'
 import { mapProductSummary, type ProductSummary } from '../lib/products'
@@ -18,6 +18,7 @@ const MAX_RECOMMENDATIONS = 4
 export default function ProductRecommendations({ productId, collectionId, categoryIds = [] }: Props) {
   const [items, setItems] = useState<ProductSummary[]>([])
   const [loading, setLoading] = useState(true)
+  const stableCategoryIds = useMemo(() => categoryIds, [categoryIds])
 
   useEffect(() => {
     let active = true
@@ -43,9 +44,9 @@ export default function ProductRecommendations({ productId, collectionId, catego
           addProducts(products)
         }
 
-        if (collected.length < MAX_RECOMMENDATIONS && categoryIds.length) {
+        if (collected.length < MAX_RECOMMENDATIONS && stableCategoryIds.length) {
           const { products } = await medusa.products.list({
-            category_id: categoryIds,
+            category_id: stableCategoryIds,
             limit: 8,
           })
           addProducts(products)
@@ -70,7 +71,7 @@ export default function ProductRecommendations({ productId, collectionId, catego
     return () => {
       active = false
     }
-  }, [productId, collectionId, categoryIds.join('|')])
+  }, [productId, collectionId, stableCategoryIds])
 
   if (!items.length && !loading) {
     return null
