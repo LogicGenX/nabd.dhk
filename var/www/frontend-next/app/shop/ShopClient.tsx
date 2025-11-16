@@ -4,10 +4,9 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 
-import CategoryChips, { type CategoryChip } from '../../components/CategoryChips'
+import CategoryChips from '../../components/CategoryChips'
 import FiltersDrawer from '../../components/FiltersDrawer'
 import ProductGrid from '../../components/ProductGrid'
-import type { CategorySummary, CollectionSummary } from '../../lib/catalog'
 import { medusa } from '../../lib/medusa'
 
 const CollectionsFilter = dynamic(() => import('../../components/CollectionsFilter'), { ssr: false })
@@ -20,20 +19,29 @@ const sortOptions = [
   { value: '-title', label: 'Name (Z to A)' },
 ]
 
-interface ShopClientProps {
-  initialCollections: CollectionSummary[]
-  initialCategories: CategorySummary[]
+interface CollectionSummary {
+  id: string
+  title: string
+  count: number
 }
 
-export default function ShopClient({ initialCollections, initialCategories }: ShopClientProps) {
+interface CategorySummary {
+  id: string
+  name: string
+  count: number
+}
+
+interface ShopClientProps {}
+
+export default function ShopClient({}: ShopClientProps) {
   const [collection, setCollection] = useState<CollectionSummary | null>(null)
   const [category, setCategory] = useState<CategorySummary | null>(null)
   const [order, setOrder] = useState<string>('-created_at')
   const [q, setQ] = useState('')
   const [ready, setReady] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
-  const [collections, setCollections] = useState<CollectionSummary[]>(initialCollections)
-  const [categories, setCategories] = useState<CategorySummary[]>(initialCategories)
+  const [collections, setCollections] = useState<CollectionSummary[]>([])
+  const [heroCategories, setHeroCategories] = useState<CategorySummary[]>([])
 
   // UI-only extras (not yet wired to API)
   const [size, setSize] = useState<string>('')
@@ -118,40 +126,48 @@ export default function ShopClient({ initialCollections, initialCategories }: Sh
   }, [collection, category, order, q, ready])
 
   useEffect(() => {
-    if (initialCollections.length) {
-      setCollections(initialCollections)
-    }
-  }, [initialCollections])
-
-  useEffect(() => {
-    if (initialCategories.length) {
-      setCategories(initialCategories)
-    }
-  }, [initialCategories])
-
-  useEffect(() => {
-    if (collections.length && categories.length) {
-      return
-    }
     let active = true
-    const loadFallbackFacets = async () => {
+    const loadCollections = async () => {
       try {
-        const response = await fetch('/api/catalog', { cache: 'no-store' })
-        if (!response.ok) return
-        const payload = await response.json()
-        if (active) {
-          if (Array.isArray(payload.collections)) setCollections(payload.collections)
-          if (Array.isArray(payload.categories)) setCategories(payload.categories)
-        }
+        const { collections } = await medusa.collections.list()
+        if (!active || !Array.isArray(collections)) return
+        const mapped = collections.map((entry: any) => ({
+          id: entry.id,
+          title: entry.title,
+          count: 0,
+        }))
+        setCollections(mapped)
       } catch (error) {
-        console.warn('[shop] failed to load catalog facets', error)
+        console.warn('[shop] failed to load collections', error)
       }
     }
-    loadFallbackFacets()
+    loadCollections()
     return () => {
       active = false
     }
-  }, [collections.length, categories.length])
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    const loadCategories = async () => {
+      try {
+        const { product_categories } = await medusa.productCategories.list()
+        if (!active || !Array.isArray(product_categories)) return
+        const mapped = product_categories.slice(0, 6).map((cat: any) => ({
+          id: cat.id,
+          name: cat.name,
+          count: typeof cat.product_count === 'number' ? cat.product_count : 0,
+        }))
+        setHeroCategories(mapped)
+      } catch (error) {
+        console.warn('[shop] failed to load categories', error)
+      }
+    }
+    loadCategories()
+    return () => {
+      active = false
+    }
+  }, [])
 
   const activeFilters = useMemo(() => {
     const entries: { label: string; clear: () => void }[] = []
@@ -198,8 +214,6 @@ export default function ShopClient({ initialCollections, initialCategories }: Sh
     setPriceMax('')
   }
 
-  const heroCategories = categories.slice(0, 6)
-
   const CollectionFilterComponent = CollectionsFilter
   const CategoryFilterComponent = CategoriesFilter
 
@@ -233,7 +247,7 @@ export default function ShopClient({ initialCollections, initialCategories }: Sh
           <details open className='rounded-2xl border border-black/5 shadow-sm p-3 bg-white/70 backdrop-blur mb-3'>
             <summary className='cursor-pointer text-sm font-semibold'>Category</summary>
             <div className='pt-3'>
-              <CategoryFilterComponent selected={category?.id} onSelect={(opt) => setCategory(opt)} variant='list' options={categories} />
+              <CategoryFilterComponent selected={category?.id} onSelect={(opt) => setCategory(opt)} variant='list' />
             </div>
           </details>
           <details className='rounded-2xl border border-black/5 shadow-sm p-3 bg-white/70 backdrop-blur mb-3'>
@@ -365,8 +379,8 @@ export default function ShopClient({ initialCollections, initialCategories }: Sh
       </div>
 
       <FiltersDrawer open={filtersOpen} onClose={() => setFiltersOpen(false)}>
-        <CollectionFilterComponent selected={collection?.id} onSelect={(opt) => setCollection(opt)} variant='list' options={collections} />
-        <CategoryFilterComponent selected={category?.id} onSelect={(opt) => setCategory(opt)} variant='list' options={categories} />
+        <CollectionFilterComponent selected={collection?.id} onSelect={(opt) => setCollection(opt)} variant='list' />
+        <CategoryFilterComponent selected={category?.id} onSelect={(opt) => setCategory(opt)} variant='list' />
         <div>
           <h4 className='text-sm uppercase tracking-wide text-gray-600 mb-2'>Size</h4>
           <div className='grid grid-cols-4 gap-2'>

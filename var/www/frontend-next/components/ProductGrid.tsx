@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import ProductCard from './ProductCard'
 import ProductCardSkeleton from './ProductCardSkeleton'
-import type { ProductSummary } from '../lib/products'
+import { mapProductSummary, type ProductSummary } from '../lib/products'
+import { medusa } from '../lib/medusa'
 
 interface Props {
   collectionId?: string
@@ -17,19 +18,51 @@ interface Props {
   priceMax?: string
 }
 
-interface CatalogResponse {
-  products: ProductSummary[]
-  cursor: number
-  hasMore: boolean
+const normalizeList = (value: unknown) => {
+  if (!value) return [] as string[]
+  if (Array.isArray(value)) {
+    return value.map((entry) => (typeof entry === 'string' ? entry.trim() : '')).filter(Boolean)
+  }
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean)
+  }
+  return []
 }
 
-const buildQuery = (params: Record<string, string | undefined>) => {
-  const query = new URLSearchParams()
-  Object.entries(params).forEach(([key, value]) => {
-    if (value === undefined || value === null || value === '') return
-    query.set(key, value)
-  })
-  return query.toString()
+const matchesFilter = (
+  product: any,
+  summary: ProductSummary,
+  filters: { size?: string; color?: string; priceMin?: number | null; priceMax?: number | null },
+) => {
+  const metadata = product?.metadata || {}
+  const sizes = normalizeList(metadata.available_sizes || metadata.availableSizes)
+  const colors = normalizeList(metadata.available_colors || metadata.availableColors)
+
+  if (filters.size) {
+    const normalized = filters.size.trim().toLowerCase()
+    if (!sizes.some((value) => value.toLowerCase() === normalized)) {
+      return false
+    }
+  }
+
+  if (filters.color) {
+    const normalized = filters.color.trim().toLowerCase()
+    if (!colors.some((value) => value.toLowerCase() === normalized)) {
+      return false
+    }
+  }
+
+  if (typeof filters.priceMin === 'number' && summary.price < filters.priceMin) {
+    return false
+  }
+  if (typeof filters.priceMax === 'number' && summary.price > filters.priceMax) {
+    return false
+  }
+
+  return true
 }
 
 export default function ProductGrid({
@@ -47,7 +80,6 @@ export default function ProductGrid({
   const [loading, setLoading] = useState(false)
   const [hasMore, setHasMore] = useState(true)
   const limit = 12
-
   const loadingRef = useRef(false)
   const cursorRef = useRef(0)
 
@@ -66,28 +98,52 @@ export default function ProductGrid({
       loadingRef.current = true
 
       const nextCursor = reset ? 0 : cursorRef.current
-      const query = buildQuery({
-        limit: String(limit),
-        cursor: String(nextCursor),
-        order: order || '-created_at',
-        collectionId: collectionId || undefined,
-        categoryId: categoryId || undefined,
-        q: q || undefined,
-        size: size || undefined,
-        color: color || undefined,
-        priceMin: priceMin || undefined,
-        priceMax: priceMax || undefined,
-      })
+      const filters = {
+        size: size?.trim(),
+        color: color?.trim(),
+        priceMin: priceMin && !Number.isNaN(Number(priceMin)) ? Number(priceMin) : null,
+        priceMax: priceMax && !Number.isNaN(Number(priceMax)) ? Number(priceMax) : null,
+      }
+
+      const pageSize = Math.max(limit, 24)
+      const collected: ProductSummary[] = []
+      let pointer = nextCursor
+      let moreAvailable = true
 
       try {
-        const response = await fetch(`/api/catalog/products?${query}`)
-        if (!response.ok) {
-          throw new Error('Unable to load products')
+        while (collected.length < limit && moreAvailable) {
+          const params: Record<string, unknown> = {
+            limit: pageSize,
+            offset: pointer,
+            order: order || '-created_at',
+          }
+          if (collectionId) params.collection_id = [collectionId]
+          if (categoryId) params.category_id = [categoryId]
+          if (q) params.q = q
+
+          const { products } = await medusa.products.list(params)
+          if (!Array.isArray(products) || !products.length) {
+            moreAvailable = false
+            break
+          }
+
+          for (const product of products) {
+            const summary = mapProductSummary(product)
+            if (matchesFilter(product, summary, filters)) {
+              collected.push(summary)
+              if (collected.length === limit) break
+            }
+          }
+
+          pointer += products.length
+          if (products.length < pageSize) {
+            moreAvailable = false
+          }
         }
-        const payload: CatalogResponse = await response.json()
-        setProducts((prev) => (reset ? payload.products : [...prev, ...payload.products]))
-        setCursor(payload.cursor)
-        setHasMore(payload.hasMore)
+
+        setProducts((prev) => (reset ? collected : [...prev, ...collected]))
+        setCursor(pointer)
+        setHasMore(moreAvailable)
       } catch (error) {
         console.error('[ProductGrid] failed to load products', error)
         if (reset) {

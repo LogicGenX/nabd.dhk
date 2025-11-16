@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { buildQuery, liteFetch } from '../../../../lib/admin-lite'
@@ -231,7 +232,13 @@ export default function ProductsPage() {
                 <td className='px-4 py-3'>
                   <div className='flex items-center gap-3'>
                     {product.thumbnail ? (
-                      <img src={product.thumbnail} alt='' className='h-12 w-12 rounded object-cover' />
+                      <Image
+                        src={product.thumbnail}
+                        alt={product.title}
+                        width={48}
+                        height={48}
+                        className='h-12 w-12 rounded object-cover'
+                      />
                     ) : (
                       <div className='h-12 w-12 rounded bg-slate-100' />
                     )}
