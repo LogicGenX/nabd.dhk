@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 
 import { medusa } from '../../../lib/medusa'
 import { splitName } from '../../../lib/products'
+import { resolveRegionId, resolveShippingOptionId } from '../../../lib/server-cart'
 
 export const runtime = 'nodejs'
 
@@ -28,89 +29,6 @@ type CheckoutPayload = {
 const PAYMENT_PROVIDER_MAP: Record<CheckoutPayload['paymentMethod'], string> = {
   cod: 'manual',
   bkash: 'bkash',
-}
-
-let cachedRegionId: string | null = null
-let cachedShippingOptionId: string | null = null
-
-const resolveRegionId = async () => {
-  if (cachedRegionId) return cachedRegionId
-  const envRegion =
-    process.env.NEXT_PUBLIC_MEDUSA_REGION_ID ||
-    process.env.MEDUSA_REGION_ID ||
-    process.env.MEDUSA_REGION ||
-    null
-  if (envRegion) {
-    cachedRegionId = envRegion
-    return envRegion
-  }
-
-  const { regions } = await medusa.regions.list()
-  if (!regions?.length) {
-    throw new Error('No Medusa regions available')
-  }
-  cachedRegionId = regions[0].id
-  return cachedRegionId
-}
-
-const resolveConfiguredShippingOptionId = () => {
-  if (cachedShippingOptionId) return cachedShippingOptionId
-  const envOption =
-    process.env.NEXT_PUBLIC_MEDUSA_SHIPPING_OPTION_ID ||
-    process.env.MEDUSA_SHIPPING_OPTION_ID ||
-    null
-  if (envOption) {
-    cachedShippingOptionId = envOption
-    return envOption
-  }
-  return null
-}
-
-const listCartShippingOptions = async (cartId: string) => {
-  try {
-    const client: any = medusa.shippingOptions
-    if (typeof client?.listCartOptions !== 'function') {
-      return []
-    }
-    const response = await client.listCartOptions(cartId)
-    return Array.isArray(response?.shipping_options) ? response.shipping_options : []
-  } catch (error) {
-    console.warn('[checkout] unable to list cart-specific shipping options', error)
-    return []
-  }
-}
-
-const listRegionShippingOptions = async (regionId: string) => {
-  try {
-    const response = await medusa.shippingOptions.list({
-      region_id: regionId,
-    })
-    return Array.isArray(response?.shipping_options) ? response.shipping_options : []
-  } catch (error) {
-    console.warn('[checkout] unable to list region shipping options', error)
-    return []
-  }
-}
-
-const resolveShippingOptionId = async (cartId: string, regionId: string) => {
-  const configured = resolveConfiguredShippingOptionId()
-  if (configured) return configured
-
-  const cartOptions = await listCartShippingOptions(cartId)
-  const cartOption = cartOptions.find((opt: any) => opt && !opt.is_return)
-  if (cartOption?.id) {
-    cachedShippingOptionId = cartOption.id
-    return cachedShippingOptionId
-  }
-
-  const regionOptions = await listRegionShippingOptions(regionId)
-  const regionOption = regionOptions.find((opt: any) => opt && !opt.is_return)
-  if (regionOption?.id) {
-    cachedShippingOptionId = regionOption.id
-    return cachedShippingOptionId
-  }
-
-  throw new Error('No shipping options configured for cart ' + cartId)
 }
 
 const normalizePhone = (value: string) => {

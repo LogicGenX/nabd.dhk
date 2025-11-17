@@ -41,6 +41,7 @@ export default function ShopClient({}: ShopClientProps) {
   const [ready, setReady] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [collections, setCollections] = useState<CollectionSummary[]>([])
+  const [categories, setCategories] = useState<CategorySummary[]>([])
   const [heroCategories, setHeroCategories] = useState<CategorySummary[]>([])
 
   // UI-only extras (not yet wired to API)
@@ -153,12 +154,13 @@ export default function ShopClient({}: ShopClientProps) {
       try {
         const { product_categories } = await medusa.productCategories.list()
         if (!active || !Array.isArray(product_categories)) return
-        const mapped = product_categories.slice(0, 6).map((cat: any) => ({
+        const mapped = product_categories.map((cat: any) => ({
           id: cat.id,
           name: cat.name,
           count: typeof cat.product_count === 'number' ? cat.product_count : 0,
         }))
-        setHeroCategories(mapped)
+        setCategories(mapped)
+        setHeroCategories(mapped.slice(0, 6))
       } catch (error) {
         console.warn('[shop] failed to load categories', error)
       }

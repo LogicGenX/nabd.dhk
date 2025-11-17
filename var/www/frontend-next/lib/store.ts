@@ -43,15 +43,35 @@ const getBrowserSafeMedusa = () => {
   return medusa
 }
 
+let regionRequest: Promise<string | null> | null = null
+
 const resolveDefaultRegionId = async () => {
   if (typeof window === 'undefined') return null
-  const envRegion =
-    process.env.NEXT_PUBLIC_MEDUSA_REGION_ID ||
-    process.env.MEDUSA_REGION_ID ||
-    process.env.MEDUSA_REGION
+  const envRegion = process.env.NEXT_PUBLIC_MEDUSA_REGION_ID
   if (envRegion && envRegion.trim()) {
     return envRegion.trim()
   }
+
+  if (!regionRequest) {
+    regionRequest = fetch('/api/cart/region', { cache: 'no-store' })
+      .then(async (response) => {
+        if (!response.ok) {
+          return null
+        }
+        const payload = await response.json().catch(() => ({}))
+        if (payload?.regionId) {
+          return payload.regionId as string
+        }
+        return null
+      })
+      .catch(() => null)
+  }
+
+  const regionId = await regionRequest
+  if (regionId) {
+    return regionId
+  }
+
   const client = getBrowserSafeMedusa()
   const { regions } = await client.regions.list()
   return Array.isArray(regions) && regions.length ? regions[0].id : null
