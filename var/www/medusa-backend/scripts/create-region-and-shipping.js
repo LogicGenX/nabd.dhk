@@ -4,12 +4,12 @@
  * Idempotent bootstrapper that guarantees a usable Medusa region + shipping option
  * for checkout. It prefers environment-provided identifiers but can also create
  * sane defaults when none exist. Run this script after migrations and before
- * starting the HTTP server so the storefront API always has a valid region,
- * shipping option and pricing context to work with.
+ * starting the HTTP server so the storefront API always has a valid pricing context.
  */
 
 const fs = require('fs')
 const path = require('path')
+const express = require('express')
 
 const backendRoot = path.join(__dirname, '..')
 const envPath = path.join(backendRoot, '.env')
@@ -49,25 +49,23 @@ const loadEnv = () => {
 
 loadEnv()
 
-const loadMedusa = () => {
+const loadMedusaProject = async () => {
   try {
-    const pkg = require('@medusajs/medusa')
-    return pkg.default || pkg
+    const loaderModule = require('@medusajs/medusa/dist/loaders')
+    const loader = loaderModule.default || loaderModule
+    if (typeof loader !== 'function') {
+      throw new Error('Invalid Medusa loader export')
+    }
+    return await loader({
+      directory: backendRoot,
+      expressApp: express(),
+      isTest: false,
+    })
   } catch (error) {
-    console.error('[region-bootstrap] Unable to load @medusajs/medusa:', error?.message || error)
-    process.exit(1)
+    console.error('[region-bootstrap] Unable to load Medusa project:', error?.message || error)
+    throw error
   }
 }
-
-const Medusa = loadMedusa()
-const config = require(path.join(backendRoot, 'medusa-config'))
-
-const medusa = new Medusa({
-  projectConfig: config.projectConfig,
-  plugins: config.plugins,
-  modules: config.modules,
-  featureFlags: config.featureFlags,
-})
 
 const normalizeString = (value) => (typeof value === 'string' ? value.trim() : '')
 const coerceId = (value) => {
@@ -117,10 +115,18 @@ const preferredShippingOptionId =
 const log = (...args) => console.log('[region-bootstrap]', ...args)
 const warn = (...args) => console.warn('[region-bootstrap]', ...args)
 
-const retrieveExistingRegion = async (id) => {
+const buildServiceContext = (container) => ({
+  regionService: container.resolve('regionService'),
+  shippingOptionService: container.resolve('shippingOptionService'),
+  shippingProfileService: container.resolve('shippingProfileService'),
+  paymentProviderService: container.resolve('paymentProviderService'),
+  fulfillmentProviderService: container.resolve('fulfillmentProviderService'),
+})
+
+const retrieveExistingRegion = async (regionService, id) => {
   if (!id) return null
   try {
-    const region = await medusa.admin.regions.retrieve(id)
+    const region = await regionService.retrieve(id, { relations: ['countries'] })
     if (region?.id) {
       log('Using configured region', region.id)
       return region
@@ -131,15 +137,15 @@ const retrieveExistingRegion = async (id) => {
   return null
 }
 
-const findRegionByConfig = async () => {
-  const result = await medusa.admin.regions.list()
-  if (!result?.regions?.length) {
+const findRegionByConfig = async (regionService) => {
+  const regions = await regionService.list({}, { relations: ['countries'] })
+  if (!regions?.length) {
     return null
   }
 
   const normalizedCountries = REGION_COUNTRIES.join(',')
   const match =
-    result.regions.find((region) => {
+    regions.find((region) => {
       if (!region) return false
       const currencyMatches =
         typeof region.currency_code === 'string' &&
@@ -151,10 +157,9 @@ const findRegionByConfig = async () => {
         ? region.countries.map((c) => (c?.iso_2 || c)?.toUpperCase()).filter(Boolean)
         : []
       const countriesMatch =
-        countries.length &&
-        countries.join(',') === normalizedCountries
+        countries.length && countries.join(',') === normalizedCountries
       return currencyMatches && countriesMatch && nameMatches
-    }) || result.regions[0]
+    }) || regions[0]
 
   if (match?.id) {
     log('Re-using existing region', match.id)
@@ -163,28 +168,56 @@ const findRegionByConfig = async () => {
   return null
 }
 
-const ensureRegion = async () => {
-  const preferred = await retrieveExistingRegion(preferredRegionId)
+const resolveProviderIds = async (paymentProviderService, fulfillmentProviderService) => {
+  const [payments, fulfillments] = await Promise.all([
+    paymentProviderService.list(),
+    fulfillmentProviderService.list(),
+  ])
+  const paymentIds = (payments || []).map((provider) => provider?.id).filter(Boolean)
+  const fulfillmentIds = (fulfillments || [])
+    .map((provider) => provider?.id)
+    .filter(Boolean)
+
+  if (!paymentIds.length) {
+    throw new Error('No payment providers registered in Medusa')
+  }
+  if (!fulfillmentIds.length) {
+    throw new Error('No fulfillment providers registered in Medusa')
+  }
+
+  return { paymentIds, fulfillmentIds }
+}
+
+const ensureRegion = async (services) => {
+  const { regionService, paymentProviderService, fulfillmentProviderService } = services
+  const preferred = await retrieveExistingRegion(regionService, preferredRegionId)
   if (preferred) return preferred
 
-  const existing = await findRegionByConfig()
+  const existing = await findRegionByConfig(regionService)
   if (existing) return existing
 
+  const { paymentIds, fulfillmentIds } = await resolveProviderIds(
+    paymentProviderService,
+    fulfillmentProviderService,
+  )
+
   log('Creating default region...')
-  const region = await medusa.admin.regions.create({
+  const region = await regionService.create({
     name: REGION_NAME,
     currency_code: REGION_CURRENCY,
-    countries: REGION_COUNTRIES,
     tax_rate: 0,
+    payment_providers: paymentIds,
+    fulfillment_providers: fulfillmentIds,
+    countries: REGION_COUNTRIES,
   })
   log('Created region', region.id)
   return region
 }
 
-const retrieveExistingShippingOption = async (id) => {
+const retrieveExistingShippingOption = async (shippingOptionService, id) => {
   if (!id) return null
   try {
-    const option = await medusa.admin.shippingOptions.retrieve(id)
+    const option = await shippingOptionService.retrieve(id)
     if (option?.id && option?.region_id) {
       log('Using configured shipping option', option.id)
       return option
@@ -195,9 +228,14 @@ const retrieveExistingShippingOption = async (id) => {
   return null
 }
 
-const listRegionShippingOptions = async (regionId) => {
-  const response = await medusa.admin.shippingOptions.list({ region_id: regionId })
-  return Array.isArray(response?.shipping_options) ? response.shipping_options : []
+const listRegionShippingOptions = async (shippingOptionService, regionId) => {
+  try {
+    const options = await shippingOptionService.list({ region_id: regionId })
+    return Array.isArray(options) ? options : []
+  } catch (error) {
+    warn('Unable to list region shipping options', error?.message || error)
+  }
+  return []
 }
 
 const shouldUpdateOption = (option) => {
@@ -209,7 +247,34 @@ const shouldUpdateOption = (option) => {
   return false
 }
 
-const updateShippingOption = async (optionId, regionId, profileId) => {
+const resolveShippingProfileId = async (shippingProfileService) => {
+  const fromEnv = coerceId(process.env.MEDUSA_DEFAULT_SHIPPING_PROFILE_ID)
+  if (fromEnv) {
+    try {
+      const profile = await shippingProfileService.retrieve(fromEnv)
+      if (profile?.id) {
+        return profile.id
+      }
+    } catch (error) {
+      warn('Configured shipping profile id invalid:', error?.message || error)
+    }
+  }
+
+  const existing = await shippingProfileService.retrieveDefault()
+  if (existing?.id) {
+    return existing.id
+  }
+
+  const created = await shippingProfileService.createDefault()
+  return created.id
+}
+
+const updateShippingOption = async (
+  shippingOptionService,
+  optionId,
+  regionId,
+  profileId,
+) => {
   const payload = {
     name: SHIPPING_NAME,
     amount: SHIPPING_AMOUNT,
@@ -222,64 +287,40 @@ const updateShippingOption = async (optionId, regionId, profileId) => {
   if (profileId) {
     payload.profile_id = profileId
   }
-  await medusa.admin.shippingOptions.update(optionId, payload)
+  await shippingOptionService.update(optionId, payload)
   log('Updated shipping option', optionId)
   return optionId
 }
 
-const resolveShippingProfileId = async () => {
-  const fromEnv = coerceId(process.env.MEDUSA_DEFAULT_SHIPPING_PROFILE_ID)
-  if (fromEnv) {
-    try {
-      const profile = await medusa.admin.shippingProfiles.retrieve(fromEnv)
-      if (profile?.id) {
-        return profile.id
-      }
-    } catch (error) {
-      warn('Configured shipping profile id invalid:', error?.message || error)
-    }
-  }
-
-  try {
-    const response = await medusa.admin.shippingProfiles.list()
-    const profiles = Array.isArray(response?.shipping_profiles)
-      ? response.shipping_profiles
-      : []
-    const preferred =
-      profiles.find((profile) => profile?.type === 'default') || profiles[0]
-    return preferred?.id || null
-  } catch (error) {
-    warn('Unable to list shipping profiles:', error?.message || error)
-  }
-
-  return null
-}
-
-const ensureShippingOption = async (region) => {
-  const preferred = await retrieveExistingShippingOption(preferredShippingOptionId)
+const ensureShippingOption = async (services, region) => {
+  const { shippingOptionService, shippingProfileService } = services
+  const preferred = await retrieveExistingShippingOption(
+    shippingOptionService,
+    preferredShippingOptionId,
+  )
   if (preferred && preferred.region_id === region.id && !preferred.is_return) {
     if (shouldUpdateOption(preferred)) {
-      const profileId = preferred.profile_id || (await resolveShippingProfileId())
-      await updateShippingOption(preferred.id, region.id, profileId)
+      const profileId = preferred.profile_id || (await resolveShippingProfileId(shippingProfileService))
+      await updateShippingOption(shippingOptionService, preferred.id, region.id, profileId)
     }
     return preferred.id
   }
 
-  const options = await listRegionShippingOptions(region.id)
+  const options = await listRegionShippingOptions(shippingOptionService, region.id)
   const existing = options.find(
     (option) => option && !option.is_return && option.provider_id === SHIPPING_PROVIDER,
   )
   if (existing) {
     if (shouldUpdateOption(existing)) {
-      const profileId = existing.profile_id || (await resolveShippingProfileId())
-      await updateShippingOption(existing.id, region.id, profileId)
+      const profileId = existing.profile_id || (await resolveShippingProfileId(shippingProfileService))
+      await updateShippingOption(shippingOptionService, existing.id, region.id, profileId)
     } else {
       log('Re-using shipping option', existing.id)
     }
     return existing.id
   }
 
-  const profileId = await resolveShippingProfileId()
+  const profileId = await resolveShippingProfileId(shippingProfileService)
   const payload = {
     name: SHIPPING_NAME,
     region_id: region.id,
@@ -292,15 +333,34 @@ const ensureShippingOption = async (region) => {
   if (profileId) {
     payload.profile_id = profileId
   }
-  const option = await medusa.admin.shippingOptions.create(payload)
+  const option = await shippingOptionService.create(payload)
   log('Created shipping option', option.id)
   return option.id
 }
 
 const main = async () => {
-  const region = await ensureRegion()
-  const shippingId = await ensureShippingOption(region)
-  log('Bootstrap complete', { regionId: region.id, shippingOptionId: shippingId })
+  const medusaApp = await loadMedusaProject()
+  try {
+    const services = buildServiceContext(medusaApp.container)
+    const region = await ensureRegion(services)
+    const shippingId = await ensureShippingOption(services, region)
+    log('Bootstrap complete', { regionId: region.id, shippingOptionId: shippingId })
+  } finally {
+    try {
+      if (typeof medusaApp.prepareShutdown === 'function') {
+        await medusaApp.prepareShutdown()
+      }
+    } catch (error) {
+      warn('prepareShutdown failed', error?.message || error)
+    }
+    try {
+      if (typeof medusaApp.shutdown === 'function') {
+        await medusaApp.shutdown()
+      }
+    } catch (error) {
+      warn('shutdown failed', error?.message || error)
+    }
+  }
 }
 
 main()
