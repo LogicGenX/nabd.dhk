@@ -188,6 +188,23 @@ const resolveProviderIds = async (paymentProviderService, fulfillmentProviderSer
   return { paymentIds, fulfillmentIds }
 }
 
+const ensureProviderRegistrations = async (paymentProviderService, fulfillmentProviderService) => {
+  const defaultPaymentProviders = ['manual', 'bkash', 'cod']
+  const defaultFulfillmentProviders = ['manual']
+
+  try {
+    await paymentProviderService.registerInstalledProviders(defaultPaymentProviders)
+  } catch (error) {
+    warn('Unable to register fallback payment providers:', error?.message || error)
+  }
+
+  try {
+    await fulfillmentProviderService.registerInstalledProviders(defaultFulfillmentProviders)
+  } catch (error) {
+    warn('Unable to register fallback fulfillment providers:', error?.message || error)
+  }
+}
+
 const ensureRegion = async (services) => {
   const { regionService, paymentProviderService, fulfillmentProviderService } = services
   const preferred = await retrieveExistingRegion(regionService, preferredRegionId)
@@ -342,6 +359,10 @@ const main = async () => {
   const medusaApp = await loadMedusaProject()
   try {
     const services = buildServiceContext(medusaApp.container)
+    await ensureProviderRegistrations(
+      services.paymentProviderService,
+      services.fulfillmentProviderService,
+    )
     const region = await ensureRegion(services)
     const shippingId = await ensureShippingOption(services, region)
     log('Bootstrap complete', { regionId: region.id, shippingOptionId: shippingId })
