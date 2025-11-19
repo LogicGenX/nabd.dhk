@@ -18,6 +18,7 @@ const DEFAULT_SHIPPING_AMOUNT = Number.parseInt(
 )
 
 let bootstrapPromise = null
+let bootstrapComplete = false
 
 const ensureShippingOption = async (
   shippingOptionService,
@@ -26,7 +27,10 @@ const ensureShippingOption = async (
 ) => {
   const existing = await shippingOptionService
     .list({ region_id: region.id })
-    .catch(() => [])
+    .catch((error) => {
+      console.warn('[store:ensure-region] list shipping options failed:', error?.message || error)
+      return []
+    })
   const usable = existing.find((option) => option && !option.is_return)
   if (usable) {
     return usable
@@ -36,8 +40,10 @@ const ensureShippingOption = async (
   try {
     profile = await shippingProfileService.retrieveDefault()
   } catch (error) {
+    console.warn('[store:ensure-region] retrieve default profile failed:', error?.message || error)
     profile = null
   }
+
   if (!profile) {
     profile = await shippingProfileService.createDefault()
   }
@@ -65,11 +71,16 @@ const ensureRegion = async (scope) => {
   const shippingProfileService = scope.resolve('shippingProfileService')
   const shippingOptionService = scope.resolve('shippingOptionService')
 
-  const regions = await regionService.list().catch(() => [])
-  if (regions.length) {
-    return regions[0]
+  const existingRegions = await regionService.list().catch((error) => {
+    console.warn('[store:ensure-region] list regions failed:', error?.message || error)
+    return []
+  })
+  if (existingRegions.length) {
+    bootstrapComplete = true
+    return existingRegions[0]
   }
 
+  console.log('[store:ensure-region] creating default region + shipping options')
   await paymentProviderService.registerInstalledProviders(DEFAULT_PAYMENT_PROVIDERS)
   await fulfillmentProviderService.registerInstalledProviders(DEFAULT_FULFILLMENT_PROVIDERS)
 
@@ -83,10 +94,14 @@ const ensureRegion = async (scope) => {
   })
 
   await ensureShippingOption(shippingOptionService, shippingProfileService, region)
+  bootstrapComplete = true
   return region
 }
 
 const scheduleBootstrap = (scope) => {
+  if (bootstrapComplete) {
+    return Promise.resolve()
+  }
   if (!bootstrapPromise) {
     bootstrapPromise = ensureRegion(scope)
       .catch((error) => {
@@ -99,14 +114,33 @@ const scheduleBootstrap = (scope) => {
   return bootstrapPromise
 }
 
+const shouldGuardRequest = (req) => {
+  if (!req?.method) {
+    return false
+  }
+  const method = req.method.toUpperCase()
+  if (method !== 'GET' && method !== 'POST' && method !== 'OPTIONS') {
+    return false
+  }
+  const pathname = req.path || ''
+  return (
+    pathname.startsWith('/store/regions') ||
+    pathname.startsWith('/store/carts') ||
+    pathname.startsWith('/store/checkout')
+  )
+}
+
 module.exports = (router) => {
-  router.use('/store/regions', (req, res, next) => {
+  router.use((req, res, next) => {
+    if (!shouldGuardRequest(req)) {
+      return next()
+    }
     if (!req.scope) {
       return next()
     }
     scheduleBootstrap(req.scope)
       .catch(() => {
-        // the error was logged above; allow the request to continue
+        // already logged
       })
       .finally(() => next())
   })
