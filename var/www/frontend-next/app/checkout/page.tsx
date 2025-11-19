@@ -5,6 +5,7 @@ import Link from 'next/link'
 
 import { useCart } from '../../lib/store'
 import { formatAmount } from '../../lib/currency'
+import { placeOrderDirectly } from '../../lib/direct-checkout'
 
 const steps = ['Cart', 'Shipping', 'Payment', 'Review']
 
@@ -79,36 +80,22 @@ export default function CheckoutPage() {
 
     setStatus('submitting')
     try {
-      const response = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: form.name.trim(),
-          email: form.email.trim(),
-          phone: form.phone.trim(),
-          address: form.address.trim(),
-          city: form.city.trim(),
-          postalCode: form.postalCode.trim(),
-          country: form.country,
-          notes: form.notes.trim(),
-          paymentMethod: form.payment,
-          cartId,
-          items: items.map((item) => ({
-            id: item.variant_id || item.id,
-            productId: item.product_id || null,
-            quantity: item.quantity,
-            lineId: item.id,
-          })),
-        }),
+      const completion = await placeOrderDirectly({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        address: form.address.trim(),
+        city: form.city.trim(),
+        postalCode: form.postalCode.trim(),
+        country: form.country,
+        paymentMethod: form.payment as 'cod' | 'bkash',
+        cartId,
+        items: items.map((item) => ({
+          id: item.variant_id || item.id,
+          quantity: item.quantity,
+        })),
       })
-
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}))
-        throw new Error(body?.message || 'Checkout failed, please try again.')
-      }
-
-      const payload: CheckoutResponse = await response.json()
-      setResult(payload.result || null)
+      setResult(completion || null)
       clear()
       setStatus('success')
     } catch (error) {

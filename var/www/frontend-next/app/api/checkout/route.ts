@@ -24,6 +24,7 @@ type CheckoutPayload = {
   country?: string
   paymentMethod: 'cod' | 'bkash'
   notes?: string
+  debugToken?: string
 }
 
 const PAYMENT_PROVIDER_MAP: Record<CheckoutPayload['paymentMethod'], string> = {
@@ -80,9 +81,48 @@ const validatePayload = (payload: CheckoutPayload) => {
   }
 }
 
+const extractErrorDetails = (error: unknown) => {
+  const response: any = typeof error === 'object' && error && 'response' in error ? (error as any).response : null
+  const status = Number(response?.status) || 500
+  const responseData = response?.data
+  const responseMessage =
+    typeof responseData?.message === 'string' && responseData.message.trim()
+      ? responseData.message.trim()
+      : typeof responseData === 'string'
+        ? responseData
+        : null
+  const baseMessage =
+    responseMessage ||
+    (error instanceof Error
+      ? error.message
+      : typeof error === 'string'
+        ? error
+        : 'Unable to complete checkout at this time')
+
+  return {
+    status,
+    message: baseMessage,
+    data: responseData && typeof responseData === 'object' ? responseData : null,
+  }
+}
+
+const resolveDebugState = (submittedToken?: string | null) => {
+  const normalized = typeof submittedToken === 'string' ? submittedToken.trim() : ''
+  if (!normalized) {
+    return false
+  }
+  const expected = (process.env.CHECKOUT_DEBUG_TOKEN || 'checkout-debug').trim()
+  if (!expected) {
+    return false
+  }
+  return normalized === expected
+}
+
 export const POST = async (req: Request) => {
+  let debugToken: string | undefined
   try {
     const payload: CheckoutPayload = await req.json()
+    debugToken = payload?.debugToken
     const validation = validatePayload(payload)
     if (!validation.ok) {
       return NextResponse.json({ message: validation.errors.join(', ') }, { status: 400 })
@@ -158,12 +198,22 @@ export const POST = async (req: Request) => {
       { status: 200 },
     )
   } catch (error) {
-    console.error('[checkout] failed to place order', error)
-    return NextResponse.json(
-      {
-        message: 'Unable to complete checkout at this time',
-      },
-      { status: 500 },
-    )
+    const details = extractErrorDetails(error)
+    const debugEnabled = resolveDebugState(debugToken)
+    if (details.data) {
+      console.error('[checkout] failed to place order', details.message, details.data)
+    } else {
+      console.error('[checkout] failed to place order', details.message, error)
+    }
+    const body: Record<string, unknown> = {
+      message: 'Unable to complete checkout at this time',
+    }
+    if (debugEnabled) {
+      body.detail = details.message
+      if (details.data) {
+        body.data = details.data
+      }
+    }
+    return NextResponse.json(body, { status: details.status })
   }
 }
