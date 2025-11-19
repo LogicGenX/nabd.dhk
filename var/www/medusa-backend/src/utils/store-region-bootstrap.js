@@ -96,6 +96,54 @@ const ensureCurrency = async (scope, code) => {
   return record
 }
 
+const ensureStoreCurrency = async (scope, code) => {
+  const normalized = normalizeCurrencyCode(code)
+  if (!normalized) {
+    return null
+  }
+  if (!scope || typeof scope.resolve !== 'function') {
+    return null
+  }
+
+  let storeService = null
+  try {
+    storeService = scope.resolve('storeService')
+  } catch (error) {
+    console.warn('[store:ensure-region] store service unavailable:', error?.message || error)
+    return null
+  }
+  if (!storeService || typeof storeService.retrieve !== 'function') {
+    return null
+  }
+
+  let store = null
+  try {
+    store = await storeService.retrieve({ relations: ['currencies'] })
+  } catch (error) {
+    console.warn('[store:ensure-region] unable to retrieve store:', error?.message || error)
+    return null
+  }
+
+  const alreadyAdded = Array.isArray(store?.currencies)
+    ? store.currencies.some((currency) => currency && currency.code === normalized)
+    : false
+  if (alreadyAdded) {
+    return store
+  }
+
+  try {
+    await storeService.addCurrency(normalized)
+    console.log('[store:ensure-region] added currency to store', normalized)
+  } catch (error) {
+    const message = error?.message || ''
+    if (!/already added/i.test(message)) {
+      console.warn('[store:ensure-region] addCurrency failed:', message || error)
+    }
+  }
+
+  return store
+}
+
 const ensureShippingOption = async (
   shippingOptionService,
   shippingProfileService,
@@ -158,6 +206,7 @@ const ensureRegion = async (scope) => {
 
   console.log('[store:ensure-region] creating default region + shipping options')
   await ensureCurrency(scope, DEFAULT_REGION_CURRENCY)
+  await ensureStoreCurrency(scope, DEFAULT_REGION_CURRENCY)
   await paymentProviderService.registerInstalledProviders(DEFAULT_PAYMENT_PROVIDERS)
   await fulfillmentProviderService.registerInstalledProviders(DEFAULT_FULFILLMENT_PROVIDERS)
 
