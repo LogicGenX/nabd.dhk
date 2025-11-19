@@ -1,3 +1,5 @@
+const { Currency } = require('@medusajs/medusa/dist/models/currency')
+
 const DEFAULT_REGION_NAME = process.env.MEDUSA_DEFAULT_REGION_NAME || 'Bangladesh'
 const DEFAULT_REGION_CURRENCY =
   (process.env.MEDUSA_DEFAULT_REGION_CURRENCY || 'bdt').toLowerCase()
@@ -17,8 +19,82 @@ const DEFAULT_SHIPPING_AMOUNT = Number.parseInt(
   10,
 )
 
+const KNOWN_CURRENCY_METADATA = {
+  bdt: {
+    symbol: 'Tk',
+    symbol_native: 'Tk',
+    name: 'Bangladeshi Taka',
+  },
+}
+
 let bootstrapPromise = null
 let bootstrapComplete = false
+
+const normalizeCurrencyCode = (code) => String(code || '').trim().toLowerCase()
+
+const resolveCurrencyMetadata = (code) => {
+  const normalized = normalizeCurrencyCode(code)
+  const upper = normalized.toUpperCase()
+  const envSymbol = process.env.MEDUSA_DEFAULT_REGION_CURRENCY_SYMBOL
+  const envNativeSymbol =
+    process.env.MEDUSA_DEFAULT_REGION_CURRENCY_SYMBOL_NATIVE || envSymbol
+  const envName = process.env.MEDUSA_DEFAULT_REGION_CURRENCY_NAME
+  if (envSymbol || envNativeSymbol || envName) {
+    return {
+      symbol: (envSymbol || upper).trim() || upper,
+      symbol_native: (envNativeSymbol || envSymbol || upper).trim() || upper,
+      name: (envName || upper).trim() || upper,
+    }
+  }
+  if (KNOWN_CURRENCY_METADATA[normalized]) {
+    return KNOWN_CURRENCY_METADATA[normalized]
+  }
+  return {
+    symbol: upper,
+    symbol_native: upper,
+    name: upper,
+  }
+}
+
+const ensureCurrency = async (scope, code) => {
+  const normalized = normalizeCurrencyCode(code)
+  if (!normalized) {
+    throw new Error('Missing currency code')
+  }
+  if (!scope || typeof scope.resolve !== 'function') {
+    return null
+  }
+
+  let manager = null
+  try {
+    manager = scope.resolve('manager')
+  } catch (error) {
+    console.warn('[store:ensure-region] currency manager missing:', error?.message || error)
+    manager = null
+  }
+  if (!manager) {
+    return null
+  }
+
+  const repository = manager.getRepository(Currency)
+  const existing = await repository.findOne({
+    where: { code: normalized },
+  })
+  if (existing) {
+    return existing
+  }
+
+  const metadata = resolveCurrencyMetadata(normalized)
+  const record = repository.create({
+    code: normalized,
+    symbol: metadata.symbol,
+    symbol_native: metadata.symbol_native,
+    name: metadata.name,
+  })
+  await repository.save(record)
+  console.log('[store:ensure-region] created currency', normalized)
+  return record
+}
 
 const ensureShippingOption = async (
   shippingOptionService,
@@ -81,6 +157,7 @@ const ensureRegion = async (scope) => {
   }
 
   console.log('[store:ensure-region] creating default region + shipping options')
+  await ensureCurrency(scope, DEFAULT_REGION_CURRENCY)
   await paymentProviderService.registerInstalledProviders(DEFAULT_PAYMENT_PROVIDERS)
   await fulfillmentProviderService.registerInstalledProviders(DEFAULT_FULFILLMENT_PROVIDERS)
 
