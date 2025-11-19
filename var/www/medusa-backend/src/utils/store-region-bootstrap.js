@@ -200,8 +200,10 @@ const ensureRegion = async (scope) => {
     return []
   })
   if (existingRegions.length) {
+    const region = existingRegions[0]
+    await ensureShippingOption(shippingOptionService, shippingProfileService, region)
     bootstrapComplete = true
-    return existingRegions[0]
+    return region
   }
 
   console.log('[store:ensure-region] creating default region + shipping options')
