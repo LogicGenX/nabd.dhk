@@ -9,7 +9,7 @@ const DEFAULT_REGION_COUNTRIES = (process.env.MEDUSA_DEFAULT_REGION_COUNTRIES ||
   .filter(Boolean)
   .slice(0, 10)
 
-const DEFAULT_PAYMENT_PROVIDERS = ['manual', 'bkash', 'cod']
+const DEFAULT_PAYMENT_PROVIDERS = ['manual', 'bkash']
 const DEFAULT_FULFILLMENT_PROVIDERS = ['manual']
 const DEFAULT_SHIPPING_NAME = process.env.MEDUSA_DEFAULT_SHIPPING_NAME || 'Standard'
 const DEFAULT_SHIPPING_PROVIDER =

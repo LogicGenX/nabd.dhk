@@ -189,7 +189,7 @@ const resolveProviderIds = async (paymentProviderService, fulfillmentProviderSer
 }
 
 const ensureProviderRegistrations = async (paymentProviderService, fulfillmentProviderService) => {
-  const defaultPaymentProviders = ['manual', 'bkash', 'cod']
+  const defaultPaymentProviders = ['manual', 'bkash']
   const defaultFulfillmentProviders = ['manual']
 
   try {

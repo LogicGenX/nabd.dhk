@@ -32,7 +32,12 @@ module.exports = {
   },
   plugins: [
     './plugins/bkash',
-    './plugins/cod',
+    {
+      resolve: 'medusa-payment-manual',
+      options: {
+        automatic_capture: true,
+      },
+    },
     './plugins/product-policy',
     'medusa-fulfillment-manual',
     './admin-extensions',
