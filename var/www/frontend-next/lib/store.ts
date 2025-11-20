@@ -45,6 +45,13 @@ const getBrowserSafeMedusa = () => {
 
 let regionRequest: Promise<string | null> | null = null
 
+const isNotFound = (error: any) => {
+  const status = error?.response?.status || error?.status || error?.code
+  if (status === 404 || status === '404') return true
+  const message = (error?.response?.data?.message || error?.message || '').toString()
+  return message.toLowerCase().includes('not found')
+}
+
 const resolveDefaultRegionId = async () => {
   if (typeof window === 'undefined') return null
   const envRegion = process.env.NEXT_PUBLIC_MEDUSA_REGION_ID
@@ -107,15 +114,43 @@ export const useCart = create<CartState>()(
         if (typeof window === 'undefined') {
           throw new Error('Cart is unavailable during SSR')
         }
-        const current = get().cart
-        if (current && current.id) {
-          return current
-        }
         const client = getBrowserSafeMedusa()
-        const regionId = await resolveDefaultRegionId()
-        const { cart } = await client.carts.create(regionId ? { region_id: regionId } : {})
-        updateCartState(cart)
-        return cart
+
+        const createCart = async () => {
+          const regionId = await resolveDefaultRegionId()
+          const { cart } = await client.carts.create(regionId ? { region_id: regionId } : {})
+          updateCartState(cart)
+          return cart
+        }
+
+        const current = get().cart
+        if (current?.id) {
+          try {
+            const { cart } = await client.carts.retrieve(current.id)
+            updateCartState(cart)
+            return cart
+          } catch (error) {
+            if (!isNotFound(error)) throw error
+            updateCartState(null)
+            return createCart()
+          }
+        }
+
+        return createCart()
+      }
+
+      const withCart = async <T>(operation: (cart: StoreCart) => Promise<T>): Promise<T | null> => {
+        try {
+          const cart = await ensureCart()
+          return await operation(cart)
+        } catch (error) {
+          if (isNotFound(error)) {
+            updateCartState(null)
+            const cart = await ensureCart()
+            return operation(cart)
+          }
+          throw error
+        }
       }
 
       const actions = {
@@ -128,13 +163,15 @@ export const useCart = create<CartState>()(
           if (!variantId) return
           try {
             set({ loading: true })
-            const cart = await ensureCart()
-            const client = getBrowserSafeMedusa()
-            const { cart: updated } = await client.carts.lineItems.create(cart.id, {
-              variant_id: variantId,
-              quantity: Math.max(1, quantity),
+            await withCart(async (cart) => {
+              const client = getBrowserSafeMedusa()
+              const { cart: updated } = await client.carts.lineItems.create(cart.id, {
+                variant_id: variantId,
+                quantity: Math.max(1, quantity),
+              })
+              updateCartState(updated)
+              return updated
             })
-            updateCartState(updated)
           } catch (error) {
             console.error('[cart] failed to add item', error)
           } finally {
@@ -145,17 +182,19 @@ export const useCart = create<CartState>()(
           if (!lineId) return
           try {
             set({ loading: true })
-            const cart = await ensureCart()
-            const client = getBrowserSafeMedusa()
-            if (quantity <= 0) {
-              await client.carts.lineItems.delete(cart.id, lineId)
-              await refreshCart(cart.id)
-            } else {
+            await withCart(async (cart) => {
+              const client = getBrowserSafeMedusa()
+              if (quantity <= 0) {
+                await client.carts.lineItems.delete(cart.id, lineId)
+                await refreshCart(cart.id)
+                return null
+              }
               const { cart: updated } = await client.carts.lineItems.update(cart.id, lineId, {
                 quantity: Math.max(1, quantity),
               })
               updateCartState(updated)
-            }
+              return updated
+            })
           } catch (error) {
             console.error('[cart] failed to update quantity', error)
           } finally {
