@@ -13,19 +13,22 @@ export default function CartPage() {
 
   const items = cart?.items || []
 
+  const setQuantity = (id: string, quantity: number) => {
+    updateQuantity(id, quantity < 1 ? 1 : quantity)
+  }
+
   if (items.length === 0) {
     return (
-      <main className='flex min-h-screen'>
-        <div className='hidden md:block w-1/3 relative'>
-          <Image src='/placeholder.svg' alt='Empty cart illustration' fill className='object-cover' />
-        </div>
-        <div className='flex w-full md:w-2/3 flex-col items-center justify-center text-center relative'>
-          <h1 className='absolute top-4 left-4 font-extrabold tracking-brand text-black/40'>
-            CART<sup>{items.length}</sup>
-          </h1>
-          <p className='text-3xl md:text-4xl font-extrabold uppercase tracking-brand text-black/50 mb-6'>YOUR CART IS EMPTY</p>
-          <Link href='/shop' className='px-6 py-2 bg-gray-200 text-gray-700 rounded-full shadow-inner'>
-            Continue Shopping
+      <main className='mx-auto flex min-h-[70vh] max-w-4xl items-center justify-center px-4 py-12'>
+        <div className='space-y-4 rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-sm sm:p-10'>
+          <p className='text-xs font-semibold uppercase tracking-[0.2em] text-slate-500'>Cart</p>
+          <h1 className='text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl'>Your cart is empty</h1>
+          <p className='text-sm text-slate-600'>Add something you love and it will appear here.</p>
+          <Link
+            href='/shop'
+            className='inline-flex w-full items-center justify-center rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 sm:w-auto'
+          >
+            Browse products
           </Link>
         </div>
       </main>
@@ -33,108 +36,127 @@ export default function CartPage() {
   }
 
   return (
-    <main className='max-w-screen-md mx-auto p-4 md:p-8 space-y-4'>
-      <h1 className='text-2xl md:text-3xl font-bold mb-4 tracking-tight'>Cart</h1>
-      <div className='overflow-x-auto'>
-        <table className='w-full border-collapse'>
-          <thead>
-            <tr className='border-b border-gray-200 text-sm'>
-              <th className='p-2 text-left'>Item</th>
-              <th className='p-2'>Quantity</th>
-              <th className='p-2'>Unit Price</th>
-              <th className='p-2'>Total</th>
-              <th className='p-2' />
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => (
-              <tr key={item.id} className='border-b border-gray-200'>
-                <td className='p-2'>
-                  <div className='flex items-center gap-4'>
-                    <Image
-                      src={item.thumbnail || '/placeholder.svg'}
-                      alt={item.title}
-                      width={60}
-                      height={60}
-                      className='object-cover rounded'
-                    />
-                    <div>
-                      <p className='font-medium'>{item.title}</p>
-                      {item.description && (
-                        <p className='text-xs text-gray-500'>{item.description}</p>
-                      )}
-                    </div>
+    <main className='mx-auto max-w-4xl space-y-6 px-4 py-8 sm:py-10'>
+      <header className='flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between'>
+        <div>
+          <p className='text-xs font-semibold uppercase tracking-[0.2em] text-slate-500'>Cart</p>
+          <h1 className='text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl'>Review your items</h1>
+        </div>
+        <p className='text-sm text-slate-600'>Subtotal {formatAmount(totalPrice())}</p>
+      </header>
+
+      <section className='space-y-4'>
+        {items.map((item) => {
+          const unitPrice = formatAmount((item.unit_price || 0) / 100)
+          const lineTotal = formatAmount(
+            ((typeof item.total === 'number' ? item.total : item.unit_price * item.quantity) || 0) / 100,
+          )
+
+          return (
+            <article
+              key={item.id}
+              className='grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-[140px_1fr]'
+            >
+              <div className='relative aspect-square w-full overflow-hidden rounded-xl bg-slate-100 sm:h-full'>
+                <Image
+                  src={item.thumbnail || '/placeholder.svg'}
+                  alt={item.title}
+                  fill
+                  sizes='(min-width: 640px) 140px, 100vw'
+                  className='object-cover'
+                />
+              </div>
+
+              <div className='flex flex-col gap-4'>
+                <div className='flex flex-wrap items-start justify-between gap-3'>
+                  <div className='space-y-1'>
+                    <p className='text-base font-semibold text-slate-900 sm:text-lg'>{item.title}</p>
+                    {item.description && <p className='text-sm text-slate-600'>{item.description}</p>}
+                    <p className='text-xs text-slate-500 break-all'>{item.id}</p>
                   </div>
-                </td>
-                <td className='p-2'>
-                  <div className='flex items-center border border-gray-300 rounded w-max'>
+                  <button
+                    type='button'
+                    onClick={() => updateQuantity(item.id, 0)}
+                    className='inline-flex items-center gap-2 rounded-full border border-transparent px-3 py-1 text-sm font-medium text-slate-500 transition hover:border-slate-200 hover:bg-slate-50 hover:text-slate-800'
+                    aria-label={`Remove ${item.title}`}
+                  >
+                    <FaTrash className='text-xs' />
+                    Remove
+                  </button>
+                </div>
+
+                <div className='flex flex-wrap items-center gap-4 sm:gap-6'>
+                  <div className='inline-flex items-center rounded-full border border-slate-300 bg-slate-50 px-2 shadow-inner'>
                     <button
-                      className='px-2'
-                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                      aria-label='Decrease quantity'
+                      type='button'
+                      onClick={() => setQuantity(item.id, item.quantity - 1)}
+                      aria-label={`Decrease quantity for ${item.title}`}
+                      className='h-10 w-10 text-lg font-semibold text-slate-700 hover:text-slate-900'
                     >
                       -
                     </button>
                     <input
                       type='number'
                       min={1}
+                      inputMode='numeric'
+                      className='w-14 border-0 bg-transparent text-center text-base font-semibold outline-none'
                       value={item.quantity}
-                      onChange={(e) => {
-                        const value = parseInt(e.target.value, 10)
-                        if (isNaN(value) || value < 1) {
-                          updateQuantity(item.id, 1)
-                        } else {
-                          updateQuantity(item.id, value)
-                        }
+                      onChange={(event) => {
+                        const next = parseInt(event.target.value || '1', 10)
+                        setQuantity(item.id, Number.isFinite(next) ? next : 1)
                       }}
-                      className='w-12 text-center border-l border-r border-gray-300'
+                      aria-label={`Quantity for ${item.title}`}
                     />
                     <button
-                      className='px-2'
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      aria-label='Increase quantity'
+                      type='button'
+                      onClick={() => setQuantity(item.id, item.quantity + 1)}
+                      aria-label={`Increase quantity for ${item.title}`}
+                      className='h-10 w-10 text-lg font-semibold text-slate-700 hover:text-slate-900'
                     >
                       +
                     </button>
                   </div>
-                </td>
-                <td className='p-2'>{formatAmount((item.unit_price || 0) / 100)}</td>
-                <td className='p-2 font-semibold'>
-                  {formatAmount(
-                    ((typeof item.total === 'number' ? item.total : item.unit_price * item.quantity) || 0) / 100,
-                  )}
-                </td>
-                <td className='p-2 text-center'>
-                  <button
-                    onClick={() => updateQuantity(item.id, 0)}
-                    aria-label='Remove item'
-                  >
-                    <FaTrash />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className='flex justify-between items-center font-semibold pt-4'>
-        <span>Subtotal ({totalItems()} items)</span>
-        <span className='text-xl'>{formatAmount(totalPrice())}</span>
-      </div>
-      <div className='flex gap-4 pt-4'>
-        <Link
-          href='/shop'
-          className='px-4 py-2 border border-gray-300 rounded-md text-gray-600'
-        >
-          Continue Shopping
-        </Link>
-        <Link
-          href='/checkout'
-          className='px-4 py-2 bg-accent text-white rounded-md hover:bg-accent/90'
-        >
-          Checkout
-        </Link>
-      </div>
+
+                  <div className='flex flex-1 flex-wrap items-center gap-4 text-sm text-slate-600 sm:justify-end'>
+                    <div className='flex flex-col'>
+                      <span className='text-xs uppercase tracking-wide text-slate-500'>Unit</span>
+                      <span className='font-semibold text-slate-900'>{unitPrice}</span>
+                    </div>
+                    <div className='flex flex-col text-right sm:text-left'>
+                      <span className='text-xs uppercase tracking-wide text-slate-500'>Total</span>
+                      <span className='text-lg font-bold text-slate-900'>{lineTotal}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+          )
+        })}
+      </section>
+
+      <section className='space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6'>
+        <div className='flex items-center justify-between text-sm text-slate-600'>
+          <span>Subtotal ({totalItems()} items)</span>
+          <span className='text-xl font-bold text-slate-900'>{formatAmount(totalPrice())}</span>
+        </div>
+        <p className='text-xs text-slate-500'>
+          Shipping and discounts are applied at checkout. We&apos;ll confirm your order details before you pay.
+        </p>
+        <div className='flex flex-col gap-3 sm:flex-row sm:justify-end'>
+          <Link
+            href='/shop'
+            className='inline-flex w-full items-center justify-center rounded-full border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 sm:w-auto'
+          >
+            Continue shopping
+          </Link>
+          <Link
+            href='/checkout'
+            className='inline-flex w-full items-center justify-center rounded-full bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 sm:w-auto'
+          >
+            Checkout
+          </Link>
+        </div>
+      </section>
     </main>
   )
 }
